@@ -1,12 +1,8 @@
 import { BaseUIComponent } from '../components/BaseUIComponent';
-import { GameLoop } from '../../../application/game-loop/GameLoop';
 
 export class GameOver extends BaseUIComponent {
-    private _gameLoop: GameLoop;
-
-    constructor(gameLoop: GameLoop) {
+    constructor() {
         super('game-over');
-        this._gameLoop = gameLoop;
         this.container.classList.add('voxel-panel');
     }
 

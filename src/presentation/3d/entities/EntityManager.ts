@@ -19,6 +19,7 @@ export class EntityManager {
   private time: number = 0;
   private waterMaterialUniforms: any = null;
   private particleSystem: ParticleSystem;
+  private currentRippleIndex: number = 0;
 
   constructor(scene: THREE.Scene) {
     this.scene = scene;
@@ -58,8 +59,9 @@ export class EntityManager {
         baseColor: { value: new THREE.Color(0x1E90FF) },
         peakColor: { value: new THREE.Color(0x87CEFA) },
         opacity: { value: 0.9 },
-        rippleCenter: { value: new THREE.Vector2(0, 0) },
-        rippleTime: { value: 0.0 }
+        globalTurbulence: { value: 0.0 },
+        rippleCenters: { value: [new THREE.Vector2(), new THREE.Vector2(), new THREE.Vector2(), new THREE.Vector2(), new THREE.Vector2()] },
+        rippleTimes: { value: [0.0, 0.0, 0.0, 0.0, 0.0] }
       },
       transparent: true,
       side: THREE.FrontSide
@@ -136,6 +138,14 @@ export class EntityManager {
   public showEnemyBoard() {
     this.targetRotationX = Math.PI;
   }
+  
+  private addRipple(worldX: number, worldZ: number) {
+      if (this.waterMaterialUniforms) {
+          this.waterMaterialUniforms.rippleCenters.value[this.currentRippleIndex].set(worldX, -worldZ);
+          this.waterMaterialUniforms.rippleTimes.value[this.currentRippleIndex] = 0.01;
+          this.currentRippleIndex = (this.currentRippleIndex + 1) % 5;
+      }
+  }
 
   public update() {
       // Smoothly lerp board rotation
@@ -147,12 +157,16 @@ export class EntityManager {
       this.time += waterTimeIncrement;
       if (this.waterMaterialUniforms) {
           this.waterMaterialUniforms.time.value = this.time;
-          if (this.waterMaterialUniforms.rippleTime.value > 0) {
-              this.waterMaterialUniforms.rippleTime.value += waterTimeIncrement;
-              // Shorten max ripple time based on speed to match visuals
-              if (this.waterMaterialUniforms.rippleTime.value > (2.0 / Config.timing.gameSpeedMultiplier)) {
-                  this.waterMaterialUniforms.rippleTime.value = 0; // Stop
+          for (let i = 0; i < 5; i++) {
+              if (this.waterMaterialUniforms.rippleTimes.value[i] > 0) {
+                  this.waterMaterialUniforms.rippleTimes.value[i] += waterTimeIncrement;
+                  if (this.waterMaterialUniforms.rippleTimes.value[i] > (2.0 / Config.timing.gameSpeedMultiplier)) {
+                      this.waterMaterialUniforms.rippleTimes.value[i] = 0; // Stop
+                  }
               }
+          }
+          if (this.waterMaterialUniforms.globalTurbulence.value > 0) {
+              this.waterMaterialUniforms.globalTurbulence.value = Math.max(0, this.waterMaterialUniforms.globalTurbulence.value - waterTimeIncrement * 0.2);
           }
       }
       
@@ -220,6 +234,10 @@ export class EntityManager {
       block.castShadow = true;
       block.receiveShadow = true;
       targetGroup.add(block);
+      
+      if (i === Math.floor(ship.size / 2)) {
+          this.addRipple(worldX, worldZ);
+      }
     }
   }
 
@@ -279,10 +297,9 @@ export class EntityManager {
     targetGroup.add(marker);
     
     // Trigger water ripple
-    if (this.waterMaterialUniforms) {
-        // Z is inverted in PlaneGeometry relative to world Z when rotated by -PI/2
-        this.waterMaterialUniforms.rippleCenter.value.set(worldX, -worldZ);
-        this.waterMaterialUniforms.rippleTime.value = 0.01;
+    this.addRipple(worldX, worldZ);
+    if (result === 'sunk' && this.waterMaterialUniforms) {
+        this.waterMaterialUniforms.globalTurbulence.value = 0.4;
     }
     
     this.fallingMarkers.push({ 

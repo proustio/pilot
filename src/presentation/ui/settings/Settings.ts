@@ -9,6 +9,14 @@ export class Settings extends BaseUIComponent {
         this.container.style.zIndex = '100';
     }
 
+    protected onShow(): void {
+        document.dispatchEvent(new CustomEvent('SET_INTERACTION_ENABLED', { detail: { enabled: false } }));
+    }
+
+    protected onHide(): void {
+        document.dispatchEvent(new CustomEvent('SET_INTERACTION_ENABLED', { detail: { enabled: true } }));
+    }
+
     protected render(): void {
         this.container.innerHTML = `
             <h2 class="voxel-title" style="font-size: 2rem;">Settings</h2>

@@ -27,7 +27,7 @@ export class UIManager {
         this.mainMenu = new MainMenu(this.gameLoop);
         this.hud = new HUD(this.gameLoop);
         this.settings = new Settings();
-        this.gameOver = new GameOver(this.gameLoop);
+        this.gameOver = new GameOver();
 
         // Mount components to the UI wrapper
         this.mainMenu.mount(this.uiLayer);
@@ -68,12 +68,18 @@ export class UIManager {
 
         if (newState === GameState.MAIN_MENU) {
             this.mainMenu.show();
+            document.dispatchEvent(new CustomEvent('SET_INTERACTION_ENABLED', { detail: { enabled: false } }));
         } else if (newState === GameState.GAME_OVER) {
             this.gameOver.show();
             const status = this.gameLoop.match?.checkGameEnd() || 'enemy_wins';
             this.gameOver.updateMessage(status);
+            document.dispatchEvent(new CustomEvent('SET_INTERACTION_ENABLED', { detail: { enabled: false } }));
         } else {
             this.hud.show();
+            // Note: If coming from main menu to setup board, enable interaction. Settings handles its own toggle via onShow/onHide.
+            if (!this.settings['isVisible']) {
+                document.dispatchEvent(new CustomEvent('SET_INTERACTION_ENABLED', { detail: { enabled: true } }));
+            }
         }
     }
 }

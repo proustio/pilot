@@ -60,6 +60,15 @@ export class GameLoop {
                 }
             }
         });
+
+        // Listen for Ship Rotation requested by key
+        document.addEventListener('keydown', (e: KeyboardEvent) => {
+            if (e.key.toLowerCase() === 'r' && this.currentState === GameState.SETUP_BOARD) {
+                this.currentPlacementOrientation = this.currentPlacementOrientation === Orientation.Horizontal 
+                    ? Orientation.Vertical 
+                    : Orientation.Horizontal;
+            }
+        });
     }
 
     /**

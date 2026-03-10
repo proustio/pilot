@@ -23,6 +23,9 @@ const init = () => {
         // 4. Initialize Core Game Loop Logic
         const gameLoop = new GameLoop();
         
+        // Pass gameLoop to InteractionManager for context-aware raycasting
+        interactionManager.setGameLoop(gameLoop);
+        
         // 5. Initialize UI Manager (Hooks UI into GameLoop)
         const uiManager = new UIManager(gameLoop);
         (window as any).uiManager = uiManager; // Expose to window for debugging and prevent unused warning
