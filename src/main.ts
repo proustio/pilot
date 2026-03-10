@@ -47,6 +47,10 @@ const init = () => {
         const FPS_CAP = 60;
         const frameInterval = 1000 / FPS_CAP;
         let lastFrameTime = performance.now();
+        
+        // FPS Counter variables
+        let framesRendered = 0;
+        let lastFpsUpdateTime = performance.now();
 
         const animate = (time: DOMHighResTimeStamp) => {
             requestAnimationFrame(animate);
@@ -59,6 +63,15 @@ const init = () => {
             }
             
             lastFrameTime = time - (deltaTime % frameInterval);
+            
+            // Calculate FPS
+            framesRendered++;
+            if (time - lastFpsUpdateTime >= 1000) {
+                const fps = Math.round((framesRendered * 1000) / (time - lastFpsUpdateTime));
+                document.dispatchEvent(new CustomEvent('UPDATE_FPS', { detail: { fps } }));
+                framesRendered = 0;
+                lastFpsUpdateTime = time;
+            }
             
             // Update systems
             interactionManager.update();

@@ -28,6 +28,11 @@ export class Settings extends BaseUIComponent {
             </div>
 
             <div class="settings-row">
+                <label>Show FPS Counter:</label>
+                <input type="checkbox" id="toggle-fps" ${Config.visual.showFpsCounter ? 'checked' : ''} style="transform: scale(2);">
+            </div>
+
+            <div class="settings-row">
                 <label>Auto-Battler:</label>
                 <input type="checkbox" id="toggle-auto-battler" ${Config.autoBattler ? 'checked' : ''} style="transform: scale(2);">
             </div>
@@ -55,6 +60,13 @@ export class Settings extends BaseUIComponent {
         toggleHud.addEventListener('change', (e) => {
             const isChecked = (e.target as HTMLInputElement).checked;
             document.dispatchEvent(new CustomEvent('TOGGLE_HUD', { detail: { show: isChecked } }));
+        });
+        
+        const toggleFps = this.container.querySelector('#toggle-fps') as HTMLInputElement;
+        toggleFps.addEventListener('change', (e) => {
+            const isChecked = (e.target as HTMLInputElement).checked;
+            Config.visual.showFpsCounter = isChecked;
+            document.dispatchEvent(new CustomEvent('TOGGLE_FPS_COUNTER', { detail: { show: isChecked } }));
         });
         
         const gameSpeedSelect = this.container.querySelector('#game-speed') as HTMLSelectElement;

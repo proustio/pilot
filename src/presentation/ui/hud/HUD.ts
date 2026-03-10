@@ -7,6 +7,7 @@ export class HUD extends BaseUIComponent {
     private turnIndicator!: HTMLElement;
     private playerFleetStatus!: HTMLElement;
     private enemyFleetStatus!: HTMLElement;
+    private fpsCounter!: HTMLElement;
 
     constructor(gameLoop: GameLoop) {
         super('hud');
@@ -41,11 +42,16 @@ export class HUD extends BaseUIComponent {
                 <button id="hud-btn-speed" class="voxel-btn ui-interactive" style="width: auto; padding: 10px;">Speed: ${Config.timing.gameSpeedMultiplier}x</button>
                 <button id="hud-btn-settings" class="voxel-btn ui-interactive" style="width: auto; padding: 10px;">Options</button>
             </div>
+            
+            <div id="fps-counter" style="position: absolute; top: 10px; right: 10px; color: #00ff00; font-family: monospace; font-size: 1.2rem; font-weight: bold; text-shadow: 1px 1px 2px #000; display: ${Config.visual.showFpsCounter ? 'block' : 'none'}; z-index: 1000; pointer-events: none;">
+                FPS: 60
+            </div>
         `;
 
         this.turnIndicator = this.container.querySelector('#turn-indicator') as HTMLElement;
         this.playerFleetStatus = this.container.querySelector('#player-ships') as HTMLElement;
         this.enemyFleetStatus = this.container.querySelector('#enemy-ships') as HTMLElement;
+        this.fpsCounter = this.container.querySelector('#fps-counter') as HTMLElement;
         
         const settingsBtn = this.container.querySelector('#hud-btn-settings') as HTMLButtonElement;
         settingsBtn.addEventListener('click', () => {
@@ -79,6 +85,20 @@ export class HUD extends BaseUIComponent {
             Config.visual.isDayMode = !Config.visual.isDayMode;
             dayNightBtn.innerText = Config.visual.isDayMode ? '☀️' : '🌙';
             document.dispatchEvent(new CustomEvent('TOGGLE_DAY_NIGHT', { detail: { isDay: Config.visual.isDayMode } }));
+        });
+        
+        document.addEventListener('UPDATE_FPS', (e: Event) => {
+            const customEvent = e as CustomEvent;
+            if (customEvent.detail && customEvent.detail.fps !== undefined) {
+                this.fpsCounter.innerText = `FPS: ${customEvent.detail.fps}`;
+            }
+        });
+        
+        document.addEventListener('TOGGLE_FPS_COUNTER', (e: Event) => {
+            const customEvent = e as CustomEvent;
+            if (customEvent.detail && customEvent.detail.show !== undefined) {
+                this.fpsCounter.style.display = customEvent.detail.show ? 'block' : 'none';
+            }
         });
     }
     

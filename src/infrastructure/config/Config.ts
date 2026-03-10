@@ -17,7 +17,8 @@ export const Config = {
         cameraLerpSpeed: 0.05         // Base lerp speed for camera movement
     },
     visual: {
-        isDayMode: new Date().getHours() >= 6 && new Date().getHours() < 18
+        isDayMode: new Date().getHours() >= 6 && new Date().getHours() < 18,
+        showFpsCounter: false
     },
     autoBattler: false
 };
