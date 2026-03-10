@@ -1,6 +1,7 @@
 import { Match } from '../../domain/match/Match';
 import { Ship, Orientation } from '../../domain/fleet/Ship';
 import { AIEngine, AIDifficulty } from '../ai/AIEngine';
+import { Config } from '../../infrastructure/config/Config';
 
 export enum GameState {
     MAIN_MENU = 'MAIN_MENU',
@@ -22,6 +23,7 @@ export class GameLoop {
     public currentPlacementOrientation: Orientation = Orientation.Horizontal;
     public isAnimating: boolean = false;
     public aiEngine: AIEngine;
+    public playerAIEngine: AIEngine;
 
     private listeners: StateChangeListener[] = [];
     private shipPlacedListeners: ShipPlacedListener[] = [];
@@ -29,12 +31,24 @@ export class GameLoop {
 
     constructor() {
         this.aiEngine = new AIEngine();
+        this.playerAIEngine = new AIEngine();
         
         // Listen for AI difficulty changes
         document.addEventListener('SET_AI_DIFFICULTY', (e: Event) => {
             const customEvent = e as CustomEvent;
             if (customEvent.detail && customEvent.detail.difficulty) {
                 this.aiEngine.setDifficulty(customEvent.detail.difficulty as AIDifficulty);
+                this.playerAIEngine.setDifficulty(customEvent.detail.difficulty as AIDifficulty);
+            }
+        });
+
+        // Listen for Auto-Battler toggling
+        document.addEventListener('TOGGLE_AUTO_BATTLER', (e: Event) => {
+            const customEvent = e as CustomEvent;
+            if (customEvent.detail !== undefined) {
+                if (Config.autoBattler && this.currentState === GameState.PLAYER_TURN && !this.isAnimating) {
+                    this.handleAutoPlayerTurn();
+                }
             }
         });
     }
@@ -69,6 +83,8 @@ export class GameLoop {
         // Handle automated state triggers
         if (newState === GameState.ENEMY_TURN) {
             this.handleEnemyTurn();
+        } else if (newState === GameState.PLAYER_TURN && Config.autoBattler) {
+            this.handleAutoPlayerTurn();
         }
     }
 
@@ -78,9 +94,33 @@ export class GameLoop {
     public startNewMatch(match: Match) {
         this.match = match;
         this.aiEngine.reset();
+        this.playerAIEngine.reset();
         
         // Setup fleets
         this.playerShipsToPlace = match.getRequiredFleet();
+        
+        // Auto-place player ships if Auto-Battler is ON initially
+        if (Config.autoBattler) {
+            const playerShips = match.getRequiredFleet();
+            for (const ship of playerShips) {
+                let placed = false;
+                let attempts = 0;
+                while (!placed && attempts < 1000) {
+                    const x = Math.floor(Math.random() * match.playerBoard.width);
+                    const z = Math.floor(Math.random() * match.playerBoard.height);
+                    const orient = Math.random() > 0.5 ? Orientation.Horizontal : Orientation.Vertical;
+                    
+                    if (match.validatePlacement(match.playerBoard, ship, x, z, orient)) {
+                        placed = match.playerBoard.placeShip(ship, x, z, orient);
+                        if (placed) {
+                            this.shipPlacedListeners.forEach(l => l(ship, x, z, orient, true));
+                        }
+                    }
+                    attempts++;
+                }
+            }
+            this.playerShipsToPlace = [];
+        }
         
         // Auto-place enemy ships (temporary basic random placement)
         const enemyShips = match.getRequiredFleet();
@@ -102,7 +142,11 @@ export class GameLoop {
             }
         }
 
-        this.transitionTo(GameState.SETUP_BOARD);
+        if (this.playerShipsToPlace.length === 0) {
+            this.transitionTo(GameState.PLAYER_TURN);
+        } else {
+            this.transitionTo(GameState.SETUP_BOARD);
+        }
     }
     
     /**
@@ -151,6 +195,43 @@ export class GameLoop {
         }, 1000); // 1s thinking time
     }
 
+    private handleAutoPlayerTurn() {
+        if (!this.match || this.isAnimating) return;
+
+        console.log(`Auto-Battler is thinking...`);
+        this.isAnimating = true;
+
+        setTimeout(() => {
+            if (!this.match) return;
+            
+            // Ask Player AI Engine for next move against Enemy Board
+            const target = this.playerAIEngine.computeNextMove(this.match.enemyBoard, this.match);
+            
+            // Perform Attack
+            const result = this.match.enemyBoard.receiveAttack(target.x, target.z);
+            
+            // Report result back to AI so it can learn
+            this.playerAIEngine.reportResult(target.x, target.z, result.toString(), this.match.enemyBoard);
+            
+            // Show the result maker
+            this.attackResultListeners.forEach(l => l(target.x, target.z, result.toString(), true));
+            
+            // Wait 2000ms for player to see what happened before flipping board
+            setTimeout(() => {
+                // Re-evaluate game over
+                const status = this.match!.checkGameEnd();
+                this.isAnimating = false;
+                
+                if (status !== 'ongoing') {
+                    this.transitionTo(GameState.GAME_OVER);
+                } else {
+                    this.transitionTo(GameState.ENEMY_TURN);
+                }
+            }, 2000);
+            
+        }, 1000); // 1s thinking time
+    }
+
     /**
      * External input hook (from 3D interactions)
      */
@@ -178,7 +259,7 @@ export class GameLoop {
             }
 
         } else if (this.currentState === GameState.PLAYER_TURN) {
-            if (this.isAnimating) return; // Prevent spam clicking
+            if (this.isAnimating || Config.autoBattler) return; // Prevent spam clicking and manual play when auto-battler is on
 
             console.log(`Player attacking enemy grid at ${x},${z}`);
             const result = this.match.enemyBoard.receiveAttack(x, z);

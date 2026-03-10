@@ -1,4 +1,5 @@
 import { BaseUIComponent } from '../components/BaseUIComponent';
+import { Config } from '../../../infrastructure/config/Config';
 
 export class Settings extends BaseUIComponent {
     constructor() {
@@ -24,6 +25,11 @@ export class Settings extends BaseUIComponent {
             <div class="settings-row">
                 <label>Show HUD:</label>
                 <input type="checkbox" id="toggle-hud" checked style="transform: scale(2);">
+            </div>
+
+            <div class="settings-row">
+                <label>Auto-Battler:</label>
+                <input type="checkbox" id="toggle-auto-battler" ${Config.autoBattler ? 'checked' : ''} style="transform: scale(2);">
             </div>
 
             <div class="settings-row">
@@ -57,6 +63,14 @@ export class Settings extends BaseUIComponent {
             const difficulty = (e.target as HTMLSelectElement).value;
             // dispatch custom event to AI system later
             console.log("AI Difficulty set to: ", difficulty);
+            document.dispatchEvent(new CustomEvent('SET_AI_DIFFICULTY', { detail: { difficulty } }));
+        });
+
+        const autoBattlerSettingsToggle = this.container.querySelector('#toggle-auto-battler') as HTMLInputElement;
+        autoBattlerSettingsToggle.addEventListener('change', (e) => {
+            const isChecked = (e.target as HTMLInputElement).checked;
+            Config.autoBattler = isChecked;
+            document.dispatchEvent(new CustomEvent('TOGGLE_AUTO_BATTLER', { detail: { enabled: isChecked } }));
         });
     }
 }

@@ -7,5 +7,6 @@ export const Config = {
     storage: {
         maxSlots: 3,
         prefix: 'battleships_save_'
-    }
+    },
+    autoBattler: false
 };

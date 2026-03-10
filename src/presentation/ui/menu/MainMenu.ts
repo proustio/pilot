@@ -1,6 +1,7 @@
 import { BaseUIComponent } from '../components/BaseUIComponent';
 import { GameLoop } from '../../../application/game-loop/GameLoop';
 import { Match, MatchMode } from '../../../domain/match/Match';
+import { Config } from '../../../infrastructure/config/Config';
 
 export class MainMenu extends BaseUIComponent {
     private gameLoop: GameLoop;
@@ -22,7 +23,11 @@ export class MainMenu extends BaseUIComponent {
                     <option value="russian">Russian (No Touching)</option>
                     <option value="rogue">Rogue (Placeholder)</option>
                 </select>
-                <button id="btn-new-game" class="voxel-btn primary">New Game</button>
+                <div style="margin-top: 10px; display: flex; align-items: center; gap: 10px;">
+                    <label for="auto-battler-toggle">Auto-Battler:</label>
+                    <input type="checkbox" id="auto-battler-toggle" ${Config.autoBattler ? 'checked' : ''} style="transform: scale(1.5);">
+                </div>
+                <button id="btn-new-game" class="voxel-btn primary" style="margin-top: 15px;">New Game</button>
             </div>
 
             <div style="margin-top: 20px; width: 100%; border-top: 2px dashed #555; padding-top: 20px;">
@@ -38,9 +43,12 @@ export class MainMenu extends BaseUIComponent {
         // Bind events
         const newGameBtn = this.container.querySelector('#btn-new-game') as HTMLButtonElement;
         const modeSelect = this.container.querySelector('#mode-select') as HTMLSelectElement;
+        const autoBattlerToggle = this.container.querySelector('#auto-battler-toggle') as HTMLInputElement;
 
         newGameBtn.addEventListener('click', () => {
             const modeValue = modeSelect.value as string;
+            Config.autoBattler = autoBattlerToggle.checked;
+
             let matchMode = MatchMode.Classic;
             
             if (modeValue === 'russian') {
