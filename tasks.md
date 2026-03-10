@@ -35,14 +35,14 @@ This document contains a step-by-step plan to implement the 3D voxel-based Battl
     - [x] Implement win/loss condition evaluation (all player/enemy ships sank).
 
 ## Phase 4: Application & Infrastructure
-- [ ] **Configuration** (`src/infrastructure/config/`)
-    - [ ] Define global settings and layouts for each mode type.
-- [ ] **Game Loop Engine** (`src/application/game-loop/`)
-    - [ ] Build the Game State Machine (`MAIN_MENU`, `SETUP_BOARD`, `PLAYER_TURN`, `ENEMY_TURN`, `GAME_OVER`).
-    - [ ] Implement state transition logic and turn orchestration.
-- [ ] **Storage Mechanism** (`src/infrastructure/storage/`)
-    - [ ] Implement `localStorage` or `IndexedDB` data adapter.
-    - [ ] Create Game Save & Load logic supporting exactly 3 save slots.
+- [x] **Configuration** (`src/infrastructure/config/`)
+    - [x] Define global settings and layouts for each mode type.
+- [x] **Game Loop Engine** (`src/application/game-loop/`)
+    - [x] Build the Game State Machine (`MAIN_MENU`, `SETUP_BOARD`, `PLAYER_TURN`, `ENEMY_TURN`, `GAME_OVER`).
+    - [x] Implement state transition logic and turn orchestration.
+- [x] **Storage Mechanism** (`src/infrastructure/storage/`)
+    - [x] Implement `localStorage` or `IndexedDB` data adapter.
+    - [x] Create Game Save & Load logic supporting exactly 3 save slots.
 
 ## Phase 5: UI & Overlays
 - [ ] **Main Menu** (`src/presentation/ui/menu/`)
