@@ -19,6 +19,7 @@ export class GameLoop {
     
     public playerShipsToPlace: Ship[] = [];
     public currentPlacementOrientation: Orientation = Orientation.Horizontal;
+    public isAnimating: boolean = false;
 
     private listeners: StateChangeListener[] = [];
     private shipPlacedListeners: ShipPlacedListener[] = [];
@@ -109,6 +110,7 @@ export class GameLoop {
 
         // Placeholder: Enemy AI will pick a spot here
         console.log('Enemy is thinking...');
+        this.isAnimating = true;
 
         setTimeout(() => {
             if (!this.match) return;
@@ -122,16 +124,23 @@ export class GameLoop {
                 result = this.match.playerBoard.receiveAttack(x, z);
             }
             
+            // Show the result maker
             this.attackResultListeners.forEach(l => l(x, z, result, false));
             
-            // Re-evaluate game over
-            const status = this.match!.checkGameEnd();
-            if (status !== 'ongoing') {
-                this.transitionTo(GameState.GAME_OVER);
-            } else {
-                this.transitionTo(GameState.PLAYER_TURN);
-            }
-        }, 1000);
+            // Wait 2000ms for player to see what happened before flipping board
+            setTimeout(() => {
+                // Re-evaluate game over
+                const status = this.match!.checkGameEnd();
+                this.isAnimating = false;
+                
+                if (status !== 'ongoing') {
+                    this.transitionTo(GameState.GAME_OVER);
+                } else {
+                    this.transitionTo(GameState.PLAYER_TURN);
+                }
+            }, 2000);
+            
+        }, 2000); // Wait 2s total for board spin + 1s thinking time
     }
 
     /**
@@ -161,19 +170,28 @@ export class GameLoop {
             }
 
         } else if (this.currentState === GameState.PLAYER_TURN) {
+            if (this.isAnimating) return; // Prevent spam clicking
+
             console.log(`Player attacking enemy grid at ${x},${z}`);
             const result = this.match.enemyBoard.receiveAttack(x, z);
             
             if (result !== 'invalid') {
                 this.attackResultListeners.forEach(l => l(x, z, result, true));
                 
-                // Successful action, check if game ended
-                const status = this.match.checkGameEnd();
-                if (status !== 'ongoing') {
-                    this.transitionTo(GameState.GAME_OVER);
-                } else {
-                    this.transitionTo(GameState.ENEMY_TURN);
-                }
+                this.isAnimating = true;
+
+                // Wait 2000ms for player to see what happened before flipping board
+                setTimeout(() => {
+                    // Successful action, check if game ended
+                    const status = this.match!.checkGameEnd();
+                    this.isAnimating = false;
+                    
+                    if (status !== 'ongoing') {
+                        this.transitionTo(GameState.GAME_OVER);
+                    } else {
+                        this.transitionTo(GameState.ENEMY_TURN);
+                    }
+                }, 2000);
             }
         }
     }

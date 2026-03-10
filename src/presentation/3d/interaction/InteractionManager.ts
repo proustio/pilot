@@ -5,7 +5,7 @@ export class InteractionManager {
   private mouse: THREE.Vector2;
   
   private camera: THREE.PerspectiveCamera;
-  private interactableObjects: THREE.Object3D[];
+  private entityManager: any; // We'll type this dynamically to avoid circular issues
   
   // Highlight cursor UI
   private hoverCursor: THREE.Mesh;
@@ -13,9 +13,9 @@ export class InteractionManager {
   
   private clickListeners: ((intersection: THREE.Intersection) => void)[] = [];
 
-  constructor(scene: THREE.Scene, camera: THREE.PerspectiveCamera, interactableObjects: THREE.Object3D[]) {
+  constructor(scene: THREE.Scene, camera: THREE.PerspectiveCamera, entityManager: any) {
     this.camera = camera;
-    this.interactableObjects = interactableObjects;
+    this.entityManager = entityManager;
     
     this.raycaster = new THREE.Raycaster();
     this.mouse = new THREE.Vector2();
@@ -46,7 +46,8 @@ export class InteractionManager {
     // We already have this.mouse updated from onMouseMove, 
     // but just in case, we use the stored mouse pos and update raycaster
     this.raycaster.setFromCamera(this.mouse, this.camera);
-    const intersects = this.raycaster.intersectObjects(this.interactableObjects);
+    const interacts = this.entityManager.getInteractableObjects();
+    const intersects = this.raycaster.intersectObjects(interacts);
     if (intersects.length > 0) {
       const hit = intersects.find(i => i.object.userData.isGridTile);
       if (hit) {
@@ -66,7 +67,8 @@ export class InteractionManager {
     this.raycaster.setFromCamera(this.mouse, this.camera);
 
     // Test intersections against the board tiles
-    const intersects = this.raycaster.intersectObjects(this.interactableObjects);
+    const interacts = this.entityManager.getInteractableObjects();
+    const intersects = this.raycaster.intersectObjects(interacts);
 
     if (intersects.length > 0) {
       // Find first valid grid tile (since there may be overlaps or parent groups)
@@ -81,6 +83,10 @@ export class InteractionManager {
           x: hit.object.userData.cellX,
           z: hit.object.userData.cellZ
         };
+        
+        // Ensure cursor inherits the board's rotation (UP or DOWN) by attaching to parent or copying quaternion
+        this.hoverCursor.quaternion.copy(hit.object.parent!.quaternion);
+        
       } else {
         this.hoverCursor.visible = false;
         this.hoveredCell = null;

@@ -59,6 +59,7 @@ This document contains a step-by-step plan to implement the 3D voxel-based Battl
 - [x] Connect Main Menu start actions to trigger the Application State Machine.
 - [x] Bind 3D interaction (clicking grid) to Domain placement logic during `SETUP_BOARD`.
 - [x] Bind grid clicking to attack logic during `PLAYER_TURN`.
+- [x] Add a visual delay (e.g., 2000ms) after an attack before allowing board rotation/turn transition to let players process the combat result.
 - [x] Hook Domain attack events (Hit, Miss, Sink) to update UI remaining fleet and HUD.
 - [x] Bind Game Over state to show end-game UI screens.
 
@@ -72,6 +73,10 @@ This document contains a step-by-step plan to implement the 3D voxel-based Battl
 - [ ] Integrate the selected AI difficulty into the `ENEMY_TURN` state.
 
 ## Phase 8: Visual Polish & "Minecraft Feel"
+- [x] **Two-Sided Board** (`src/presentation/3d/entities/`)
+    - [x] Separate Player and Enemy boards physically on opposite sides of a master group.
+    - [x] Implement 3D flip animation between turns.
+    - [x] Add adjustable flip speed to Settings UI.
 - [ ] **Voxel Water Shader** (`src/presentation/3d/materials/`)
     - [ ] Refine fragment/vertex shaders to create undulating waves.
     - [ ] Accept properties/uniforms for projectile splashes and wakes.

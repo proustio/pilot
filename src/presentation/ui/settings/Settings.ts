@@ -25,6 +25,11 @@ export class Settings extends BaseUIComponent {
                 <label>Show HUD:</label>
                 <input type="checkbox" id="toggle-hud" checked style="transform: scale(2);">
             </div>
+
+            <div class="settings-row">
+                <label>Flip Speed:</label>
+                <input type="range" id="flip-speed" min="0.01" max="0.3" step="0.01" value="0.05" style="width: 150px;">
+            </div>
             
             <button id="btn-close-settings" class="voxel-btn primary" style="margin-top: 20px;">Close</button>
         `;
@@ -39,6 +44,12 @@ export class Settings extends BaseUIComponent {
         toggleHud.addEventListener('change', (e) => {
             const isChecked = (e.target as HTMLInputElement).checked;
             document.dispatchEvent(new CustomEvent('TOGGLE_HUD', { detail: { show: isChecked } }));
+        });
+        
+        const flipSpeed = this.container.querySelector('#flip-speed') as HTMLInputElement;
+        flipSpeed.addEventListener('input', (e) => {
+            const speed = (e.target as HTMLInputElement).value;
+            document.dispatchEvent(new CustomEvent('SET_FLIP_SPEED', { detail: { speed } }));
         });
         
         const aiSelect = this.container.querySelector('#ai-difficulty') as HTMLSelectElement;

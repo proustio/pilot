@@ -17,7 +17,7 @@ const init = () => {
         const interactionManager = new InteractionManager(
             engine.scene, 
             engine.camera, 
-            entityManager.getInteractableObjects()
+            entityManager
         );
 
         // 4. Initialize Core Game Loop Logic
@@ -49,10 +49,20 @@ const init = () => {
             
             // Update systems
             interactionManager.update();
+            entityManager.update();
             
             // Render frame
             engine.render();
         };
+
+        // Listen for internal game state to flip board
+        gameLoop.onStateChange((newState) => {
+            if (newState === 'SETUP_BOARD' || newState === 'ENEMY_TURN') {
+                entityManager.showPlayerBoard();
+            } else if (newState === 'PLAYER_TURN') {
+                entityManager.showEnemyBoard();
+            }
+        });
 
         // Start loop
         animate();
