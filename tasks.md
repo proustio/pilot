@@ -3,10 +3,10 @@
 This document contains a step-by-step plan to implement the 3D voxel-based Battleships game described in `game-concept.md` and `tech-breakdown.md`.
 
 ## Phase 1: Project Setup and Architecture Skeleton
-- [ ] Initialize project package and dependencies (Three.js, Vite or preferred bundler).
-- [ ] Set up basic HTML/CSS scaffolding.
-- [ ] Create domain-driven directory structure (`src/domain`, `src/application`, `src/infrastructure`, `src/presentation`).
-- [ ] Create placeholder/stub files for all major modules outlined in the tech breakdown.
+- [x] Initialize project package and dependencies (Three.js, Vite or preferred bundler).
+- [x] Set up basic HTML/CSS scaffolding.
+- [x] Create domain-driven directory structure (`src/domain`, `src/application`, `src/infrastructure`, `src/presentation`).
+- [x] Create placeholder/stub files for all major modules outlined in the tech breakdown.
 
 ## Phase 2: Basic 3D Presentation & Interaction
 - [ ] **Three.js Core** (`src/presentation/3d/`)
