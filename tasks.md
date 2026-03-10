@@ -64,13 +64,13 @@ This document contains a step-by-step plan to implement the 3D voxel-based Battl
 - [x] Bind Game Over state to show end-game UI screens.
 
 ## Phase 7: AI Integration
-- [ ] **Easy AI** (`src/application/ai/`)
-    - [ ] Implement purely random targeting without memory.
-- [ ] **Normal AI** (`src/application/ai/`)
-    - [ ] Implement hunt-and-target logic (random until hit, then search adjacent tiles).
-- [ ] **Hard AI** (`src/application/ai/`)
-    - [ ] Implement probabilistic heatmap generation (Monte Carlo calculation to find ships based on remaining fleet).
-- [ ] Integrate the selected AI difficulty into the `ENEMY_TURN` state.
+- [x] **Easy AI** (`src/application/ai/`)
+    - [x] Implement purely random targeting without memory.
+- [x] **Normal AI** (`src/application/ai/`)
+    - [x] Implement hunt-and-target logic (random until hit, then search adjacent tiles).
+- [x] **Hard AI** (`src/application/ai/`)
+    - [x] Implement probabilistic heatmap generation (Monte Carlo calculation to find ships based on remaining fleet).
+- [x] Integrate the selected AI difficulty into the `ENEMY_TURN` state.
 
 ## Phase 8: Visual Polish & "Minecraft Feel"
 - [x] **Two-Sided Board** (`src/presentation/3d/entities/`)

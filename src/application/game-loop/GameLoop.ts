@@ -1,5 +1,6 @@
 import { Match } from '../../domain/match/Match';
 import { Ship, Orientation } from '../../domain/fleet/Ship';
+import { AIEngine, AIDifficulty } from '../ai/AIEngine';
 
 export enum GameState {
     MAIN_MENU = 'MAIN_MENU',
@@ -20,12 +21,23 @@ export class GameLoop {
     public playerShipsToPlace: Ship[] = [];
     public currentPlacementOrientation: Orientation = Orientation.Horizontal;
     public isAnimating: boolean = false;
+    public aiEngine: AIEngine;
 
     private listeners: StateChangeListener[] = [];
     private shipPlacedListeners: ShipPlacedListener[] = [];
     private attackResultListeners: AttackResultListener[] = [];
 
-    constructor() {}
+    constructor() {
+        this.aiEngine = new AIEngine();
+        
+        // Listen for AI difficulty changes
+        document.addEventListener('SET_AI_DIFFICULTY', (e: Event) => {
+            const customEvent = e as CustomEvent;
+            if (customEvent.detail && customEvent.detail.difficulty) {
+                this.aiEngine.setDifficulty(customEvent.detail.difficulty as AIDifficulty);
+            }
+        });
+    }
 
     /**
      * Subscribe to state transition events (for UI / 3D to react)
@@ -65,6 +77,7 @@ export class GameLoop {
      */
     public startNewMatch(match: Match) {
         this.match = match;
+        this.aiEngine.reset();
         
         // Setup fleets
         this.playerShipsToPlace = match.getRequiredFleet();
@@ -101,31 +114,26 @@ export class GameLoop {
         this.transitionTo(GameState.PLAYER_TURN);
     }
 
-    /**
-     * Orchestration logic when it's the Enemy's turn.
-     * Normally delegates to AIEngine here.
-     */
     private handleEnemyTurn() {
         if (!this.match) return;
 
-        // Placeholder: Enemy AI will pick a spot here
-        console.log('Enemy is thinking...');
+        console.log(`Enemy is thinking... (Difficulty: ${this.aiEngine.difficulty})`);
         this.isAnimating = true;
 
         setTimeout(() => {
             if (!this.match) return;
-            // Fake AI: random fire
-            let result = 'invalid';
-            let x = 0;
-            let z = 0;
-            while (result === 'invalid') {
-                x = Math.floor(Math.random() * this.match.playerBoard.width);
-                z = Math.floor(Math.random() * this.match.playerBoard.height);
-                result = this.match.playerBoard.receiveAttack(x, z);
-            }
+            
+            // Ask AI Engine for next move
+            const target = this.aiEngine.computeNextMove(this.match.playerBoard, this.match);
+            
+            // Perform Attack
+            const result = this.match.playerBoard.receiveAttack(target.x, target.z);
+            
+            // Report result back to AI so it can learn (for Normal/Hard modes)
+            this.aiEngine.reportResult(target.x, target.z, result.toString(), this.match.playerBoard);
             
             // Show the result maker
-            this.attackResultListeners.forEach(l => l(x, z, result, false));
+            this.attackResultListeners.forEach(l => l(target.x, target.z, result.toString(), false));
             
             // Wait 2000ms for player to see what happened before flipping board
             setTimeout(() => {
@@ -140,7 +148,7 @@ export class GameLoop {
                 }
             }, 2000);
             
-        }, 2000); // Wait 2s total for board spin + 1s thinking time
+        }, 1000); // 1s thinking time
     }
 
     /**
