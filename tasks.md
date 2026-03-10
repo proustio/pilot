@@ -77,14 +77,14 @@ This document contains a step-by-step plan to implement the 3D voxel-based Battl
     - [x] Separate Player and Enemy boards physically on opposite sides of a master group.
     - [x] Implement 3D flip animation between turns.
     - [x] Add adjustable flip speed to Settings UI.
-- [ ] **Voxel Water Shader** (`src/presentation/3d/materials/`)
-    - [ ] Refine fragment/vertex shaders to create undulating waves.
-    - [ ] Accept properties/uniforms for projectile splashes and wakes.
-- [ ] **Destruction Effects**
-    - [ ] Implement voxel hiding/removal when ship segments are "hit".
-    - [ ] Build a lightweight voxel explosion particle system.
-    - [ ] Spawn floating grey smoke (particles/voxels) from hit spots.
-    - [ ] Spawn heavy black smoke and underwater wreckage visuals on "sank" coordinate locations.
-- [ ] **Animations & Polish**
-    - [ ] Add smoothly lerped camera transitions between phases.
-    - [ ] Implement ship attacking animation (selecting random player ship to visually trace the projectile from).
+- [x] **Voxel Water Shader** (`src/presentation/3d/materials/`)
+    - [x] Refine fragment/vertex shaders to create undulating waves.
+    - [x] Accept properties/uniforms for projectile splashes and wakes.
+- [x] **Destruction Effects**
+    - [x] Implement voxel hiding/removal when ship segments are "hit".
+    - [x] Build a lightweight voxel explosion particle system.
+    - [x] Spawn floating grey smoke (particles/voxels) from hit spots.
+    - [x] Spawn heavy black smoke and underwater wreckage visuals on "sank" coordinate locations.
+- [x] **Animations & Polish**
+    - [x] Add smoothly lerped camera transitions between phases.
+    - [x] Implement ship attacking animation (selecting random player ship to visually trace the projectile from).

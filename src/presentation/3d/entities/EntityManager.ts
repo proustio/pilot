@@ -1,5 +1,7 @@
 import * as THREE from 'three';
 import { Ship, Orientation } from '../../../domain/fleet/Ship';
+import { WaterShader } from '../materials/WaterShader';
+import { ParticleSystem } from './ParticleSystem';
 
 export class EntityManager {
   private scene: THREE.Scene;
@@ -12,7 +14,11 @@ export class EntityManager {
   private flipSpeed: number = 0.05;
   
   private lastAttackMarker: THREE.Mesh | null = null;
-  private fallingMarkers: { mesh: THREE.Mesh, targetY: number }[] = [];
+  private fallingMarkers: { mesh: THREE.Mesh, curve: THREE.QuadraticBezierCurve3, progress: number, worldX: number, worldZ: number, result: string, isPlayer: boolean, cellX: number, cellZ: number }[] = [];
+  
+  private time: number = 0;
+  private waterMaterialUniforms: any = null;
+  private particleSystem: ParticleSystem;
 
   constructor(scene: THREE.Scene) {
     this.scene = scene;
@@ -20,6 +26,8 @@ export class EntityManager {
     this.masterBoardGroup = new THREE.Group();
     this.playerBoardGroup = new THREE.Group();
     this.enemyBoardGroup = new THREE.Group();
+    
+    this.particleSystem = new ParticleSystem();
     
     // Position faces: Player points UP, Enemy points DOWN
     this.playerBoardGroup.position.y = 0.3; 
@@ -46,16 +54,26 @@ export class EntityManager {
     const offset = boardSize / 2;
 
     // Create a large visible plane for the "water surface" underneath everything
-    const waterGeometry = new THREE.PlaneGeometry(30, 30);
-    const waterMaterial = new THREE.MeshStandardMaterial({ 
-      color: 0x1E90FF, 
-      roughness: 0.1, 
-      metalness: 0.1 
+    const waterGeometry = new THREE.PlaneGeometry(50, 50, 64, 64);
+    const waterMaterial = new THREE.ShaderMaterial({
+      vertexShader: WaterShader.vertexShader,
+      fragmentShader: WaterShader.fragmentShader,
+      uniforms: {
+        time: { value: 0 },
+        baseColor: { value: new THREE.Color(0x1E90FF) },
+        peakColor: { value: new THREE.Color(0x87CEFA) },
+        opacity: { value: 0.9 },
+        rippleCenter: { value: new THREE.Vector2(0, 0) },
+        rippleTime: { value: 0.0 }
+      },
+      transparent: true,
+      side: THREE.FrontSide
     });
+    this.waterMaterialUniforms = waterMaterial.uniforms;
     const waterPlane = new THREE.Mesh(waterGeometry, waterMaterial);
     waterPlane.rotation.x = -Math.PI / 2;
     waterPlane.position.y = -1.0; // Deep below the board
-    waterPlane.receiveShadow = true;
+    waterPlane.receiveShadow = false; // ShaderMaterial needs extra work for shadows, disabled for stylized look
     this.scene.add(waterPlane);
 
     // Create the "Master Wood Board"
@@ -128,13 +146,52 @@ export class EntityManager {
       // Smoothly lerp board rotation
       this.masterBoardGroup.rotation.x += (this.targetRotationX - this.masterBoardGroup.rotation.x) * this.flipSpeed;
       
+      // Update water shader time and ripples
+      this.time += 0.016;
+      if (this.waterMaterialUniforms) {
+          this.waterMaterialUniforms.time.value = this.time;
+          if (this.waterMaterialUniforms.rippleTime.value > 0) {
+              this.waterMaterialUniforms.rippleTime.value += 0.016;
+              if (this.waterMaterialUniforms.rippleTime.value > 2.0) {
+                  this.waterMaterialUniforms.rippleTime.value = 0; // Stop
+              }
+          }
+      }
+      
+      this.particleSystem.update();
+      
       // Animate falling markers
       for (let i = this.fallingMarkers.length - 1; i >= 0; i--) {
           const m = this.fallingMarkers[i];
-          m.mesh.position.y += (m.targetY - m.mesh.position.y) * 0.15;
-          if (Math.abs(m.mesh.position.y - m.targetY) < 0.01) {
-              m.mesh.position.y = m.targetY;
+          m.progress += 0.04; // Adjust speed here
+          
+          if (m.progress >= 1.0) {
+              m.progress = 1.0;
+              m.mesh.position.copy(m.curve.getPoint(1.0));
+              
+              if (m.result === 'hit' || m.result === 'sunk') {
+                  const targetGroup = m.isPlayer ? this.enemyBoardGroup : this.playerBoardGroup;
+                  
+                  // Spawn explosion
+                  this.particleSystem.spawnExplosion(m.worldX, 0.4, m.worldZ, targetGroup);
+                  // Start emitter
+                  this.particleSystem.addEmitter(m.worldX, 0.4, m.worldZ, m.result === 'sunk', targetGroup);
+                  
+                  // Hide ship segment if it's on the player board (enemy ships are hidden initially)
+                  if (!m.isPlayer) {
+                      this.playerBoardGroup.children.forEach(child => {
+                          if (child.userData.isShipBlock && child.userData.cx === m.cellX && child.userData.cz === m.cellZ) {
+                              child.visible = false;
+                          }
+                      });
+                  }
+              }
               this.fallingMarkers.splice(i, 1);
+          } else {
+              m.mesh.position.copy(m.curve.getPoint(m.progress));
+              // point it towards velocity vector
+              const tangent = m.curve.getTangent(m.progress);
+              m.mesh.lookAt(m.mesh.position.clone().add(tangent));
           }
       }
   }
@@ -155,6 +212,7 @@ export class EntityManager {
       
       const boxG = new THREE.BoxGeometry(0.8, 0.4, 0.8);
       const block = new THREE.Mesh(boxG, shipMaterial);
+      block.userData = { isShipBlock: true, cx, cz };
       
       const worldX = cx - 5 + 0.5;
       const worldZ = cz - 5 + 0.5;
@@ -192,11 +250,53 @@ export class EntityManager {
     const worldX = x - 5 + 0.5;
     const worldZ = z - 5 + 0.5;
     
-    // Start way up high for drop animation
-    marker.position.set(worldX, 5.0, worldZ);
+    const targetLocalPos = new THREE.Vector3(worldX, 0.4, worldZ);
+    
+    // Find a random friendly ship block to start from
+    const sourceGroup = isPlayer ? this.playerBoardGroup : this.enemyBoardGroup;
+    let startPos = new THREE.Vector3((Math.random() - 0.5) * 10, 5, (Math.random() - 0.5) * 10);
+    
+    const friendlyBlocks: THREE.Mesh[] = [];
+    sourceGroup.children.forEach(c => {
+        if (c.userData.isShipBlock && c.visible) friendlyBlocks.push(c as THREE.Mesh);
+    });
+    
+    if (friendlyBlocks.length > 0) {
+        const randomBlock = friendlyBlocks[Math.floor(Math.random() * friendlyBlocks.length)];
+        randomBlock.getWorldPosition(startPos);
+        targetGroup.worldToLocal(startPos); // Convert to targetGroup's local space
+    } else {
+        // Fallback if no ships visible
+        startPos.set(0, 10, 0);
+    }
+    
+    // Control point for parabolic arc
+    const midPoint = new THREE.Vector3().addVectors(startPos, targetLocalPos).multiplyScalar(0.5);
+    midPoint.y += 5.0; // Arch up by 5 units
+    
+    const curve = new THREE.QuadraticBezierCurve3(startPos, midPoint, targetLocalPos);
+    
+    marker.position.copy(startPos);
     targetGroup.add(marker);
     
-    this.fallingMarkers.push({ mesh: marker, targetY: 0.4 });
+    // Trigger water ripple
+    if (this.waterMaterialUniforms) {
+        // Z is inverted in PlaneGeometry relative to world Z when rotated by -PI/2
+        this.waterMaterialUniforms.rippleCenter.value.set(worldX, -worldZ);
+        this.waterMaterialUniforms.rippleTime.value = 0.01;
+    }
+    
+    this.fallingMarkers.push({ 
+        mesh: marker, 
+        curve: curve,
+        progress: 0,
+        worldX, 
+        worldZ, 
+        result, 
+        isPlayer, 
+        cellX: x, 
+        cellZ: z 
+    });
     this.lastAttackMarker = marker;
   }
 }

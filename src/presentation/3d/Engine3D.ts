@@ -5,6 +5,10 @@ export class Engine3D {
   public camera: THREE.PerspectiveCamera;
   public renderer: THREE.WebGLRenderer;
   
+  public targetCameraPos = new THREE.Vector3(0, 15, 15);
+  public targetLookAt = new THREE.Vector3(0, 0, 0);
+  private currentLookAt = new THREE.Vector3(0, 0, 0);
+  
   private container: HTMLElement;
 
   constructor(containerId: string) {
@@ -76,6 +80,9 @@ export class Engine3D {
   }
 
   public render() {
+    this.camera.position.lerp(this.targetCameraPos, 0.05);
+    this.currentLookAt.lerp(this.targetLookAt, 0.05);
+    this.camera.lookAt(this.currentLookAt);
     this.renderer.render(this.scene, this.camera);
   }
 }

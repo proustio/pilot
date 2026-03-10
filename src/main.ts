@@ -57,10 +57,15 @@ const init = () => {
 
         // Listen for internal game state to flip board
         gameLoop.onStateChange((newState) => {
-            if (newState === 'SETUP_BOARD' || newState === 'ENEMY_TURN') {
+            if (newState === 'SETUP_BOARD') {
                 entityManager.showPlayerBoard();
+                engine.targetCameraPos.set(0, 10, 12);
+            } else if (newState === 'ENEMY_TURN') {
+                entityManager.showPlayerBoard();
+                engine.targetCameraPos.set(0, 14, 18); // Pulled back slightly
             } else if (newState === 'PLAYER_TURN') {
                 entityManager.showEnemyBoard();
+                engine.targetCameraPos.set(0, 12, 12); // Closer for action
             }
         });
 
