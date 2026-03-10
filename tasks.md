@@ -20,19 +20,19 @@ This document contains a step-by-step plan to implement the 3D voxel-based Battl
     - [x] Display a visual highlight cursor over the hovered 3D grid cell.
 
 ## Phase 3: Domain Layer (Core Game Logic)
-- [ ] **Fleet Module** (`src/domain/fleet/`)
-    - [ ] Define Ship classes (size, orientation, health/damage state).
-    - [ ] Implement segment hit logic.
-    - [ ] Implement "isSank" evaluation logic.
-- [ ] **Board Module** (`src/domain/board/`)
-    - [ ] Create the grid coordinate system.
-    - [ ] Implement occupancy checks (is cell free?).
-    - [ ] Implement ship placement logic (boundary limits, overlapping constraints).
-    - [ ] Implement attack resolution (track hits, misses on coordinates).
-- [ ] **Match Module** (`src/domain/match/`)
-    - [ ] Implement Classic mode ruleset (US fleet layout, standard placement).
-    - [ ] Implement Russian mode ruleset (Russian fleet layout, non-touching adjacency).
-    - [ ] Implement win/loss condition evaluation (all player/enemy ships sank).
+- [x] **Fleet Module** (`src/domain/fleet/`)
+    - [x] Define Ship classes (size, orientation, health/damage state).
+    - [x] Implement segment hit logic.
+    - [x] Implement "isSank" evaluation logic.
+- [x] **Board Module** (`src/domain/board/`)
+    - [x] Create the grid coordinate system.
+    - [x] Implement occupancy checks (is cell free?).
+    - [x] Implement ship placement logic (boundary limits, overlapping constraints).
+    - [x] Implement attack resolution (track hits, misses on coordinates).
+- [x] **Match Module** (`src/domain/match/`)
+    - [x] Implement Classic mode ruleset (US fleet layout, standard placement).
+    - [x] Implement Russian mode ruleset (Russian fleet layout, non-touching adjacency).
+    - [x] Implement win/loss condition evaluation (all player/enemy ships sank).
 
 ## Phase 4: Application & Infrastructure
 - [ ] **Configuration** (`src/infrastructure/config/`)
