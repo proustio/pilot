@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-
+import { Config } from '../../infrastructure/config/Config';
 export class Engine3D {
   public scene: THREE.Scene;
   public camera: THREE.PerspectiveCamera;
@@ -80,8 +80,11 @@ export class Engine3D {
   }
 
   public render() {
-    this.camera.position.lerp(this.targetCameraPos, 0.05);
-    this.currentLookAt.lerp(this.targetLookAt, 0.05);
+    const cameraSpeed = Config.timing.cameraLerpSpeed * Config.timing.gameSpeedMultiplier;
+    // Cap lerp speed at 1 to prevent overshoot
+    const safeLerp = Math.min(cameraSpeed, 1.0);
+    this.camera.position.lerp(this.targetCameraPos, safeLerp);
+    this.currentLookAt.lerp(this.targetLookAt, safeLerp);
     this.camera.lookAt(this.currentLookAt);
     this.renderer.render(this.scene, this.camera);
   }

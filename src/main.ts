@@ -43,9 +43,22 @@ const init = () => {
             entityManager.addAttackMarker(x, z, result, isPlayer);
         });
 
-        // Define the main render loop
-        const animate = () => {
+        // Define the main render loop with a 60 FPS cap
+        const FPS_CAP = 60;
+        const frameInterval = 1000 / FPS_CAP;
+        let lastFrameTime = performance.now();
+
+        const animate = (time: DOMHighResTimeStamp) => {
             requestAnimationFrame(animate);
+            
+            const deltaTime = time - lastFrameTime;
+            
+            if (deltaTime < frameInterval) {
+                // Skip frame if it arrived too early to enforce FPS cap
+                return;
+            }
+            
+            lastFrameTime = time - (deltaTime % frameInterval);
             
             // Update systems
             interactionManager.update();
@@ -70,7 +83,7 @@ const init = () => {
         });
 
         // Start loop
-        animate();
+        animate(performance.now());
         console.log('App successfully initialized, loop running.');
 
     } catch (error) {

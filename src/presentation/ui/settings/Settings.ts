@@ -33,8 +33,13 @@ export class Settings extends BaseUIComponent {
             </div>
 
             <div class="settings-row">
-                <label>Flip Speed:</label>
-                <input type="range" id="flip-speed" min="0.01" max="0.3" step="0.01" value="0.05" style="width: 150px;">
+                <label>Game Speed:</label>
+                <select id="game-speed" class="voxel-select" style="width: auto;">
+                    <option value="0.5">0.5x (Slow)</option>
+                    <option value="1.0" ${Config.timing.gameSpeedMultiplier === 1.0 ? 'selected' : ''}>1.0x (Normal)</option>
+                    <option value="2.0">2.0x (Fast)</option>
+                    <option value="4.0">4.0x (Very Fast)</option>
+                </select>
             </div>
             
             <button id="btn-close-settings" class="voxel-btn primary" style="margin-top: 20px;">Close</button>
@@ -52,10 +57,11 @@ export class Settings extends BaseUIComponent {
             document.dispatchEvent(new CustomEvent('TOGGLE_HUD', { detail: { show: isChecked } }));
         });
         
-        const flipSpeed = this.container.querySelector('#flip-speed') as HTMLInputElement;
-        flipSpeed.addEventListener('input', (e) => {
-            const speed = (e.target as HTMLInputElement).value;
-            document.dispatchEvent(new CustomEvent('SET_FLIP_SPEED', { detail: { speed } }));
+        const gameSpeedSelect = this.container.querySelector('#game-speed') as HTMLSelectElement;
+        gameSpeedSelect.addEventListener('change', (e) => {
+            const speed = (e.target as HTMLSelectElement).value;
+            Config.timing.gameSpeedMultiplier = parseFloat(speed);
+            document.dispatchEvent(new CustomEvent('SET_GAME_SPEED', { detail: { speed } }));
         });
         
         const aiSelect = this.container.querySelector('#ai-difficulty') as HTMLSelectElement;

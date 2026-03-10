@@ -1,5 +1,6 @@
 import { BaseUIComponent } from '../components/BaseUIComponent';
 import { GameLoop, GameState } from '../../../application/game-loop/GameLoop';
+import { Config } from '../../../infrastructure/config/Config';
 
 export class HUD extends BaseUIComponent {
     private gameLoop: GameLoop;
@@ -35,7 +36,8 @@ export class HUD extends BaseUIComponent {
                 </div>
             </div>
             
-            <div style="position: absolute; bottom: 20px; right: 20px;">
+            <div style="position: absolute; bottom: 20px; right: 20px; display: flex; gap: 10px;">
+                <button id="hud-btn-speed" class="voxel-btn ui-interactive" style="width: auto; padding: 10px;">Speed: ${Config.timing.gameSpeedMultiplier}x</button>
                 <button id="hud-btn-settings" class="voxel-btn ui-interactive" style="width: auto; padding: 10px;">Options</button>
             </div>
         `;
@@ -47,6 +49,28 @@ export class HUD extends BaseUIComponent {
         const settingsBtn = this.container.querySelector('#hud-btn-settings') as HTMLButtonElement;
         settingsBtn.addEventListener('click', () => {
             document.dispatchEvent(new CustomEvent('SHOW_SETTINGS'));
+        });
+
+        const speedBtn = this.container.querySelector('#hud-btn-speed') as HTMLButtonElement;
+        const speedCycle = [0.5, 1.0, 2.0, 4.0];
+        speedBtn.addEventListener('click', () => {
+            let currentIndex = speedCycle.indexOf(Config.timing.gameSpeedMultiplier);
+            if (currentIndex === -1) currentIndex = 1; // Default to 1.0x if somehow out of bounds
+            
+            const nextIndex = (currentIndex + 1) % speedCycle.length;
+            const nextSpeed = speedCycle[nextIndex];
+            
+            Config.timing.gameSpeedMultiplier = nextSpeed;
+            speedBtn.innerText = `Speed: ${nextSpeed}x`;
+            document.dispatchEvent(new CustomEvent('SET_GAME_SPEED', { detail: { speed: nextSpeed.toString() } }));
+        });
+        
+        // Listen for internal speed changes triggered from Settings Modal
+        document.addEventListener('SET_GAME_SPEED', (e: Event) => {
+            const customEvent = e as CustomEvent;
+            if (customEvent.detail && customEvent.detail.speed) {
+                speedBtn.innerText = `Speed: ${customEvent.detail.speed}x`;
+            }
         });
     }
     

@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { Ship, Orientation } from '../../../domain/fleet/Ship';
 import { WaterShader } from '../materials/WaterShader';
 import { ParticleSystem } from './ParticleSystem';
+import { Config } from '../../../infrastructure/config/Config';
 
 export class EntityManager {
   private scene: THREE.Scene;
@@ -11,7 +12,6 @@ export class EntityManager {
   private enemyBoardGroup: THREE.Group;
   
   private targetRotationX: number = 0;
-  private flipSpeed: number = 0.05;
   
   private lastAttackMarker: THREE.Mesh | null = null;
   private fallingMarkers: { mesh: THREE.Mesh, curve: THREE.QuadraticBezierCurve3, progress: number, worldX: number, worldZ: number, result: string, isPlayer: boolean, cellX: number, cellZ: number }[] = [];
@@ -41,12 +41,7 @@ export class EntityManager {
 
     this.createBoardMeshes();
 
-    // Listen to settings changes for flip speed
-    document.addEventListener('SET_FLIP_SPEED', (e: any) => {
-        if (e.detail?.speed !== undefined) {
-            this.flipSpeed = parseFloat(e.detail.speed);
-        }
-    });
+    // Removed disconnected SET_FLIP_SPEED listener
   }
 
   private createBoardMeshes() {
@@ -144,15 +139,18 @@ export class EntityManager {
 
   public update() {
       // Smoothly lerp board rotation
-      this.masterBoardGroup.rotation.x += (this.targetRotationX - this.masterBoardGroup.rotation.x) * this.flipSpeed;
+      const actualFlipSpeed = Config.timing.boardFlipSpeed * Config.timing.gameSpeedMultiplier;
+      this.masterBoardGroup.rotation.x += (this.targetRotationX - this.masterBoardGroup.rotation.x) * actualFlipSpeed;
       
       // Update water shader time and ripples
-      this.time += 0.016;
+      const waterTimeIncrement = 0.016 * Config.timing.gameSpeedMultiplier;
+      this.time += waterTimeIncrement;
       if (this.waterMaterialUniforms) {
           this.waterMaterialUniforms.time.value = this.time;
           if (this.waterMaterialUniforms.rippleTime.value > 0) {
-              this.waterMaterialUniforms.rippleTime.value += 0.016;
-              if (this.waterMaterialUniforms.rippleTime.value > 2.0) {
+              this.waterMaterialUniforms.rippleTime.value += waterTimeIncrement;
+              // Shorten max ripple time based on speed to match visuals
+              if (this.waterMaterialUniforms.rippleTime.value > (2.0 / Config.timing.gameSpeedMultiplier)) {
                   this.waterMaterialUniforms.rippleTime.value = 0; // Stop
               }
           }
@@ -163,7 +161,7 @@ export class EntityManager {
       // Animate falling markers
       for (let i = this.fallingMarkers.length - 1; i >= 0; i--) {
           const m = this.fallingMarkers[i];
-          m.progress += 0.04; // Adjust speed here
+          m.progress += Config.timing.projectileSpeed * Config.timing.gameSpeedMultiplier; // Adjust speed here
           
           if (m.progress >= 1.0) {
               m.progress = 1.0;
@@ -175,6 +173,7 @@ export class EntityManager {
                   // Spawn explosion
                   this.particleSystem.spawnExplosion(m.worldX, 0.4, m.worldZ, targetGroup);
                   // Start emitter
+                  // const emitterSpeedMultiplier = Config.timing.gameSpeedMultiplier; // Pass this along if particle system gets updated, assuming it uses fixed time for now
                   this.particleSystem.addEmitter(m.worldX, 0.4, m.worldZ, m.result === 'sunk', targetGroup);
                   
                   // Hide ship segment if it's on the player board (enemy ships are hidden initially)

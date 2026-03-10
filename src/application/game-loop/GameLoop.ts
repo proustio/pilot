@@ -42,6 +42,15 @@ export class GameLoop {
             }
         });
 
+        // Listen for Game Speed changes
+        document.addEventListener('SET_GAME_SPEED', (e: Event) => {
+            const customEvent = e as CustomEvent;
+            if (customEvent.detail && customEvent.detail.speed) {
+                Config.timing.gameSpeedMultiplier = parseFloat(customEvent.detail.speed);
+                console.log(`Game Speed set to ${Config.timing.gameSpeedMultiplier}x`);
+            }
+        });
+
         // Listen for Auto-Battler toggling
         document.addEventListener('TOGGLE_AUTO_BATTLER', (e: Event) => {
             const customEvent = e as CustomEvent;
@@ -179,7 +188,7 @@ export class GameLoop {
             // Show the result maker
             this.attackResultListeners.forEach(l => l(target.x, target.z, result.toString(), false));
             
-            // Wait 2000ms for player to see what happened before flipping board
+            // Wait for player to see what happened before flipping board
             setTimeout(() => {
                 // Re-evaluate game over
                 const status = this.match!.checkGameEnd();
@@ -190,9 +199,9 @@ export class GameLoop {
                 } else {
                     this.transitionTo(GameState.PLAYER_TURN);
                 }
-            }, 2000);
+            }, Config.timing.turnDelayMs / Config.timing.gameSpeedMultiplier);
             
-        }, 1000); // 1s thinking time
+        }, Config.timing.aiThinkingTimeMs / Config.timing.gameSpeedMultiplier); // thinking time
     }
 
     private handleAutoPlayerTurn() {
@@ -216,7 +225,7 @@ export class GameLoop {
             // Show the result maker
             this.attackResultListeners.forEach(l => l(target.x, target.z, result.toString(), true));
             
-            // Wait 2000ms for player to see what happened before flipping board
+            // Wait for player to see what happened before flipping board
             setTimeout(() => {
                 // Re-evaluate game over
                 const status = this.match!.checkGameEnd();
@@ -227,9 +236,9 @@ export class GameLoop {
                 } else {
                     this.transitionTo(GameState.ENEMY_TURN);
                 }
-            }, 2000);
+            }, Config.timing.turnDelayMs / Config.timing.gameSpeedMultiplier);
             
-        }, 1000); // 1s thinking time
+        }, Config.timing.aiThinkingTimeMs / Config.timing.gameSpeedMultiplier); // thinking time
     }
 
     /**
@@ -269,7 +278,7 @@ export class GameLoop {
                 
                 this.isAnimating = true;
 
-                // Wait 2000ms for player to see what happened before flipping board
+                // Wait for player to see what happened before flipping board
                 setTimeout(() => {
                     // Successful action, check if game ended
                     const status = this.match!.checkGameEnd();
@@ -280,7 +289,7 @@ export class GameLoop {
                     } else {
                         this.transitionTo(GameState.ENEMY_TURN);
                     }
-                }, 2000);
+                }, Config.timing.turnDelayMs / Config.timing.gameSpeedMultiplier);
             }
         }
     }
