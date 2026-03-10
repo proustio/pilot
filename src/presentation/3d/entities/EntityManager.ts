@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { Ship, Orientation } from '../../../domain/fleet/Ship';
 
 export class EntityManager {
   private scene: THREE.Scene;
@@ -72,5 +73,47 @@ export class EntityManager {
    */
   public getInteractableObjects(): THREE.Object3D[] {
     return this.gridGroup.children;
+  }
+
+  public addShip(ship: Ship, x: number, z: number, orientation: Orientation, isPlayer: boolean) {
+    if (!isPlayer) return; // Hide enemy ships
+
+    const shipMaterial = new THREE.MeshStandardMaterial({
+      color: 0x888888,
+      roughness: 0.7,
+    });
+
+    for (let i = 0; i < ship.size; i++) {
+      const cx = orientation === Orientation.Horizontal ? x + i : x;
+      const cz = orientation === Orientation.Vertical ? z + i : z;
+      
+      const boxG = new THREE.BoxGeometry(0.8, 0.4, 0.8);
+      const block = new THREE.Mesh(boxG, shipMaterial);
+      
+      const worldX = cx - 5 + 0.5;
+      const worldZ = cz - 5 + 0.5;
+      
+      block.position.set(worldX, 0.1, worldZ);
+      block.castShadow = true;
+      block.receiveShadow = true;
+      this.scene.add(block);
+    }
+  }
+
+  public addAttackMarker(x: number, z: number, result: string, _isPlayer: boolean) {
+    let color = 0xffffff; // Miss -> white
+    if (result === 'hit' || result === 'sunk') {
+      color = 0xff0000; // Hit -> red
+    }
+
+    const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.5 });
+    const geo = new THREE.BoxGeometry(0.4, 0.6, 0.4);
+    const marker = new THREE.Mesh(geo, mat);
+
+    const worldX = x - 5 + 0.5;
+    const worldZ = z - 5 + 0.5;
+    
+    marker.position.set(worldX, 0.3, worldZ);
+    this.scene.add(marker);
   }
 }

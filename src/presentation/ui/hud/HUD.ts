@@ -65,11 +65,18 @@ export class HUD extends BaseUIComponent {
             this.turnIndicator.innerText = matchStatus === 'player_wins' ? "VICTORY!" : "DEFEAT!";
         }
         
-        // Update Fleet remaining ships (stub logic for now)
+        // Update Fleet remaining ships
         if (this.gameLoop.match) {
-            // In a real implementation we would interrogate the match.playerBoard.getRemainingShips()
-            this.playerFleetStatus.innerText = "Ships Alive: TBD";
-            this.enemyFleetStatus.innerText = "Ships Alive: TBD";
+            const countAlive = (board: any) => board.ships.filter((s: any) => !s.isSunk()).length;
+            
+            const playerBoard = this.gameLoop.match.playerBoard;
+            const enemyBoard = this.gameLoop.match.enemyBoard;
+            
+            const playerTotal = playerBoard.ships.length || this.gameLoop.match.getRequiredFleet().length;
+            const enemyTotal = enemyBoard.ships.length || this.gameLoop.match.getRequiredFleet().length;
+            
+            this.playerFleetStatus.innerText = `Ships Alive: ${countAlive(playerBoard)}/${playerTotal}`;
+            this.enemyFleetStatus.innerText = `Ships Alive: ${countAlive(enemyBoard)}/${enemyTotal}`;
         }
     }
 }

@@ -28,11 +28,19 @@ const init = () => {
         (window as any).uiManager = uiManager; // Expose to window for debugging and prevent unused warning
 
         // Connect 3D clicks to GameLoop logic
-        interactionManager.onClick((intersection: any) => {
-            // Placeholder: convert 3D hit point to grid coordinate
-            const gridX = Math.round(intersection.point.x);
-            const gridZ = Math.round(intersection.point.z);
+        interactionManager.onClick((hit: any) => {
+            const gridX = hit.object.userData.cellX;
+            const gridZ = hit.object.userData.cellZ;
             gameLoop.onGridClick(gridX, gridZ);
+        });
+
+        // Listen to Game Events to trigger visuals
+        gameLoop.onShipPlaced((ship, x, z, orientation, isPlayer) => {
+            entityManager.addShip(ship, x, z, orientation, isPlayer);
+        });
+
+        gameLoop.onAttackResult((x, z, result, isPlayer) => {
+            entityManager.addAttackMarker(x, z, result, isPlayer);
         });
 
         // Define the main render loop

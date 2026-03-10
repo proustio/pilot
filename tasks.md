@@ -56,11 +56,11 @@ This document contains a step-by-step plan to implement the 3D voxel-based Battl
     - [x] Implement Enemy AI difficulty selector.
 
 ## Phase 6: Core Game Integration
-- [ ] Connect Main Menu start actions to trigger the Application State Machine.
-- [ ] Bind 3D interaction (clicking grid) to Domain placement logic during `SETUP_BOARD`.
-- [ ] Bind grid clicking to attack logic during `PLAYER_TURN`.
-- [ ] Hook Domain attack events (Hit, Miss, Sink) to update UI remaining fleet and HUD.
-- [ ] Bind Game Over state to show end-game UI screens.
+- [x] Connect Main Menu start actions to trigger the Application State Machine.
+- [x] Bind 3D interaction (clicking grid) to Domain placement logic during `SETUP_BOARD`.
+- [x] Bind grid clicking to attack logic during `PLAYER_TURN`.
+- [x] Hook Domain attack events (Hit, Miss, Sink) to update UI remaining fleet and HUD.
+- [x] Bind Game Over state to show end-game UI screens.
 
 ## Phase 7: AI Integration
 - [ ] **Easy AI** (`src/application/ai/`)

@@ -1,4 +1,5 @@
 import { Match } from '../../domain/match/Match';
+import { Ship, Orientation } from '../../domain/fleet/Ship';
 
 export enum GameState {
     MAIN_MENU = 'MAIN_MENU',
@@ -9,12 +10,19 @@ export enum GameState {
 }
 
 type StateChangeListener = (newState: GameState, oldState: GameState) => void;
+type ShipPlacedListener = (ship: Ship, x: number, z: number, orientation: Orientation, isPlayer: boolean) => void;
+type AttackResultListener = (x: number, z: number, result: string, isPlayer: boolean) => void;
 
 export class GameLoop {
     public currentState: GameState = GameState.MAIN_MENU;
     public match: Match | null = null;
     
+    public playerShipsToPlace: Ship[] = [];
+    public currentPlacementOrientation: Orientation = Orientation.Horizontal;
+
     private listeners: StateChangeListener[] = [];
+    private shipPlacedListeners: ShipPlacedListener[] = [];
+    private attackResultListeners: AttackResultListener[] = [];
 
     constructor() {}
 
@@ -23,6 +31,14 @@ export class GameLoop {
      */
     public onStateChange(listener: StateChangeListener) {
         this.listeners.push(listener);
+    }
+
+    public onShipPlaced(listener: ShipPlacedListener) {
+        this.shipPlacedListeners.push(listener);
+    }
+
+    public onAttackResult(listener: AttackResultListener) {
+        this.attackResultListeners.push(listener);
     }
 
     /**
@@ -48,6 +64,30 @@ export class GameLoop {
      */
     public startNewMatch(match: Match) {
         this.match = match;
+        
+        // Setup fleets
+        this.playerShipsToPlace = match.getRequiredFleet();
+        
+        // Auto-place enemy ships (temporary basic random placement)
+        const enemyShips = match.getRequiredFleet();
+        for (const ship of enemyShips) {
+            let placed = false;
+            let attempts = 0;
+            while (!placed && attempts < 1000) {
+                const x = Math.floor(Math.random() * match.enemyBoard.width);
+                const z = Math.floor(Math.random() * match.enemyBoard.height);
+                const orient = Math.random() > 0.5 ? Orientation.Horizontal : Orientation.Vertical;
+                
+                if (match.validatePlacement(match.enemyBoard, ship, x, z, orient)) {
+                    placed = match.enemyBoard.placeShip(ship, x, z, orient);
+                    if (placed) {
+                        this.shipPlacedListeners.forEach(l => l(ship, x, z, orient, false));
+                    }
+                }
+                attempts++;
+            }
+        }
+
         this.transitionTo(GameState.SETUP_BOARD);
     }
     
@@ -71,8 +111,18 @@ export class GameLoop {
         console.log('Enemy is thinking...');
 
         setTimeout(() => {
-            // Fake AI: just fire back to transition. In Phase 7 this will be real.
-            console.log('Enemy fired!');
+            if (!this.match) return;
+            // Fake AI: random fire
+            let result = 'invalid';
+            let x = 0;
+            let z = 0;
+            while (result === 'invalid') {
+                x = Math.floor(Math.random() * this.match.playerBoard.width);
+                z = Math.floor(Math.random() * this.match.playerBoard.height);
+                result = this.match.playerBoard.receiveAttack(x, z);
+            }
+            
+            this.attackResultListeners.forEach(l => l(x, z, result, false));
             
             // Re-evaluate game over
             const status = this.match!.checkGameEnd();
@@ -91,14 +141,32 @@ export class GameLoop {
         if (!this.match) return;
 
         if (this.currentState === GameState.SETUP_BOARD) {
-            // Setup placement logic handled here or delegated to UI
-            console.log(`Clicked to place ship at ${x},${z}`);
+            if (this.playerShipsToPlace.length === 0) return;
+            
+            const nextShip = this.playerShipsToPlace[0];
+            const isValid = this.match.validatePlacement(this.match.playerBoard, nextShip, x, z, this.currentPlacementOrientation);
+            
+            if (isValid) {
+                const placed = this.match.playerBoard.placeShip(nextShip, x, z, this.currentPlacementOrientation);
+                if (placed) {
+                    this.playerShipsToPlace.shift(); // Remove from queue
+                    this.shipPlacedListeners.forEach(l => l(nextShip, x, z, this.currentPlacementOrientation, true));
+                    
+                    if (this.playerShipsToPlace.length === 0) {
+                        this.transitionTo(GameState.PLAYER_TURN);
+                    }
+                }
+            } else {
+                console.log(`Cannot place ship at ${x},${z} with orientation ${this.currentPlacementOrientation}`);
+            }
+
         } else if (this.currentState === GameState.PLAYER_TURN) {
-            // Resolve Attack
             console.log(`Player attacking enemy grid at ${x},${z}`);
             const result = this.match.enemyBoard.receiveAttack(x, z);
             
             if (result !== 'invalid') {
+                this.attackResultListeners.forEach(l => l(x, z, result, true));
+                
                 // Successful action, check if game ended
                 const status = this.match.checkGameEnd();
                 if (status !== 'ongoing') {

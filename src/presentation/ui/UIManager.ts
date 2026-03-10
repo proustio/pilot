@@ -2,6 +2,7 @@ import { GameLoop, GameState } from '../../application/game-loop/GameLoop';
 import { MainMenu } from './menu/MainMenu';
 import { HUD } from './hud/HUD';
 import { Settings } from './settings/Settings';
+import { GameOver } from './menu/GameOver';
 
 export class UIManager {
     private gameLoop: GameLoop;
@@ -10,6 +11,7 @@ export class UIManager {
     private mainMenu: MainMenu;
     private hud: HUD;
     private settings: Settings;
+    private gameOver: GameOver;
 
     constructor(gameLoop: GameLoop) {
         this.gameLoop = gameLoop;
@@ -25,11 +27,13 @@ export class UIManager {
         this.mainMenu = new MainMenu(this.gameLoop);
         this.hud = new HUD(this.gameLoop);
         this.settings = new Settings();
+        this.gameOver = new GameOver(this.gameLoop);
 
         // Mount components to the UI wrapper
         this.mainMenu.mount(this.uiLayer);
         this.hud.mount(this.uiLayer);
         this.settings.mount(this.uiLayer);
+        this.gameOver.mount(this.uiLayer);
 
         // Listen for internal game state to show/hide menus
         this.gameLoop.onStateChange((newState: GameState) => {
@@ -57,12 +61,18 @@ export class UIManager {
     }
     
     private handleStateChange(newState: GameState) {
-        // Simple logic for visibility
+        // Reset all visibility
+        this.mainMenu.hide();
+        this.hud.hide();
+        this.gameOver.hide();
+
         if (newState === GameState.MAIN_MENU) {
             this.mainMenu.show();
-            this.hud.hide();
+        } else if (newState === GameState.GAME_OVER) {
+            this.gameOver.show();
+            const status = this.gameLoop.match?.checkGameEnd() || 'enemy_wins';
+            this.gameOver.updateMessage(status);
         } else {
-            this.mainMenu.hide();
             this.hud.show();
         }
     }
