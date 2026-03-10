@@ -45,15 +45,15 @@ This document contains a step-by-step plan to implement the 3D voxel-based Battl
     - [x] Create Game Save & Load logic supporting exactly 3 save slots.
 
 ## Phase 5: UI & Overlays
-- [ ] **Main Menu** (`src/presentation/ui/menu/`)
-    - [ ] Implement "New Game" flow with mode selection (Classic, Russian, Rogue placeholder).
-    - [ ] Implement Save/Load slot selection UI.
-- [ ] **HUD** (`src/presentation/ui/hud/`)
-    - [ ] Create active turn indicator.
-    - [ ] Display remaining fleet status visualization for both players.
-- [ ] **Settings Screen** (`src/presentation/ui/settings/`)
-    - [ ] Implement toggles for HUD elements and interactions (highlighting).
-    - [ ] Implement Enemy AI difficulty selector.
+- [x] **Main Menu** (`src/presentation/ui/menu/`)
+    - [x] Implement "New Game" flow with mode selection (Classic, Russian, Rogue placeholder).
+    - [x] Implement Save/Load slot selection UI.
+- [x] **HUD** (`src/presentation/ui/hud/`)
+    - [x] Create active turn indicator.
+    - [x] Display remaining fleet status visualization for both players.
+- [x] **Settings Screen** (`src/presentation/ui/settings/`)
+    - [x] Implement toggles for HUD elements and interactions (highlighting).
+    - [x] Implement Enemy AI difficulty selector.
 
 ## Phase 6: Core Game Integration
 - [ ] Connect Main Menu start actions to trigger the Application State Machine.

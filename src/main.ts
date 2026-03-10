@@ -1,7 +1,8 @@
 import { Engine3D } from './presentation/3d/Engine3D';
 import { EntityManager } from './presentation/3d/entities/EntityManager';
 import { InteractionManager } from './presentation/3d/interaction/InteractionManager';
-
+import { GameLoop } from './application/game-loop/GameLoop';
+import { UIManager } from './presentation/ui/UIManager';
 console.log('Battleships: Initialization Started');
 
 const init = () => {
@@ -18,6 +19,21 @@ const init = () => {
             engine.camera, 
             entityManager.getInteractableObjects()
         );
+
+        // 4. Initialize Core Game Loop Logic
+        const gameLoop = new GameLoop();
+        
+        // 5. Initialize UI Manager (Hooks UI into GameLoop)
+        const uiManager = new UIManager(gameLoop);
+        (window as any).uiManager = uiManager; // Expose to window for debugging and prevent unused warning
+
+        // Connect 3D clicks to GameLoop logic
+        interactionManager.onClick((intersection: any) => {
+            // Placeholder: convert 3D hit point to grid coordinate
+            const gridX = Math.round(intersection.point.x);
+            const gridZ = Math.round(intersection.point.z);
+            gameLoop.onGridClick(gridX, gridZ);
+        });
 
         // Define the main render loop
         const animate = () => {

@@ -10,6 +10,8 @@ export class InteractionManager {
   // Highlight cursor UI
   private hoverCursor: THREE.Mesh;
   public hoveredCell: { x: number, z: number } | null = null;
+  
+  private clickListeners: ((intersection: THREE.Intersection) => void)[] = [];
 
   constructor(scene: THREE.Scene, camera: THREE.PerspectiveCamera, interactableObjects: THREE.Object3D[]) {
     this.camera = camera;
@@ -33,6 +35,24 @@ export class InteractionManager {
 
     // Bind event listeners
     window.addEventListener('mousemove', this.onMouseMove.bind(this));
+    window.addEventListener('click', this.onMouseClick.bind(this));
+  }
+
+  public onClick(listener: (intersection: THREE.Intersection) => void) {
+    this.clickListeners.push(listener);
+  }
+
+  private onMouseClick(_event: MouseEvent) {
+    // We already have this.mouse updated from onMouseMove, 
+    // but just in case, we use the stored mouse pos and update raycaster
+    this.raycaster.setFromCamera(this.mouse, this.camera);
+    const intersects = this.raycaster.intersectObjects(this.interactableObjects);
+    if (intersects.length > 0) {
+      const hit = intersects.find(i => i.object.userData.isGridTile);
+      if (hit) {
+        this.clickListeners.forEach(listener => listener(hit));
+      }
+    }
   }
 
   private onMouseMove(event: MouseEvent) {
