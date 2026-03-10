@@ -37,6 +37,7 @@ export class HUD extends BaseUIComponent {
             </div>
             
             <div style="position: absolute; bottom: 20px; right: 20px; display: flex; gap: 10px;">
+                <button id="hud-btn-day-night" class="voxel-btn ui-interactive" style="width: auto; padding: 10px;">${Config.visual.isDayMode ? '☀️' : '🌙'}</button>
                 <button id="hud-btn-speed" class="voxel-btn ui-interactive" style="width: auto; padding: 10px;">Speed: ${Config.timing.gameSpeedMultiplier}x</button>
                 <button id="hud-btn-settings" class="voxel-btn ui-interactive" style="width: auto; padding: 10px;">Options</button>
             </div>
@@ -71,6 +72,13 @@ export class HUD extends BaseUIComponent {
             if (customEvent.detail && customEvent.detail.speed) {
                 speedBtn.innerText = `Speed: ${customEvent.detail.speed}x`;
             }
+        });
+
+        const dayNightBtn = this.container.querySelector('#hud-btn-day-night') as HTMLButtonElement;
+        dayNightBtn.addEventListener('click', () => {
+            Config.visual.isDayMode = !Config.visual.isDayMode;
+            dayNightBtn.innerText = Config.visual.isDayMode ? '☀️' : '🌙';
+            document.dispatchEvent(new CustomEvent('TOGGLE_DAY_NIGHT', { detail: { isDay: Config.visual.isDayMode } }));
         });
     }
     

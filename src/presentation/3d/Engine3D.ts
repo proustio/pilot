@@ -9,6 +9,10 @@ export class Engine3D {
   public targetLookAt = new THREE.Vector3(0, 0, 0);
   private currentLookAt = new THREE.Vector3(0, 0, 0);
   
+  private ambientLight!: THREE.AmbientLight;
+  private dirLight!: THREE.DirectionalLight;
+  private hemiLight!: THREE.HemisphereLight;
+  
   private container: HTMLElement;
 
   constructor(containerId: string) {
@@ -39,38 +43,73 @@ export class Engine3D {
     // 4. Lighting
     this.setupLighting();
 
+    // 5. Initial Time of Day
+    this.setDayMode(Config.visual.isDayMode);
+
+    // Listen for Day/Night toggle
+    document.addEventListener('TOGGLE_DAY_NIGHT', (e: Event) => {
+        const customEvent = e as CustomEvent;
+        if (customEvent.detail && customEvent.detail.isDay !== undefined) {
+            this.setDayMode(customEvent.detail.isDay);
+        }
+    });
+
     // Resize Handler
     window.addEventListener('resize', this.onWindowResize.bind(this));
   }
 
   private setupLighting() {
     // Ambient Light - base illumination everywhere
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
-    this.scene.add(ambientLight);
+    this.ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+    this.scene.add(this.ambientLight);
 
     // Directional Light - mimics sun, casts shadows
-    const dirLight = new THREE.DirectionalLight(0xffffff, 1.2);
+    this.dirLight = new THREE.DirectionalLight(0xffffff, 1.2);
     // Position sun somewhat diagonally
-    dirLight.position.set(10, 20, 10);
-    dirLight.castShadow = true;
+    this.dirLight.position.set(10, 20, 10);
+    this.dirLight.castShadow = true;
     
     // Configure shadow frustum size (cover the board)
-    dirLight.shadow.camera.top = 20;
-    dirLight.shadow.camera.bottom = -20;
-    dirLight.shadow.camera.left = -20;
-    dirLight.shadow.camera.right = 20;
-    dirLight.shadow.camera.near = 0.5;
-    dirLight.shadow.camera.far = 50;
+    this.dirLight.shadow.camera.top = 20;
+    this.dirLight.shadow.camera.bottom = -20;
+    this.dirLight.shadow.camera.left = -20;
+    this.dirLight.shadow.camera.right = 20;
+    this.dirLight.shadow.camera.near = 0.5;
+    this.dirLight.shadow.camera.far = 50;
     // Map size for shadow resolution
-    dirLight.shadow.mapSize.width = 1024;
-    dirLight.shadow.mapSize.height = 1024;
+    this.dirLight.shadow.mapSize.width = 1024;
+    this.dirLight.shadow.mapSize.height = 1024;
 
-    this.scene.add(dirLight);
+    this.scene.add(this.dirLight);
 
     // Add optional hemisphere light for slightly better color grading
-    const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.4);
-    hemiLight.position.set(0, 20, 0);
-    this.scene.add(hemiLight);
+    this.hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.4);
+    this.hemiLight.position.set(0, 20, 0);
+    this.scene.add(this.hemiLight);
+  }
+
+  public setDayMode(isDay: boolean) {
+      if (isDay) {
+          // Daytime Theme
+          this.scene.background = new THREE.Color('#87CEEB'); // Sky blue
+          this.ambientLight.color.setHex(0xffffff);
+          this.ambientLight.intensity = 0.4;
+          
+          this.dirLight.color.setHex(0xffffff);
+          this.dirLight.intensity = 1.2;
+          
+          this.hemiLight.intensity = 0.4;
+      } else {
+          // Nighttime Theme
+          this.scene.background = new THREE.Color('#0A0A2A'); // Deep dark navy
+          this.ambientLight.color.setHex(0xaaaaaa);
+          this.ambientLight.intensity = 0.15; // Dimmer ambient
+          
+          this.dirLight.color.setHex(0x88bbff); // Moonlight blue tint
+          this.dirLight.intensity = 0.5; // Weaker directional light
+          
+          this.hemiLight.intensity = 0.1; // Very weak fill
+      }
   }
 
   private onWindowResize() {
