@@ -17,9 +17,13 @@ export class EntityManager {
   private fallingMarkers: { mesh: THREE.Mesh, curve: THREE.QuadraticBezierCurve3, progress: number, worldX: number, worldZ: number, result: string, isPlayer: boolean, cellX: number, cellZ: number }[] = [];
   
   private time: number = 0;
-  private waterMaterialUniforms: any = null;
+  private playerWaterUniforms: any = null;
+  private enemyWaterUniforms: any = null;
+  
+  private playerRippleIndex: number = 0;
+  private enemyRippleIndex: number = 0;
+  
   private particleSystem: ParticleSystem;
-  private currentRippleIndex: number = 0;
 
   constructor(scene: THREE.Scene) {
     this.scene = scene;
@@ -49,37 +53,65 @@ export class EntityManager {
     const boardSize = 10;
     const offset = boardSize / 2;
 
-    // Create a large visible plane for the "water surface" underneath everything
-    const waterGeometry = new THREE.PlaneGeometry(50, 50, 64, 64);
-    const waterMaterial = new THREE.ShaderMaterial({
+    const createWaterUniforms = () => ({
+      time: { value: 0 },
+      baseColor: { value: new THREE.Color(0x1E90FF) },
+      peakColor: { value: new THREE.Color(0x87CEFA) },
+      opacity: { value: 0.9 },
+      globalTurbulence: { value: 0.0 },
+      rippleCenters: { value: [new THREE.Vector2(), new THREE.Vector2(), new THREE.Vector2(), new THREE.Vector2(), new THREE.Vector2()] },
+      rippleTimes: { value: [0.0, 0.0, 0.0, 0.0, 0.0] }
+    });
+
+    // Create the "Master Wood Frame" (hollow inside)
+    const woodMat = new THREE.MeshStandardMaterial({ color: 0x8B4513, roughness: 0.9 });
+    
+    const borders = [
+        { x: 11, z: 0.5, posZ: -5.25, posX: 0 },  // Top
+        { x: 11, z: 0.5, posZ: 5.25, posX: 0 },   // Bottom
+        { x: 0.5, z: 10, posZ: 0, posX: -5.25 },   // Left
+        { x: 0.5, z: 10, posZ: 0, posX: 5.25 }     // Right
+    ];
+
+    borders.forEach(b => {
+        const borderGeo = new THREE.BoxGeometry(b.x, 0.6, b.z);
+        const borderMesh = new THREE.Mesh(borderGeo, woodMat);
+        borderMesh.position.set(b.posX, 0, b.posZ);
+        borderMesh.castShadow = true;
+        borderMesh.receiveShadow = true;
+        this.masterBoardGroup.add(borderMesh);
+    });
+
+    // Create water panes for the boards
+    const boardWaterGeo = new THREE.PlaneGeometry(10, 10, 32, 32);
+    
+    this.playerWaterUniforms = createWaterUniforms();
+    const playerWaterMat = new THREE.ShaderMaterial({
       vertexShader: WaterShader.vertexShader,
       fragmentShader: WaterShader.fragmentShader,
-      uniforms: {
-        time: { value: 0 },
-        baseColor: { value: new THREE.Color(0x1E90FF) },
-        peakColor: { value: new THREE.Color(0x87CEFA) },
-        opacity: { value: 0.9 },
-        globalTurbulence: { value: 0.0 },
-        rippleCenters: { value: [new THREE.Vector2(), new THREE.Vector2(), new THREE.Vector2(), new THREE.Vector2(), new THREE.Vector2()] },
-        rippleTimes: { value: [0.0, 0.0, 0.0, 0.0, 0.0] }
-      },
+      uniforms: this.playerWaterUniforms,
       transparent: true,
       side: THREE.FrontSide
     });
-    this.waterMaterialUniforms = waterMaterial.uniforms;
-    const waterPlane = new THREE.Mesh(waterGeometry, waterMaterial);
-    waterPlane.rotation.x = -Math.PI / 2;
-    waterPlane.position.y = -1.0; // Deep below the board
-    waterPlane.receiveShadow = false; // ShaderMaterial needs extra work for shadows, disabled for stylized look
-    this.scene.add(waterPlane);
+    const playerWaterPlane = new THREE.Mesh(boardWaterGeo, playerWaterMat);
+    playerWaterPlane.rotation.x = -Math.PI / 2;
+    playerWaterPlane.position.y = -0.25; // Slightly recessed from top
+    playerWaterPlane.receiveShadow = true;
+    this.playerBoardGroup.add(playerWaterPlane);
 
-    // Create the "Master Wood Board"
-    const woodGeo = new THREE.BoxGeometry(10.5, 0.6, 10.5);
-    const woodMat = new THREE.MeshStandardMaterial({ color: 0x8B4513, roughness: 0.9 });
-    const woodBlock = new THREE.Mesh(woodGeo, woodMat);
-    woodBlock.castShadow = true;
-    woodBlock.receiveShadow = true;
-    this.masterBoardGroup.add(woodBlock);
+    this.enemyWaterUniforms = createWaterUniforms();
+    const enemyWaterMat = new THREE.ShaderMaterial({
+      vertexShader: WaterShader.vertexShader,
+      fragmentShader: WaterShader.fragmentShader,
+      uniforms: this.enemyWaterUniforms,
+      transparent: true,
+      side: THREE.FrontSide
+    });
+    const enemyWaterPlane = new THREE.Mesh(boardWaterGeo, enemyWaterMat);
+    enemyWaterPlane.rotation.x = -Math.PI / 2;
+    enemyWaterPlane.position.y = -0.25; // Slightly recessed
+    enemyWaterPlane.receiveShadow = true;
+    this.enemyBoardGroup.add(enemyWaterPlane);
 
     // Create interactable grid tiles (invisible or somewhat transparent borders)
     const tileGeometry = new THREE.BoxGeometry(0.95, 0.1, 0.95);
@@ -139,11 +171,17 @@ export class EntityManager {
     this.targetRotationX = Math.PI;
   }
   
-  private addRipple(worldX: number, worldZ: number) {
-      if (this.waterMaterialUniforms) {
-          this.waterMaterialUniforms.rippleCenters.value[this.currentRippleIndex].set(worldX, -worldZ);
-          this.waterMaterialUniforms.rippleTimes.value[this.currentRippleIndex] = 0.01;
-          this.currentRippleIndex = (this.currentRippleIndex + 1) % 5;
+  private addRipple(worldX: number, worldZ: number, isPlayerBoard: boolean) {
+      const uniforms = isPlayerBoard ? this.playerWaterUniforms : this.enemyWaterUniforms;
+      let rIndex = isPlayerBoard ? this.playerRippleIndex : this.enemyRippleIndex;
+      
+      if (uniforms) {
+          uniforms.rippleCenters.value[rIndex].set(worldX, -worldZ);
+          uniforms.rippleTimes.value[rIndex] = 0.01;
+          rIndex = (rIndex + 1) % 5;
+          
+          if (isPlayerBoard) this.playerRippleIndex = rIndex;
+          else this.enemyRippleIndex = rIndex;
       }
   }
 
@@ -155,20 +193,25 @@ export class EntityManager {
       // Update water shader time and ripples
       const waterTimeIncrement = 0.016 * Config.timing.gameSpeedMultiplier;
       this.time += waterTimeIncrement;
-      if (this.waterMaterialUniforms) {
-          this.waterMaterialUniforms.time.value = this.time;
+      
+      const updateWater = (uniforms: any) => {
+          if (!uniforms) return;
+          uniforms.time.value = this.time;
           for (let i = 0; i < 5; i++) {
-              if (this.waterMaterialUniforms.rippleTimes.value[i] > 0) {
-                  this.waterMaterialUniforms.rippleTimes.value[i] += waterTimeIncrement;
-                  if (this.waterMaterialUniforms.rippleTimes.value[i] > (2.0 / Config.timing.gameSpeedMultiplier)) {
-                      this.waterMaterialUniforms.rippleTimes.value[i] = 0; // Stop
+              if (uniforms.rippleTimes.value[i] > 0) {
+                  uniforms.rippleTimes.value[i] += waterTimeIncrement;
+                  if (uniforms.rippleTimes.value[i] > (2.0 / Config.timing.gameSpeedMultiplier)) {
+                      uniforms.rippleTimes.value[i] = 0; // Stop
                   }
               }
           }
-          if (this.waterMaterialUniforms.globalTurbulence.value > 0) {
-              this.waterMaterialUniforms.globalTurbulence.value = Math.max(0, this.waterMaterialUniforms.globalTurbulence.value - waterTimeIncrement * 0.2);
+          if (uniforms.globalTurbulence.value > 0) {
+              uniforms.globalTurbulence.value = Math.max(0, uniforms.globalTurbulence.value - waterTimeIncrement * 0.2);
           }
-      }
+      };
+
+      updateWater(this.playerWaterUniforms);
+      updateWater(this.enemyWaterUniforms);
       
       this.particleSystem.update();
       
@@ -236,7 +279,7 @@ export class EntityManager {
       targetGroup.add(block);
       
       if (i === Math.floor(ship.size / 2)) {
-          this.addRipple(worldX, worldZ);
+          this.addRipple(worldX, worldZ, true); // Player ships go on player board
       }
     }
   }
@@ -297,9 +340,13 @@ export class EntityManager {
     targetGroup.add(marker);
     
     // Trigger water ripple
-    this.addRipple(worldX, worldZ);
-    if (result === 'sunk' && this.waterMaterialUniforms) {
-        this.waterMaterialUniforms.globalTurbulence.value = 0.4;
+    this.addRipple(worldX, worldZ, !isPlayer); // If player fired, it lands on enemy board
+    
+    if (result === 'sunk') {
+        const targetUniforms = isPlayer ? this.enemyWaterUniforms : this.playerWaterUniforms;
+        if (targetUniforms) {
+            targetUniforms.globalTurbulence.value = 0.4;
+        }
     }
     
     this.fallingMarkers.push({ 
