@@ -1,0 +1,9 @@
+Please take a look at @game-concepts.md, @tech-breakdown.md and @tasks.md. We want to continue improving our game. We will make both visual, functional and maybe even some structural changes.
+
+1. "ships alive" counter in HUD should update immediately after shot has landed. it should have a little explosion animation when the count changes.
+2. add ability to move camera around, rotate and zoom in and out. we should rotate when click-and-holding, move around if CTLR or CMD key is held and we are dragging mouse, zoom in and out with scroll wheel.
+3. add ability to switch between 2D and 3D view. In 2D view we should see the board from top, and in 3D view we should default to see the board from a front at a 45 degree angle. We should be able to switch between 2D and 3D view with a button in the HUD. Toggling this should be smooth and animated. We should return to the last angle/rotation we had in 3D view when switching back to 3D.
+4. when there is an overlay like starting screen or options screen, we should not be able to interact with the game board. We should be able to interact only with the overlay, but not with the game board. 
+5. when placing ships we should show a projection of where the this will be placed. is should be highlighted in green if it can be placed, and in red if it cannot be placed in those specific cells. 
+6. when placing ships we should be able to rotate the ship by 90 degrees by pressing the R key. This should be shown next to the preview of the ship that is being placed. 
+7. the board should be made of water and animated similarly to the space around the board. it should react to ships being placed on it, to shots landing on it and to ships sinking.
