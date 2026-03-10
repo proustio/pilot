@@ -9,15 +9,15 @@ This document contains a step-by-step plan to implement the 3D voxel-based Battl
 - [x] Create placeholder/stub files for all major modules outlined in the tech breakdown.
 
 ## Phase 2: Basic 3D Presentation & Interaction
-- [ ] **Three.js Core** (`src/presentation/3d/`)
-    - [ ] Initialize Three.js scene, camera, and WebGL renderer.
-    - [ ] Configure global lighting (ambient, directional shadows).
-- [ ] **Assets & Entities** (`src/presentation/3d/entities/`)
-    - [ ] Import `.vox` / `.gltf` placeholder models for ships.
-    - [ ] Render a generic blocky target grid / voxel water plane.
-- [ ] **Interaction & Mechanics** (`src/presentation/3d/interaction/`)
-    - [ ] Add Raycaster logic to translate 2D mouse coordinates to the 3D tactical grid.
-    - [ ] Display a visual highlight cursor over the hovered 3D grid cell.
+- [x] **Three.js Core** (`src/presentation/3d/`)
+    - [x] Initialize Three.js scene, camera, and WebGL renderer.
+    - [x] Configure global lighting (ambient, directional shadows).
+- [x] **Assets & Entities** (`src/presentation/3d/entities/`)
+    - [x] Import `.vox` / `.gltf` placeholder models for ships.
+    - [x] Render a generic blocky target grid / voxel water plane.
+- [x] **Interaction & Mechanics** (`src/presentation/3d/interaction/`)
+    - [x] Add Raycaster logic to translate 2D mouse coordinates to the 3D tactical grid.
+    - [x] Display a visual highlight cursor over the hovered 3D grid cell.
 
 ## Phase 3: Domain Layer (Core Game Logic)
 - [ ] **Fleet Module** (`src/domain/fleet/`)
