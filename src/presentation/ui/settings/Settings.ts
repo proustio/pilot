@@ -3,9 +3,9 @@ import { GameLoop, GameState } from '../../../application/game-loop/GameLoop';
 import { Config } from '../../../infrastructure/config/Config';
 
 export class Settings extends BaseUIComponent {
-    private gameLoop: any;
+    private gameLoop: GameLoop;
 
-    constructor(gameLoop: any) {
+    constructor(gameLoop: GameLoop) {
         super('settings-modal');
         this.gameLoop = gameLoop;
         this.container.classList.add('voxel-panel');
@@ -25,8 +25,10 @@ export class Settings extends BaseUIComponent {
     }
 
     protected render(): void {
+        const isInGame = this.gameLoop.currentState !== GameState.MAIN_MENU;
+
         this.container.innerHTML = `
-            <h2 class="voxel-title" style="font-size: 2rem;">Settings</h2>
+            <h2 class="voxel-title" style="font-size: 2rem;">Pause</h2>
             
             <div class="settings-row" id="difficulty-row">
                 <label>Enemy AI Difficulty:</label>
@@ -61,8 +63,26 @@ export class Settings extends BaseUIComponent {
                     <option value="4.0" ${Config.timing.gameSpeedMultiplier === 4.0 ? 'selected' : ''}>4.0x (Very Fast)</option>
                 </select>
             </div>
+
+            ${isInGame ? `
+                <div style="margin-top: 10px; width: 100%; border-top: 2px dashed #555; padding-top: 10px; display: flex; flex-direction: column;">
+                    <button id="btn-save-game" class="voxel-btn">Save Game</button>
+                    <button id="btn-load-game" class="voxel-btn">Load Game</button>
+                    <button id="btn-exit-menu" class="voxel-btn" style="color: var(--color-danger);">Exit to Main Menu</button>
+                </div>
+            ` : ''}
             
-            <button id="btn-close-settings" class="voxel-btn primary" style="margin-top: 20px;">Resume</button>
+            <button id="btn-close-settings" class="voxel-btn primary" style="margin-top: 10px;">Resume</button>
+
+            <div id="exit-confirm-overlay" class="confirm-overlay" style="display:none;">
+                <div class="confirm-dialog voxel-panel">
+                    <p>You have unsaved progress.<br>Are you sure you want to exit?</p>
+                    <div style="display:flex; gap:10px; justify-content:center;">
+                        <button id="exit-confirm-yes" class="voxel-btn primary" style="width:auto; padding:10px 24px;">Yes, Exit</button>
+                        <button id="exit-confirm-no" class="voxel-btn" style="width:auto; padding:10px 24px;">Cancel</button>
+                    </div>
+                </div>
+            </div>
         `;
 
         // Bind events
@@ -113,7 +133,6 @@ export class Settings extends BaseUIComponent {
 
         aiSelect.addEventListener('change', (e) => {
             const difficulty = (e.target as HTMLSelectElement).value;
-            // dispatch custom event to AI system later
             console.log("AI Difficulty set to: ", difficulty);
             document.dispatchEvent(new CustomEvent('SET_AI_DIFFICULTY', { detail: { difficulty } }));
         });
@@ -133,12 +152,49 @@ export class Settings extends BaseUIComponent {
             }
         });
 
-        // Also sync AI difficulty if changed elsewhere (e.g. initial setup)
+        // Also sync AI difficulty if changed elsewhere
         document.addEventListener('SET_AI_DIFFICULTY', (e: Event) => {
             const ce = e as CustomEvent;
             if (ce.detail && ce.detail.difficulty) {
                 aiSelect.value = ce.detail.difficulty;
             }
         });
+
+        // In-game buttons
+        if (isInGame) {
+            const saveBtn = this.container.querySelector('#btn-save-game') as HTMLButtonElement;
+            saveBtn.addEventListener('click', () => {
+                this.hide();
+                document.dispatchEvent(new CustomEvent('SHOW_SAVE_DIALOG'));
+            });
+
+            const loadBtn = this.container.querySelector('#btn-load-game') as HTMLButtonElement;
+            loadBtn.addEventListener('click', () => {
+                this.hide();
+                document.dispatchEvent(new CustomEvent('SHOW_LOAD_DIALOG'));
+            });
+
+            const exitBtn = this.container.querySelector('#btn-exit-menu') as HTMLButtonElement;
+            exitBtn.addEventListener('click', () => {
+                if (this.gameLoop.hasUnsavedProgress()) {
+                    // Show confirmation
+                    const overlay = this.container.querySelector('#exit-confirm-overlay') as HTMLElement;
+                    overlay.style.display = 'flex';
+
+                    const yesBtn = this.container.querySelector('#exit-confirm-yes') as HTMLButtonElement;
+                    const noBtn = this.container.querySelector('#exit-confirm-no') as HTMLButtonElement;
+
+                    yesBtn.addEventListener('click', () => {
+                        window.location.reload();
+                    }, { once: true });
+
+                    noBtn.addEventListener('click', () => {
+                        overlay.style.display = 'none';
+                    }, { once: true });
+                } else {
+                    window.location.reload();
+                }
+            });
+        }
     }
 }

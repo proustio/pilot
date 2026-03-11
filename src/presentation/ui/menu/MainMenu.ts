@@ -31,13 +31,10 @@ export class MainMenu extends BaseUIComponent {
             </div>
 
             <div style="margin-top: 20px; width: 100%; border-top: 2px dashed #555; padding-top: 20px;">
-                <label>Load Game (Coming Soon):</label>
-                <button class="voxel-btn" disabled>Slot 1</button>
-                <button class="voxel-btn" disabled>Slot 2</button>
-                <button class="voxel-btn" disabled>Slot 3</button>
+                <button id="btn-game-saves" class="voxel-btn">Game Saves</button>
             </div>
             
-            <button id="btn-settings" class="voxel-btn" style="margin-top: 20px;">Settings</button>
+            <button id="btn-settings" class="voxel-btn" style="margin-top: 10px;">Settings</button>
         `;
 
         // Bind events
@@ -63,9 +60,13 @@ export class MainMenu extends BaseUIComponent {
             this.gameLoop.startNewMatch(match);
         });
 
+        const gameSavesBtn = this.container.querySelector('#btn-game-saves') as HTMLButtonElement;
+        gameSavesBtn.addEventListener('click', () => {
+            document.dispatchEvent(new CustomEvent('SHOW_LOAD_DIALOG'));
+        });
+
         const settingsBtn = this.container.querySelector('#btn-settings') as HTMLButtonElement;
         settingsBtn.addEventListener('click', () => {
-            // Need to expose a way to show settings
             document.dispatchEvent(new CustomEvent('SHOW_SETTINGS'));
         });
 

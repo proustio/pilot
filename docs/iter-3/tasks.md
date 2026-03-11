@@ -17,12 +17,12 @@ Action items derived from `improvements-3.md`. Each top-level item is a self-con
 ---
 
 ## 2. Save & Load System (3 Slots)
-- [ ] Implement game-state serialisation (board state, fleet, turn, settings, elapsed time).
-- [ ] Implement game-state deserialisation and full state restoration.
-- [ ] Create a **Save/Load** UI dialog with 3 named slots showing metadata (mode, date, turn count).
-- [ ] Wire **Save** and **Load** buttons into the **Pause Menu**.
-- [ ] Wire **Save** and **Load** (or just Load for new sessions) into the **Main Menu**.
-- [ ] Handle edge cases: empty slots, overwrite confirmation, corrupted data.
+- [x] Implement game-state serialisation (board state, fleet, turn, settings, elapsed time).
+- [x] Implement game-state deserialisation and full state restoration.
+- [x] Create a **Save/Load** UI dialog with 3 named slots showing metadata (mode, date, turn count).
+- [x] Wire **Save** and **Load** buttons into the **Pause Menu**.
+- [x] Wire **Save** and **Load** (or just Load for new sessions) into the **Main Menu**.
+- [x] Handle edge cases: empty slots, overwrite confirmation, corrupted data.
 
 ---
 

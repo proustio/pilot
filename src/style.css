@@ -338,3 +338,87 @@ canvas {
 .gs-online {
   color: #2ecc71;
 }
+
+/* Save/Load Dialog */
+#save-load-dialog {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 380px;
+  display: flex;
+  flex-direction: column;
+}
+
+.save-slots-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.save-slot {
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  padding: 12px 16px;
+}
+
+.save-slot .slot-header {
+  font-size: 1rem;
+  font-weight: bold;
+  margin-bottom: 4px;
+  color: var(--color-primary);
+}
+
+.save-slot .slot-info {
+  display: flex;
+  flex-direction: column;
+  font-size: 0.8rem;
+  gap: 2px;
+}
+
+.save-slot .slot-empty {
+  color: #666;
+  font-style: italic;
+}
+
+.save-slot .slot-mode {
+  color: var(--color-secondary);
+}
+
+.save-slot .slot-date {
+  color: #aaa;
+}
+
+.save-slot .slot-turns {
+  color: #bbb;
+}
+
+.save-slot.slot-disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Confirmation Overlay */
+.confirm-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 300;
+}
+
+.confirm-dialog {
+  text-align: center;
+  max-width: 320px;
+}
+
+.confirm-dialog p {
+  margin-bottom: 15px;
+  font-size: 1.1rem;
+}

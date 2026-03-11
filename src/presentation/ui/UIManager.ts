@@ -3,6 +3,8 @@ import { MainMenu } from './menu/MainMenu';
 import { HUD } from './hud/HUD';
 import { Settings } from './settings/Settings';
 import { GameOver } from './menu/GameOver';
+import { SaveLoadDialog } from './components/SaveLoadDialog';
+import { Storage } from '../../infrastructure/storage/Storage';
 
 export class UIManager {
     private gameLoop: GameLoop;
@@ -12,6 +14,7 @@ export class UIManager {
     private hud: HUD;
     private settings: Settings;
     private gameOver: GameOver;
+    private saveLoadDialog: SaveLoadDialog;
 
     constructor(gameLoop: GameLoop) {
         this.gameLoop = gameLoop;
@@ -28,12 +31,14 @@ export class UIManager {
         this.hud = new HUD(this.gameLoop);
         this.settings = new Settings(this.gameLoop);
         this.gameOver = new GameOver();
+        this.saveLoadDialog = new SaveLoadDialog();
 
         // Mount components to the UI wrapper
         this.mainMenu.mount(this.uiLayer);
         this.hud.mount(this.uiLayer);
         this.settings.mount(this.uiLayer);
         this.gameOver.mount(this.uiLayer);
+        this.saveLoadDialog.mount(this.uiLayer);
 
         // Listen for internal game state to show/hide menus
         this.gameLoop.onStateChange((newState: GameState) => {
@@ -56,8 +61,32 @@ export class UIManager {
             }
         });
 
+        document.addEventListener('SHOW_SAVE_DIALOG', () => {
+            this.saveLoadDialog.openAs('save');
+        });
+
+        document.addEventListener('SHOW_LOAD_DIALOG', () => {
+            this.saveLoadDialog.openAs('load');
+        });
+
         // Initialize display based on current loop state
         this.handleStateChange(this.gameLoop.currentState);
+
+        // Check for auto-load from sessionStorage (set when user loads a game)
+        this.checkAutoLoad();
+    }
+
+    private checkAutoLoad(): void {
+        const autoloadSlot = sessionStorage.getItem('battleships_autoload');
+        if (autoloadSlot) {
+            sessionStorage.removeItem('battleships_autoload');
+            const slotId = parseInt(autoloadSlot);
+            const match = Storage.loadGame(slotId);
+            if (match) {
+                console.log(`Auto-loading game from slot ${slotId}`);
+                this.gameLoop.loadMatch(match);
+            }
+        }
     }
     
     private handleStateChange(newState: GameState) {

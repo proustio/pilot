@@ -2,6 +2,7 @@ import { Match } from '../../domain/match/Match';
 import { Ship, Orientation } from '../../domain/fleet/Ship';
 import { AIEngine, AIDifficulty } from '../ai/AIEngine';
 import { Config } from '../../infrastructure/config/Config';
+import { Storage } from '../../infrastructure/storage/Storage';
 
 export enum GameState {
     MAIN_MENU = 'MAIN_MENU',
@@ -79,6 +80,43 @@ export class GameLoop {
         document.addEventListener('RESUME_GAME', () => {
             this.isPaused = false;
         });
+
+        // Listen for Save/Load events
+        document.addEventListener('SAVE_GAME', (e: Event) => {
+            const ce = e as CustomEvent;
+            const slotId = ce.detail?.slotId;
+            if (slotId && this.match) {
+                const success = Storage.saveGame(slotId, this.match);
+                console.log(success ? `Game saved to slot ${slotId}` : `Failed to save to slot ${slotId}`);
+            }
+        });
+
+        document.addEventListener('LOAD_GAME', (e: Event) => {
+            const ce = e as CustomEvent;
+            const slotId = ce.detail?.slotId;
+            if (slotId) {
+                const match = Storage.loadGame(slotId);
+                if (match) {
+                    console.log(`Game loaded from slot ${slotId}`);
+                    // Reload to get a clean 3D state, then auto-load
+                    // Store the slot to load in sessionStorage so the reload can pick it up
+                    sessionStorage.setItem('battleships_autoload', slotId.toString());
+                    window.location.reload();
+                } else {
+                    console.error(`Failed to load from slot ${slotId}`);
+                }
+            }
+        });
+    }
+
+    /**
+     * Returns true if the current match has any progress worth saving.
+     */
+    public hasUnsavedProgress(): boolean {
+        if (!this.match) return false;
+        const hasShots = this.match.playerBoard.shotsFired > 0 || this.match.enemyBoard.shotsFired > 0;
+        const hasShipsPlaced = this.match.playerBoard.ships.length > 0;
+        return hasShots || hasShipsPlaced;
     }
 
     /**
