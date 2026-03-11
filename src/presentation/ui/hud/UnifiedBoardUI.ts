@@ -72,6 +72,8 @@ export class UnifiedBoardUI extends BaseUIComponent {
                 case CellState.Ship:
                     if (isPlayer) {
                         cell.classList.add('cell-ship');
+                    } else {
+                        cell.classList.add('cell-fog');
                     }
                     break;
                 case CellState.Hit:
@@ -84,7 +86,10 @@ export class UnifiedBoardUI extends BaseUIComponent {
                     cell.classList.add('cell-miss');
                     break;
                 default:
-                    // Empty or Hidden
+                    // Empty
+                    if (!isPlayer) {
+                        cell.classList.add('cell-fog');
+                    }
                     break;
             }
         });

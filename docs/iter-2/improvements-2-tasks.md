@@ -25,8 +25,8 @@ This document breaks down the actionable tasks based on `improvements-2.md` and 
 
 ## 4. Fog of War
 *Goal: Hide unrevealed parts of the enemy board.*
-- [ ] Implement a "Fog of War" visual layer over the enemy's section of the board.
-- [ ] Update the rendering logic to reveal specific cells only after they have been targeted/shot at.
+- [x] Implement a "Fog of War" visual layer over the enemy's section of the board.
+- [x] Update the rendering logic to reveal specific cells only after they have been targeted/shot at.
 
 ## 5. Game Options & Synchronization
 *Goal: Improve the options menus, add pause functionality, and manage setting restrictions.*

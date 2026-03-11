@@ -12,6 +12,7 @@ export class EntityManager {
     private enemyBoardGroup: THREE.Group;
 
     private targetRotationX: number = 0;
+    private fogMeshes: (THREE.Mesh | null)[] = new Array(100).fill(null);
     private fallingMarkers: { mesh: THREE.Object3D, curve: THREE.QuadraticBezierCurve3, progress: number, worldX: number, worldZ: number, result: string, isPlayer: boolean, cellX: number, cellZ: number }[] = [];
 
     private time: number = 0;
@@ -115,6 +116,8 @@ export class EntityManager {
         const tileGeometry = new THREE.BoxGeometry(0.95, 0.1, 0.95);
         const tilePlayerMat = new THREE.MeshStandardMaterial({ color: 0x0000ff, transparent: true, opacity: 0.2, depthWrite: false });
         const tileEnemyMat = new THREE.MeshStandardMaterial({ color: 0xff0000, transparent: true, opacity: 0.2, depthWrite: false });
+        const fogMat = new THREE.MeshStandardMaterial({ color: 0x222222, transparent: true, opacity: 0.85 });
+        const fogGeometry = new THREE.BoxGeometry(0.9, 0.4, 0.9);
 
         for (let x = 0; x < boardSize; x++) {
             for (let z = 0; z < boardSize; z++) {
@@ -132,6 +135,12 @@ export class EntityManager {
                 etile.position.set(worldX, 0, worldZ);
                 etile.userData = { isGridTile: true, cellX: x, cellZ: z, isPlayerSide: false };
                 this.enemyBoardGroup.add(etile);
+
+                // Fog block on enemy side
+                const fogMesh = new THREE.Mesh(fogGeometry, fogMat);
+                fogMesh.position.set(worldX, 0.25, worldZ);
+                this.enemyBoardGroup.add(fogMesh);
+                this.fogMeshes[z * boardSize + x] = fogMesh;
             }
         }
 
@@ -235,6 +244,18 @@ export class EntityManager {
 
                 // Always spawn water splash on impact (hit or miss)
                 this.particleSystem.spawnSplash(m.worldX, 0.2, m.worldZ, targetGroup);
+
+                // Reveal Fog
+                if (m.isPlayer) {
+                    const fogIdx = m.cellZ * 10 + m.cellX;
+                    const fogMesh = this.fogMeshes[fogIdx];
+                    if (fogMesh) {
+                        this.enemyBoardGroup.remove(fogMesh);
+                        this.fogMeshes[fogIdx] = null;
+                        // Trigger ripple nearby to show impact through the clearing fog
+                        this.addRipple(m.worldX, m.worldZ, false);
+                    }
+                }
 
                 if (m.result === 'hit' || m.result === 'sunk') {
                     // Explode projectile: Hide nose, squish and darken body

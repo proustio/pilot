@@ -247,6 +247,7 @@ canvas {
 .mini-cell.cell-hit { background: var(--color-danger); }
 .mini-cell.cell-sunk { background: #8e44ad; } /* Purple for sunk */
 .mini-cell.cell-miss { background: #fff; }
+.mini-cell.cell-fog { background: #222; }
 
 .hud-game-stats {
   display: flex;
