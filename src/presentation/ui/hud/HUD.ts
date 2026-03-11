@@ -78,6 +78,7 @@ export class HUD extends BaseUIComponent {
             </div>
             
             <div style="position: absolute; bottom: 20px; right: 20px; display: flex; gap: 10px;">
+                <button id="hud-btn-peek" class="voxel-btn ui-interactive" style="width: auto; padding: 10px; display: ${Config.visual.peekEnabled ? 'inline-block' : 'none'};" title="Peek at other side">👁️</button>
                 <button id="hud-btn-view-toggle" class="voxel-btn ui-interactive" style="width: auto; padding: 10px;">3D View</button>
                 <button id="hud-btn-day-night" class="voxel-btn ui-interactive" style="width: auto; padding: 10px;">${Config.visual.isDayMode ? '☀️' : '🌙'}</button>
                 <button id="hud-btn-speed" class="voxel-btn ui-interactive" style="width: auto; padding: 10px;">Speed: ${Config.timing.gameSpeedMultiplier}x</button>
@@ -104,6 +105,31 @@ export class HUD extends BaseUIComponent {
         const settingsBtn = this.container.querySelector('#hud-btn-settings') as HTMLButtonElement;
         settingsBtn.addEventListener('click', () => {
             document.dispatchEvent(new CustomEvent('SHOW_PAUSE_MENU'));
+        });
+
+        // Peek toggle button
+        const peekBtn = this.container.querySelector('#hud-btn-peek') as HTMLButtonElement;
+        let isPeeking = false;
+        peekBtn.addEventListener('click', () => {
+            isPeeking = !isPeeking;
+            peekBtn.style.opacity = isPeeking ? '0.6' : '1';
+            peekBtn.style.boxShadow = isPeeking ? 'inset 0 0 10px rgba(255,255,0,0.4)' : '';
+            document.dispatchEvent(new CustomEvent('TOGGLE_PEEK', { detail: { peeking: isPeeking } }));
+        });
+
+        // Listen for peek enabled/disabled from settings
+        document.addEventListener('PEEK_ENABLED_CHANGED', (e: Event) => {
+            const ce = e as CustomEvent;
+            if (ce.detail && ce.detail.enabled !== undefined) {
+                peekBtn.style.display = ce.detail.enabled ? 'inline-block' : 'none';
+                // If peek was active and feature gets disabled, stop peeking
+                if (!ce.detail.enabled && isPeeking) {
+                    isPeeking = false;
+                    peekBtn.style.opacity = '1';
+                    peekBtn.style.boxShadow = '';
+                    document.dispatchEvent(new CustomEvent('TOGGLE_PEEK', { detail: { peeking: false } }));
+                }
+            }
         });
 
         const speedBtn = this.container.querySelector('#hud-btn-speed') as HTMLButtonElement;

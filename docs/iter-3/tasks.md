@@ -53,9 +53,9 @@ Action items derived from `improvements-3.md`. Each top-level item is a self-con
 ---
 
 ## 6. "Peek at Other Side" Board Toggle
-- [ ] Add a **HUD toggle button** (eye icon or similar) that lets the player peek at the opposite side of the board without committing a turn.
-- [ ] Implement the peek — rotate/flip the board temporarily, disable interaction while peeking.
-- [ ] Add matching toggle entry in Settings to enable/disable this feature.
+- [x] Add a **HUD toggle button** (eye icon or similar) that lets the player peek at the opposite side of the board without committing a turn.
+- [x] Implement the peek — rotate/flip the board temporarily, disable interaction while peeking.
+- [x] Add matching toggle entry in Settings to enable/disable this feature.
 
 ---
 

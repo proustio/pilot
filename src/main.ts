@@ -110,6 +110,39 @@ const init = () => {
             }
         });
 
+        // Peek at other side toggle
+        document.addEventListener('TOGGLE_PEEK', (e: Event) => {
+            const ce = e as CustomEvent;
+            const peeking = ce.detail?.peeking;
+            
+            if (peeking) {
+                // Flip the board to show the opposite side temporarily
+                const currentState = gameLoop.currentState;
+                if (currentState === 'PLAYER_TURN') {
+                    // Player normally sees enemy board; peek shows player board
+                    entityManager.showPlayerBoard();
+                } else if (currentState === 'ENEMY_TURN') {
+                    // Enemy turn normally shows player board; peek shows enemy board
+                    entityManager.showEnemyBoard();
+                } else if (currentState === 'SETUP_BOARD') {
+                    // During setup, player sees own board; peek shows enemy side
+                    entityManager.showEnemyBoard();
+                }
+                // Disable interaction while peeking
+                document.dispatchEvent(new CustomEvent('SET_INTERACTION_ENABLED', { detail: { enabled: false } }));
+            } else {
+                // Restore the correct board for the current state
+                const currentState = gameLoop.currentState;
+                if (currentState === 'PLAYER_TURN') {
+                    entityManager.showEnemyBoard();
+                } else {
+                    entityManager.showPlayerBoard();
+                }
+                // Re-enable interaction
+                document.dispatchEvent(new CustomEvent('SET_INTERACTION_ENABLED', { detail: { enabled: true } }));
+            }
+        });
+
         // Start loop
         animate(performance.now());
         console.log('App successfully initialized, loop running.');

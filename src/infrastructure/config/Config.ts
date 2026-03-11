@@ -18,7 +18,8 @@ export const Config = {
     },
     visual: {
         isDayMode: new Date().getHours() >= 6 && new Date().getHours() < 18,
-        showGeekStats: false
+        showGeekStats: false,
+        peekEnabled: true
     },
     autoBattler: false
 };
