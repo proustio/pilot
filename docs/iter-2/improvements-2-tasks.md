@@ -30,11 +30,11 @@ This document breaks down the actionable tasks based on `improvements-2.md` and 
 
 ## 5. Game Options & Synchronization
 *Goal: Improve the options menus, add pause functionality, and manage setting restrictions.*
-- [ ] Make all configurable game options accessible both before the game starts and during active gameplay.
-- [ ] Synchronize option states (e.g., toggles) between the pre-game main menu and mid-game HUD settings screens.
-- [ ] Implement game pausing functionality when the options screen is opened during an active match (halting game loops/animations).
-- [ ] Restrict the "Difficulty Level" setting so it can only be changed before the game starts.
-- [ ] Visually grey out/disable the difficulty setting in the in-game options menu when a game is in progress.
+- [x] Make all configurable game options accessible both before the game starts and during active gameplay.
+- [x] Synchronize option states (e.g., toggles) between the pre-game main menu and mid-game HUD settings screens.
+- [x] Implement game pausing functionality when the options screen is opened during an active match (halting game loops/animations).
+- [x] Restrict the "Difficulty Level" setting so it can only be changed before the game starts.
+- [x] Visually grey out/disable the difficulty setting in the in-game options menu when a game is in progress.
 
 ---
 *Item 1 (animated water board) from `improvements-2.md` is marked as [COMPLETE]. Items 4 and 7 were combined into Section 5 due to overlapping requirements.*

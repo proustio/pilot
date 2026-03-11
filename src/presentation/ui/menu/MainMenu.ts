@@ -68,5 +68,13 @@ export class MainMenu extends BaseUIComponent {
             // Need to expose a way to show settings
             document.dispatchEvent(new CustomEvent('SHOW_SETTINGS'));
         });
+
+        // Sync auto-battler from settings
+        document.addEventListener('TOGGLE_AUTO_BATTLER', (e: Event) => {
+            const ce = e as CustomEvent;
+            if (ce.detail && ce.detail.enabled !== undefined) {
+                autoBattlerToggle.checked = ce.detail.enabled;
+            }
+        });
     }
 }

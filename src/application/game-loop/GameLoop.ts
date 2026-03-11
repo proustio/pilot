@@ -22,6 +22,7 @@ export class GameLoop {
     public playerShipsToPlace: Ship[] = [];
     public currentPlacementOrientation: Orientation = Orientation.Horizontal;
     public isAnimating: boolean = false;
+    public isPaused: boolean = false;
     public aiEngine: AIEngine;
     public playerAIEngine: AIEngine;
 
@@ -68,6 +69,15 @@ export class GameLoop {
                     ? Orientation.Vertical 
                     : Orientation.Horizontal;
             }
+        });
+
+        // Listen for Pause/Resume
+        document.addEventListener('PAUSE_GAME', () => {
+            this.isPaused = true;
+        });
+
+        document.addEventListener('RESUME_GAME', () => {
+            this.isPaused = false;
         });
     }
 
@@ -180,81 +190,133 @@ export class GameLoop {
         if (!this.match) return;
 
         console.log(`Enemy is thinking... (Difficulty: ${this.aiEngine.difficulty})`);
-        this.isAnimating = true;
-
-        setTimeout(() => {
+        
+        const executeTurn = () => {
             if (!this.match) return;
             
-            // Ask AI Engine for next move
-            const target = this.aiEngine.computeNextMove(this.match.playerBoard, this.match);
-            
-            // Perform Attack
-            const result = this.match.playerBoard.receiveAttack(target.x, target.z);
-            
-            // Report result back to AI so it can learn (for Normal/Hard modes)
-            this.aiEngine.reportResult(target.x, target.z, result.toString(), this.match.playerBoard);
-            
-            // Show the result maker
-            this.attackResultListeners.forEach(l => l(target.x, target.z, result.toString(), false));
-            
-            // Wait for player to see what happened before flipping board
+            if (this.isPaused) {
+                setTimeout(executeTurn, 100);
+                return;
+            }
+
+            this.isAnimating = true;
+
             setTimeout(() => {
-                // Re-evaluate game over
-                const status = this.match!.checkGameEnd();
-                this.isAnimating = false;
+                if (!this.match) return;
                 
-                if (status !== 'ongoing') {
-                    this.transitionTo(GameState.GAME_OVER);
-                } else {
-                    this.transitionTo(GameState.PLAYER_TURN);
+                // Re-check pause after delay
+                if (this.isPaused) {
+                    this.isAnimating = false; // Reset so it can be re-triggered
+                    executeTurn();
+                    return;
                 }
-            }, Config.timing.turnDelayMs / Config.timing.gameSpeedMultiplier);
-            
-        }, Config.timing.aiThinkingTimeMs / Config.timing.gameSpeedMultiplier); // thinking time
+                
+                // Ask AI Engine for next move
+                const target = this.aiEngine.computeNextMove(this.match.playerBoard, this.match);
+                
+                // Perform Attack
+                const result = this.match.playerBoard.receiveAttack(target.x, target.z);
+                
+                // Report result back to AI so it can learn (for Normal/Hard modes)
+                this.aiEngine.reportResult(target.x, target.z, result.toString(), this.match.playerBoard);
+                
+                // Show the result maker
+                this.attackResultListeners.forEach(l => l(target.x, target.z, result.toString(), false));
+                
+                // Wait for player to see what happened before flipping board
+                const finalizeTurn = () => {
+                    if (this.isPaused) {
+                        setTimeout(finalizeTurn, 100);
+                        return;
+                    }
+                    
+                    // Re-evaluate game over
+                    const status = this.match!.checkGameEnd();
+                    this.isAnimating = false;
+                    
+                    if (status !== 'ongoing') {
+                        this.transitionTo(GameState.GAME_OVER);
+                    } else {
+                        this.transitionTo(GameState.PLAYER_TURN);
+                    }
+                };
+                
+                setTimeout(finalizeTurn, Config.timing.turnDelayMs / Config.timing.gameSpeedMultiplier);
+                
+            }, Config.timing.aiThinkingTimeMs / Config.timing.gameSpeedMultiplier); // thinking time
+        };
+
+        executeTurn();
     }
 
     private handleAutoPlayerTurn() {
         if (!this.match || this.isAnimating) return;
 
         console.log(`Auto-Battler is thinking...`);
-        this.isAnimating = true;
-
-        setTimeout(() => {
+        
+        const executeTurn = () => {
             if (!this.match) return;
-            
-            // Ask Player AI Engine for next move against Enemy Board
-            const target = this.playerAIEngine.computeNextMove(this.match.enemyBoard, this.match);
-            
-            // Perform Attack
-            const result = this.match.enemyBoard.receiveAttack(target.x, target.z);
-            
-            // Report result back to AI so it can learn
-            this.playerAIEngine.reportResult(target.x, target.z, result.toString(), this.match.enemyBoard);
-            
-            // Show the result maker
-            this.attackResultListeners.forEach(l => l(target.x, target.z, result.toString(), true));
-            
-            // Wait for player to see what happened before flipping board
+
+            if (this.isPaused) {
+                setTimeout(executeTurn, 100);
+                return;
+            }
+
+            this.isAnimating = true;
+
             setTimeout(() => {
-                // Re-evaluate game over
-                const status = this.match!.checkGameEnd();
-                this.isAnimating = false;
-                
-                if (status !== 'ongoing') {
-                    this.transitionTo(GameState.GAME_OVER);
-                } else {
-                    this.transitionTo(GameState.ENEMY_TURN);
+                if (!this.match) return;
+
+                // Re-check pause after delay
+                if (this.isPaused) {
+                    this.isAnimating = false;
+                    executeTurn();
+                    return;
                 }
-            }, Config.timing.turnDelayMs / Config.timing.gameSpeedMultiplier);
-            
-        }, Config.timing.aiThinkingTimeMs / Config.timing.gameSpeedMultiplier); // thinking time
+                
+                // Ask Player AI Engine for next move against Enemy Board
+                const target = this.playerAIEngine.computeNextMove(this.match.enemyBoard, this.match);
+                
+                // Perform Attack
+                const result = this.match.enemyBoard.receiveAttack(target.x, target.z);
+                
+                // Report result back to AI so it can learn
+                this.playerAIEngine.reportResult(target.x, target.z, result.toString(), this.match.enemyBoard);
+                
+                // Show the result maker
+                this.attackResultListeners.forEach(l => l(target.x, target.z, result.toString(), true));
+                
+                // Wait for player to see what happened before flipping board
+                const finalizeTurn = () => {
+                    if (this.isPaused) {
+                        setTimeout(finalizeTurn, 100);
+                        return;
+                    }
+                    
+                    // Re-evaluate game over
+                    const status = this.match!.checkGameEnd();
+                    this.isAnimating = false;
+                    
+                    if (status !== 'ongoing') {
+                        this.transitionTo(GameState.GAME_OVER);
+                    } else {
+                        this.transitionTo(GameState.ENEMY_TURN);
+                    }
+                };
+                
+                setTimeout(finalizeTurn, Config.timing.turnDelayMs / Config.timing.gameSpeedMultiplier);
+                
+            }, Config.timing.aiThinkingTimeMs / Config.timing.gameSpeedMultiplier); // thinking time
+        };
+
+        executeTurn();
     }
 
     /**
      * External input hook (from 3D interactions)
      */
     public onGridClick(x: number, z: number) {
-        if (!this.match) return;
+        if (!this.match || this.isPaused) return;
 
         if (this.currentState === GameState.SETUP_BOARD) {
             if (this.playerShipsToPlace.length === 0) return;

@@ -81,7 +81,7 @@ export class HUD extends BaseUIComponent {
                 <button id="hud-btn-view-toggle" class="voxel-btn ui-interactive" style="width: auto; padding: 10px;">3D View</button>
                 <button id="hud-btn-day-night" class="voxel-btn ui-interactive" style="width: auto; padding: 10px;">${Config.visual.isDayMode ? '☀️' : '🌙'}</button>
                 <button id="hud-btn-speed" class="voxel-btn ui-interactive" style="width: auto; padding: 10px;">Speed: ${Config.timing.gameSpeedMultiplier}x</button>
-                <button id="hud-btn-settings" class="voxel-btn ui-interactive" style="width: auto; padding: 10px;">Options</button>
+                <button id="hud-btn-settings" class="voxel-btn ui-interactive" style="width: auto; padding: 10px;">Pause</button>
             </div>
             
             <div id="fps-counter" style="position: absolute; top: 10px; right: 10px; color: #00ff00; font-family: monospace; font-size: 1.2rem; font-weight: bold; text-shadow: 1px 1px 2px #000; display: ${Config.visual.showFpsCounter ? 'block' : 'none'}; z-index: 1000; pointer-events: none;">

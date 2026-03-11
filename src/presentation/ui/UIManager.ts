@@ -26,7 +26,7 @@ export class UIManager {
         // Instantiate components
         this.mainMenu = new MainMenu(this.gameLoop);
         this.hud = new HUD(this.gameLoop);
-        this.settings = new Settings();
+        this.settings = new Settings(this.gameLoop);
         this.gameOver = new GameOver();
 
         // Mount components to the UI wrapper

@@ -1,19 +1,26 @@
 import { BaseUIComponent } from '../components/BaseUIComponent';
+import { GameLoop, GameState } from '../../../application/game-loop/GameLoop';
 import { Config } from '../../../infrastructure/config/Config';
 
 export class Settings extends BaseUIComponent {
-    constructor() {
+    private gameLoop: any;
+
+    constructor(gameLoop: any) {
         super('settings-modal');
+        this.gameLoop = gameLoop;
         this.container.classList.add('voxel-panel');
         // Let's place it high z-index
         this.container.style.zIndex = '100';
     }
 
     protected onShow(): void {
+        document.dispatchEvent(new CustomEvent('PAUSE_GAME'));
         document.dispatchEvent(new CustomEvent('SET_INTERACTION_ENABLED', { detail: { enabled: false } }));
+        this.render(); // Re-render to update difficulty eligibility
     }
 
     protected onHide(): void {
+        document.dispatchEvent(new CustomEvent('RESUME_GAME'));
         document.dispatchEvent(new CustomEvent('SET_INTERACTION_ENABLED', { detail: { enabled: true } }));
     }
 
@@ -21,12 +28,12 @@ export class Settings extends BaseUIComponent {
         this.container.innerHTML = `
             <h2 class="voxel-title" style="font-size: 2rem;">Settings</h2>
             
-            <div class="settings-row">
+            <div class="settings-row" id="difficulty-row">
                 <label>Enemy AI Difficulty:</label>
                 <select id="ai-difficulty" class="voxel-select" style="width: auto;">
-                    <option value="easy">Easy (Random)</option>
-                    <option value="normal">Normal (Hunt/Target)</option>
-                    <option value="hard">Hard (Probabilistic)</option>
+                    <option value="easy" ${this.gameLoop.aiEngine.difficulty === 'easy' ? 'selected' : ''}>Easy (Random)</option>
+                    <option value="normal" ${this.gameLoop.aiEngine.difficulty === 'normal' ? 'selected' : ''}>Normal (Hunt/Target)</option>
+                    <option value="hard" ${this.gameLoop.aiEngine.difficulty === 'hard' ? 'selected' : ''}>Hard (Probabilistic)</option>
                 </select>
             </div>
 
@@ -55,7 +62,7 @@ export class Settings extends BaseUIComponent {
                 </select>
             </div>
             
-            <button id="btn-close-settings" class="voxel-btn primary" style="margin-top: 20px;">Close</button>
+            <button id="btn-close-settings" class="voxel-btn primary" style="margin-top: 20px;">Resume</button>
         `;
 
         // Bind events
@@ -69,14 +76,14 @@ export class Settings extends BaseUIComponent {
             const isChecked = (e.target as HTMLInputElement).checked;
             document.dispatchEvent(new CustomEvent('TOGGLE_HUD', { detail: { show: isChecked } }));
         });
-        
+
         const toggleFps = this.container.querySelector('#toggle-fps') as HTMLInputElement;
         toggleFps.addEventListener('change', (e) => {
             const isChecked = (e.target as HTMLInputElement).checked;
             Config.visual.showFpsCounter = isChecked;
             document.dispatchEvent(new CustomEvent('TOGGLE_FPS_COUNTER', { detail: { show: isChecked } }));
         });
-        
+
         const gameSpeedSelect = this.container.querySelector('#game-speed') as HTMLSelectElement;
         gameSpeedSelect.addEventListener('change', (e) => {
             const speed = (e.target as HTMLSelectElement).value;
@@ -91,8 +98,19 @@ export class Settings extends BaseUIComponent {
                 gameSpeedSelect.value = customEvent.detail.speed.toString();
             }
         });
-        
+
         const aiSelect = this.container.querySelector('#ai-difficulty') as HTMLSelectElement;
+
+        // Disable difficulty if game is in progress
+        const isGameStarted = this.gameLoop.currentState !== GameState.MAIN_MENU &&
+            this.gameLoop.currentState !== GameState.SETUP_BOARD;
+
+        if (isGameStarted) {
+            aiSelect.disabled = true;
+            const row = this.container.querySelector('#difficulty-row') as HTMLElement;
+            if (row) row.style.opacity = '0.5';
+        }
+
         aiSelect.addEventListener('change', (e) => {
             const difficulty = (e.target as HTMLSelectElement).value;
             // dispatch custom event to AI system later
@@ -105,6 +123,22 @@ export class Settings extends BaseUIComponent {
             const isChecked = (e.target as HTMLInputElement).checked;
             Config.autoBattler = isChecked;
             document.dispatchEvent(new CustomEvent('TOGGLE_AUTO_BATTLER', { detail: { enabled: isChecked } }));
+        });
+
+        // Sync auto-battler if changed elsewhere
+        document.addEventListener('TOGGLE_AUTO_BATTLER', (e: Event) => {
+            const customEvent = e as CustomEvent;
+            if (customEvent.detail && customEvent.detail.enabled !== undefined) {
+                autoBattlerSettingsToggle.checked = customEvent.detail.enabled;
+            }
+        });
+
+        // Also sync AI difficulty if changed elsewhere (e.g. initial setup)
+        document.addEventListener('SET_AI_DIFFICULTY', (e: Event) => {
+            const ce = e as CustomEvent;
+            if (ce.detail && ce.detail.difficulty) {
+                aiSelect.value = ce.detail.difficulty;
+            }
         });
     }
 }

@@ -76,9 +76,11 @@ const init = () => {
                 lastFpsUpdateTime = time;
             }
             
-            // Update systems
-            interactionManager.update();
-            entityManager.update();
+            // Update systems if not paused
+            if (!gameLoop.isPaused) {
+                interactionManager.update();
+                entityManager.update();
+            }
             
             // Render frame
             engine.render();
