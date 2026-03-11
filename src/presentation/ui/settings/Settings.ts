@@ -48,10 +48,10 @@ export class Settings extends BaseUIComponent {
             <div class="settings-row">
                 <label>Game Speed:</label>
                 <select id="game-speed" class="voxel-select" style="width: auto;">
-                    <option value="0.5">0.5x (Slow)</option>
+                    <option value="0.5" ${Config.timing.gameSpeedMultiplier === 0.5 ? 'selected' : ''}>0.5x (Slow)</option>
                     <option value="1.0" ${Config.timing.gameSpeedMultiplier === 1.0 ? 'selected' : ''}>1.0x (Normal)</option>
-                    <option value="2.0">2.0x (Fast)</option>
-                    <option value="4.0">4.0x (Very Fast)</option>
+                    <option value="2.0" ${Config.timing.gameSpeedMultiplier === 2.0 ? 'selected' : ''}>2.0x (Fast)</option>
+                    <option value="4.0" ${Config.timing.gameSpeedMultiplier === 4.0 ? 'selected' : ''}>4.0x (Very Fast)</option>
                 </select>
             </div>
             
@@ -82,6 +82,14 @@ export class Settings extends BaseUIComponent {
             const speed = (e.target as HTMLSelectElement).value;
             Config.timing.gameSpeedMultiplier = parseFloat(speed);
             document.dispatchEvent(new CustomEvent('SET_GAME_SPEED', { detail: { speed } }));
+        });
+
+        // Listen for internal speed changes triggered from HUD
+        document.addEventListener('SET_GAME_SPEED', (e: Event) => {
+            const customEvent = e as CustomEvent;
+            if (customEvent.detail && customEvent.detail.speed) {
+                gameSpeedSelect.value = customEvent.detail.speed.toString();
+            }
         });
         
         const aiSelect = this.container.querySelector('#ai-difficulty') as HTMLSelectElement;

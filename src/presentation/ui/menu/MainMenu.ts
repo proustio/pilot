@@ -21,7 +21,7 @@ export class MainMenu extends BaseUIComponent {
                 <select id="mode-select" class="voxel-select">
                     <option value="classic">Classic (US Fleet)</option>
                     <option value="russian">Russian (No Touching)</option>
-                    <option value="rogue">Rogue (Placeholder)</option>
+                    <option disabled="true" value="rogue">Rogue (Coming Soon?)</option>
                 </select>
                 <div style="margin-top: 10px; display: flex; align-items: center; gap: 10px;">
                     <label for="auto-battler-toggle">Auto-Battler:</label>
@@ -50,7 +50,7 @@ export class MainMenu extends BaseUIComponent {
             Config.autoBattler = autoBattlerToggle.checked;
 
             let matchMode = MatchMode.Classic;
-            
+
             if (modeValue === 'russian') {
                 matchMode = MatchMode.Russian;
             } else if (modeValue === 'rogue') {
@@ -62,7 +62,7 @@ export class MainMenu extends BaseUIComponent {
             const match = new Match(matchMode);
             this.gameLoop.startNewMatch(match);
         });
-        
+
         const settingsBtn = this.container.querySelector('#btn-settings') as HTMLButtonElement;
         settingsBtn.addEventListener('click', () => {
             // Need to expose a way to show settings

@@ -88,8 +88,9 @@ export class HUD extends BaseUIComponent {
             const nextSpeed = speedCycle[nextIndex];
             
             Config.timing.gameSpeedMultiplier = nextSpeed;
-            speedBtn.innerText = `Speed: ${nextSpeed}x`;
-            document.dispatchEvent(new CustomEvent('SET_GAME_SPEED', { detail: { speed: nextSpeed.toString() } }));
+            const speedStr = nextSpeed.toFixed(1);
+            speedBtn.innerText = `Speed: ${speedStr}x`;
+            document.dispatchEvent(new CustomEvent('SET_GAME_SPEED', { detail: { speed: speedStr } }));
         });
         
         // Listen for internal speed changes triggered from Settings Modal
