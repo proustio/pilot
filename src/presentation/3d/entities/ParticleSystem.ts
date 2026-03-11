@@ -20,6 +20,8 @@ export class ParticleSystem {
     private fireMat = new THREE.MeshStandardMaterial({ color: 0xff4500, emissive: 0xff0000, roughness: 0.4 });
     private greySmokeMat = new THREE.MeshStandardMaterial({ color: 0x888888, transparent: true, opacity: 0.8 });
     private blackSmokeMat = new THREE.MeshStandardMaterial({ color: 0x222222, transparent: true, opacity: 0.9 });
+    private splashMatWhite = new THREE.MeshStandardMaterial({ color: 0xffffff, transparent: true, opacity: 0.7, roughness: 0.2 });
+    private splashMatBlue = new THREE.MeshStandardMaterial({ color: 0x4fa4ff, transparent: true, opacity: 0.8, roughness: 0.2 });
     
     constructor() {}
     
@@ -51,6 +53,39 @@ export class ParticleSystem {
                 life: 1.0,
                 maxLife: 1.0,
                 isSmoke: false,
+                group
+            });
+        }
+    }
+
+    public spawnSplash(x: number, y: number, z: number, group: THREE.Object3D) {
+        // Spawn 15-25 water particles bursting mainly upwards
+        const count = 15 + Math.random() * 10;
+        for (let i = 0; i < count; i++) {
+            const isWhite = Math.random() > 0.6;
+            const mesh = new THREE.Mesh(this.explosionGeo, isWhite ? this.splashMatWhite : this.splashMatBlue);
+            
+            // Random position slightly offset from center
+            mesh.position.set(
+                x + (Math.random() - 0.5) * 0.4,
+                y,
+                z + (Math.random() - 0.5) * 0.4
+            );
+            
+            // Upward and slightly outward velocity (fountain shape)
+            const velocity = new THREE.Vector3(
+                (Math.random() - 0.5) * 0.04,
+                Math.random() * 0.15 + 0.05, // Faster upwards
+                (Math.random() - 0.5) * 0.04
+            );
+            
+            group.add(mesh);
+            this.particles.push({
+                mesh,
+                velocity,
+                life: 0.6 + Math.random() * 0.4, // Shorter life than fire
+                maxLife: 1.0,
+                isSmoke: false, // Use gravity
                 group
             });
         }

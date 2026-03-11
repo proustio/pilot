@@ -224,8 +224,12 @@ export class EntityManager {
               m.progress = 1.0;
               m.mesh.position.copy(m.curve.getPoint(1.0));
               
+              const targetGroup = m.isPlayer ? this.enemyBoardGroup : this.playerBoardGroup;
+              
+              // Always spawn water splash on impact (hit or miss)
+              this.particleSystem.spawnSplash(m.worldX, 0.2, m.worldZ, targetGroup);
+
               if (m.result === 'hit' || m.result === 'sunk') {
-                  const targetGroup = m.isPlayer ? this.enemyBoardGroup : this.playerBoardGroup;
                   
                   // Spawn explosion
                   this.particleSystem.spawnExplosion(m.worldX, 0.4, m.worldZ, targetGroup);

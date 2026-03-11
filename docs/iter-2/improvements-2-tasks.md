@@ -4,9 +4,9 @@ This document breaks down the actionable tasks based on `improvements-2.md` and 
 
 ## 1. Splash Effects
 *Goal: Add a splash effect to the board when a projectile hits either water or a ship.*
-- [ ] Create a splash particle system or visual effect using Three.js / shaders.
-- [ ] Trigger the splash effect upon projectile impact with water.
-- [ ] Trigger the splash effect upon projectile impact with a ship.
+- [x] Create a splash particle system or visual effect using Three.js / shaders.
+- [x] Trigger the splash effect upon projectile impact with water.
+- [x] Trigger the splash effect upon projectile impact with a ship.
 
 ## 2. Enhanced Ship Models & Destruction
 *Goal: Make ships look more realistic and add dynamic damage/sinking animations to match the "minecraft feel".*
