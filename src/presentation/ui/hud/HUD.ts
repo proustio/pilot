@@ -8,7 +8,7 @@ export class HUD extends BaseUIComponent {
     private turnIndicator!: HTMLElement;
     private playerFleetIcons!: HTMLElement;
     private enemyFleetIcons!: HTMLElement;
-    private fpsCounter!: HTMLElement;
+    private geekStats!: HTMLElement;
     private unifiedBoard!: UnifiedBoardUI;
 
     constructor(gameLoop: GameLoop) {
@@ -84,15 +84,20 @@ export class HUD extends BaseUIComponent {
                 <button id="hud-btn-settings" class="voxel-btn ui-interactive" style="width: auto; padding: 10px;">Pause</button>
             </div>
             
-            <div id="fps-counter" style="position: absolute; top: 10px; right: 10px; color: #00ff00; font-family: monospace; font-size: 1.2rem; font-weight: bold; text-shadow: 1px 1px 2px #000; display: ${Config.visual.showFpsCounter ? 'block' : 'none'}; z-index: 1000; pointer-events: none;">
-                FPS: 60
+            <div id="geek-stats" class="geek-stats-panel" style="display: ${Config.visual.showGeekStats ? 'block' : 'none'};">
+                <div class="geek-stats-title">⚙ GEEK STATS</div>
+                <div class="geek-stats-row"><span class="gs-label">FPS</span><span class="gs-value" id="gs-fps">--</span></div>
+                <div class="geek-stats-row"><span class="gs-label">FRAME</span><span class="gs-value" id="gs-frame">-- ms</span></div>
+                <div class="geek-stats-row"><span class="gs-label">RAM</span><span class="gs-value" id="gs-ram">N/A</span></div>
+                <div class="geek-stats-row"><span class="gs-label">STATUS</span><span class="gs-value gs-online" id="gs-status">● LOCAL</span></div>
+                <div class="geek-stats-row"><span class="gs-label">TIME</span><span class="gs-value" id="gs-time">00:00</span></div>
             </div>
         `;
 
         this.turnIndicator = this.container.querySelector('#turn-indicator') as HTMLElement;
         this.playerFleetIcons = this.container.querySelector('#player-fleet-icons') as HTMLElement;
         this.enemyFleetIcons = this.container.querySelector('#enemy-fleet-icons') as HTMLElement;
-        this.fpsCounter = this.container.querySelector('#fps-counter') as HTMLElement;
+        this.geekStats = this.container.querySelector('#geek-stats') as HTMLElement;
         
         this.updateStats();
         
@@ -139,17 +144,41 @@ export class HUD extends BaseUIComponent {
             document.dispatchEvent(new CustomEvent('TOGGLE_CAMERA_VIEW'));
         });
         
-        document.addEventListener('UPDATE_FPS', (e: Event) => {
+        document.addEventListener('UPDATE_GEEK_STATS', (e: Event) => {
             const customEvent = e as CustomEvent;
-            if (customEvent.detail && customEvent.detail.fps !== undefined) {
-                this.fpsCounter.innerText = `FPS: ${customEvent.detail.fps}`;
+            const d = customEvent.detail;
+            if (!d) return;
+
+            const fpsEl = this.container.querySelector('#gs-fps');
+            const frameEl = this.container.querySelector('#gs-frame');
+            const ramEl = this.container.querySelector('#gs-ram');
+            const timeEl = this.container.querySelector('#gs-time');
+
+            if (fpsEl) fpsEl.textContent = `${d.fps}`;
+            if (frameEl) frameEl.textContent = `${d.frameTime.toFixed(1)} ms`;
+
+            // RAM — Chrome-only API
+            if (ramEl) {
+                const mem = (performance as any).memory;
+                if (mem) {
+                    const usedMB = (mem.usedJSHeapSize / (1024 * 1024)).toFixed(1);
+                    ramEl.textContent = `${usedMB} MB`;
+                }
+            }
+
+            // Elapsed game time
+            if (timeEl && d.matchStartTime) {
+                const elapsed = Math.floor((performance.now() - d.matchStartTime) / 1000);
+                const mins = String(Math.floor(elapsed / 60)).padStart(2, '0');
+                const secs = String(elapsed % 60).padStart(2, '0');
+                timeEl.textContent = `${mins}:${secs}`;
             }
         });
         
-        document.addEventListener('TOGGLE_FPS_COUNTER', (e: Event) => {
+        document.addEventListener('TOGGLE_GEEK_STATS', (e: Event) => {
             const customEvent = e as CustomEvent;
             if (customEvent.detail && customEvent.detail.show !== undefined) {
-                this.fpsCounter.style.display = customEvent.detail.show ? 'block' : 'none';
+                this.geekStats.style.display = customEvent.detail.show ? 'block' : 'none';
             }
         });
     }

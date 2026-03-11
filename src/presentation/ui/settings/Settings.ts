@@ -43,8 +43,8 @@ export class Settings extends BaseUIComponent {
             </div>
 
             <div class="settings-row">
-                <label>Show FPS Counter:</label>
-                <input type="checkbox" id="toggle-fps" ${Config.visual.showFpsCounter ? 'checked' : ''} style="transform: scale(2);">
+                <label>Show Geek Stats:</label>
+                <input type="checkbox" id="toggle-geek-stats" ${Config.visual.showGeekStats ? 'checked' : ''} style="transform: scale(2);">
             </div>
 
             <div class="settings-row">
@@ -77,11 +77,11 @@ export class Settings extends BaseUIComponent {
             document.dispatchEvent(new CustomEvent('TOGGLE_HUD', { detail: { show: isChecked } }));
         });
 
-        const toggleFps = this.container.querySelector('#toggle-fps') as HTMLInputElement;
-        toggleFps.addEventListener('change', (e) => {
+        const toggleGeekStats = this.container.querySelector('#toggle-geek-stats') as HTMLInputElement;
+        toggleGeekStats.addEventListener('change', (e) => {
             const isChecked = (e.target as HTMLInputElement).checked;
-            Config.visual.showFpsCounter = isChecked;
-            document.dispatchEvent(new CustomEvent('TOGGLE_FPS_COUNTER', { detail: { show: isChecked } }));
+            Config.visual.showGeekStats = isChecked;
+            document.dispatchEvent(new CustomEvent('TOGGLE_GEEK_STATS', { detail: { show: isChecked } }));
         });
 
         const gameSpeedSelect = this.container.querySelector('#game-speed') as HTMLSelectElement;

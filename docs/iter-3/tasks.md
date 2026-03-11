@@ -5,14 +5,14 @@ Action items derived from `improvements-3.md`. Each top-level item is a self-con
 ---
 
 ## 1. Geek Stats HUD (FPS counter rework)
-- [ ] Move the existing FPS counter to the **bottom-left** corner.
-- [ ] Restyle it as a "Geek Stats" panel (monospace font, semi-transparent dark background, compact layout).
-- [ ] Add the following readouts alongside FPS:
-  - [ ] RAM / CPU consumption (via `performance.memory` / frame-time heuristics).
-  - [ ] Server connection status indicator (placeholder — always "offline / local").
-  - [ ] Game time (elapsed time since match start).
-- [ ] Add a **"Geek Stats"** toggle in the Pause → Settings menu.
-- [ ] Respect the toggle — hide/show the panel accordingly.
+- [x] Move the existing FPS counter to the **bottom-left** corner.
+- [x] Restyle it as a "Geek Stats" panel (monospace font, semi-transparent dark background, compact layout).
+- [x] Add the following readouts alongside FPS:
+  - [x] RAM / CPU consumption (via `performance.memory` / frame-time heuristics).
+  - [x] Server connection status indicator (placeholder — always "offline / local").
+  - [x] Game time (elapsed time since match start).
+- [x] Add a **"Geek Stats"** toggle in the Pause → Settings menu.
+- [x] Respect the toggle — hide/show the panel accordingly.
 
 ---
 

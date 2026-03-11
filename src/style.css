@@ -295,3 +295,46 @@ canvas {
 #enemy-fleet-icons .ship-icon.sunk .ship-segment {
   background-color: var(--color-danger);
 }
+
+/* Geek Stats Panel */
+.geek-stats-panel {
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+  background: rgba(0, 0, 0, 0.75);
+  border: 2px solid #333;
+  padding: 8px 12px;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 0.75rem;
+  color: #aaa;
+  z-index: 1000;
+  pointer-events: none;
+  min-width: 140px;
+}
+
+.geek-stats-title {
+  color: #666;
+  font-size: 0.65rem;
+  margin-bottom: 4px;
+  letter-spacing: 1px;
+}
+
+.geek-stats-row {
+  display: flex;
+  justify-content: space-between;
+  line-height: 1.6;
+}
+
+.gs-label {
+  color: #666;
+  margin-right: 12px;
+}
+
+.gs-value {
+  color: #00ff00;
+  text-align: right;
+}
+
+.gs-online {
+  color: #2ecc71;
+}

@@ -18,7 +18,7 @@ export const Config = {
     },
     visual: {
         isDayMode: new Date().getHours() >= 6 && new Date().getHours() < 18,
-        showFpsCounter: false
+        showGeekStats: false
     },
     autoBattler: false
 };

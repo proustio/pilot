@@ -51,9 +51,11 @@ const init = () => {
         const frameInterval = 1000 / FPS_CAP;
         let lastFrameTime = performance.now();
         
-        // FPS Counter variables
+        // Geek Stats variables
         let framesRendered = 0;
         let lastFpsUpdateTime = performance.now();
+        let matchStartTime: number | null = null;
+        let lastFrameTimeMs = 0;
 
         const animate = (time: DOMHighResTimeStamp) => {
             requestAnimationFrame(animate);
@@ -66,12 +68,15 @@ const init = () => {
             }
             
             lastFrameTime = time - (deltaTime % frameInterval);
+            lastFrameTimeMs = deltaTime;
             
-            // Calculate FPS
+            // Calculate FPS & dispatch geek stats
             framesRendered++;
             if (time - lastFpsUpdateTime >= 1000) {
                 const fps = Math.round((framesRendered * 1000) / (time - lastFpsUpdateTime));
-                document.dispatchEvent(new CustomEvent('UPDATE_FPS', { detail: { fps } }));
+                document.dispatchEvent(new CustomEvent('UPDATE_GEEK_STATS', {
+                    detail: { fps, frameTime: lastFrameTimeMs, matchStartTime }
+                }));
                 framesRendered = 0;
                 lastFpsUpdateTime = time;
             }
@@ -89,6 +94,7 @@ const init = () => {
         // Listen for internal game state to flip board
         gameLoop.onStateChange((newState) => {
             if (newState === 'SETUP_BOARD') {
+                matchStartTime = performance.now();
                 entityManager.showPlayerBoard();
                 engine.targetCameraPos.set(0, 10, 12);
             } else if (newState === 'ENEMY_TURN') {
