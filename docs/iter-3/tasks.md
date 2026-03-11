@@ -27,9 +27,9 @@ Action items derived from `improvements-3.md`. Each top-level item is a self-con
 ---
 
 ## 3. Deeper Battlefield Pool
-- [ ] Increase the pool/water depth to **4×** the current value.
-- [ ] Add a **sand-coloured bottom** plane that visually separates the two sides of the battlefield.
-- [ ] Adjust camera, lighting, and water shader so the deeper pool looks correct from all angles.
+- [x] Increase the pool/water depth to **4×** the current value.
+- [x] Add a **sand-coloured bottom** plane that visually separates the two sides of the battlefield.
+- [x] Adjust camera, lighting, and water shader so the deeper pool looks correct from all angles.
 
 ---
 

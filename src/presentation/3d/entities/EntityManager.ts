@@ -34,9 +34,9 @@ export class EntityManager {
         this.particleSystem = new ParticleSystem();
 
         // Position faces: Player points UP, Enemy points DOWN
-        this.playerBoardGroup.position.y = 0.3;
+        this.playerBoardGroup.position.y = 1.2;
 
-        this.enemyBoardGroup.position.y = -0.3;
+        this.enemyBoardGroup.position.y = -1.2;
         this.enemyBoardGroup.rotation.x = Math.PI; // Flipped upside down
 
         this.masterBoardGroup.add(this.playerBoardGroup);
@@ -54,9 +54,9 @@ export class EntityManager {
 
         const createWaterUniforms = () => ({
             time: { value: 0 },
-            baseColor: { value: new THREE.Color(0x1E90FF) },
+            baseColor: { value: new THREE.Color(0x1565C0) },
             peakColor: { value: new THREE.Color(0x87CEFA) },
-            opacity: { value: 0.9 },
+            opacity: { value: 0.85 },
             globalTurbulence: { value: 0.0 },
             rippleCenters: { value: [new THREE.Vector2(), new THREE.Vector2(), new THREE.Vector2(), new THREE.Vector2(), new THREE.Vector2()] },
             rippleTimes: { value: [0.0, 0.0, 0.0, 0.0, 0.0] }
@@ -73,13 +73,22 @@ export class EntityManager {
         ];
 
         borders.forEach(b => {
-            const borderGeo = new THREE.BoxGeometry(b.x, 0.6, b.z);
+            const borderGeo = new THREE.BoxGeometry(b.x, 2.4, b.z);
             const borderMesh = new THREE.Mesh(borderGeo, woodMat);
             borderMesh.position.set(b.posX, 0, b.posZ);
             borderMesh.castShadow = true;
             borderMesh.receiveShadow = true;
             this.masterBoardGroup.add(borderMesh);
         });
+
+        // Sand-coloured bottom plane separating the two sides
+        const sandGeo = new THREE.PlaneGeometry(10, 10);
+        const sandMat = new THREE.MeshStandardMaterial({ color: 0xD2B48C, roughness: 1.0, side: THREE.DoubleSide });
+        const sandPlane = new THREE.Mesh(sandGeo, sandMat);
+        sandPlane.rotation.x = -Math.PI / 2;
+        sandPlane.position.y = 0;
+        sandPlane.receiveShadow = true;
+        this.masterBoardGroup.add(sandPlane);
 
         // Create water panes for the boards
         const boardWaterGeo = new THREE.PlaneGeometry(10, 10, 32, 32);
@@ -347,7 +356,7 @@ export class EntityManager {
         [this.playerBoardGroup, this.enemyBoardGroup].forEach(group => {
             group.children.forEach(child => {
                 if (child.userData.isShip && child.userData.isSinking) {
-                    if (child.position.y > -2.0) { // Sink until out of sight
+                    if (child.position.y > -1.0) { // Sink until near sand bottom
                         child.position.y -= descentRate;
                     }
                 }

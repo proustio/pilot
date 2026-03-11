@@ -115,10 +115,10 @@ export class Engine3D {
     this.dirLight.castShadow = true;
     
     // Configure shadow frustum size (cover the board)
-    this.dirLight.shadow.camera.top = 20;
-    this.dirLight.shadow.camera.bottom = -20;
-    this.dirLight.shadow.camera.left = -20;
-    this.dirLight.shadow.camera.right = 20;
+    this.dirLight.shadow.camera.top = 25;
+    this.dirLight.shadow.camera.bottom = -25;
+    this.dirLight.shadow.camera.left = -25;
+    this.dirLight.shadow.camera.right = 25;
     this.dirLight.shadow.camera.near = 0.5;
     this.dirLight.shadow.camera.far = 50;
     // Map size for shadow resolution
