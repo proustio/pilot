@@ -1,10 +1,133 @@
+/* =============================================
+   THEME SYSTEM — Light (Day) & Dark (Night)
+   ============================================= */
+
 :root {
-  --color-bg: #1a1a1a;
-  --color-text: #ffffff;
-  --color-primary: #3498db;
-  --color-secondary: #2ecc71;
-  --color-danger: #e74c3c;
-  --font-family: 'Courier New', Courier, monospace; /* For that retro/minecraft vibe */
+  --font-family: 'Courier New', Courier, monospace;
+}
+
+/* --- LIGHT (Day) Theme --- */
+body.day-mode {
+  --color-bg: #e8f0f8;
+  --color-text: #1a2233;
+  --color-primary: #2566a8;
+  --color-secondary: #1a8a52;
+  --color-danger: #c0392b;
+
+  /* Panels */
+  --panel-bg: rgba(30, 45, 70, 0.88);
+  --panel-border: #4a6a8a;
+  --panel-shadow-light: rgba(100, 140, 180, 0.4);
+  --panel-shadow-dark: rgba(0, 0, 0, 0.35);
+  --panel-text: #e8f0f8;
+
+  /* Buttons */
+  --btn-bg: #4a6a8a;
+  --btn-bg-hover: #5a7a9a;
+  --btn-border: #1a2a40;
+  --btn-shadow-light: #6a8aaa;
+  --btn-shadow-dark: #2a3a50;
+  --btn-text: #f0f4f8;
+
+  /* Select */
+  --select-bg: #2a3a50;
+  --select-text: #e0e8f0;
+  --select-border: #4a6a8a;
+
+  /* HUD */
+  --hud-fleet-bg: rgba(20, 35, 60, 0.7);
+  --hud-fleet-border: #4a6a8a;
+  --hud-stats-bg: rgba(20, 35, 60, 0.75);
+  --hud-stats-border: #4a6a8a;
+  --hud-stats-text: #50d890;
+
+  /* Mini Board */
+  --mini-board-bg: rgba(20, 35, 60, 0.75);
+  --mini-board-border: #4a6a8a;
+  --mini-board-title: #b0c8e0;
+  --mini-grid-bg: #1a2a40;
+  --mini-cell-bg: #2a4060;
+  --mini-cell-fog: #1a2a40;
+  --mini-cell-miss: #c0d8f0;
+
+  /* Geek Stats */
+  --geek-bg: rgba(20, 35, 60, 0.82);
+  --geek-border: #3a5a7a;
+  --geek-text: #90a8c0;
+  --geek-title: #607890;
+  --geek-label: #607890;
+  --geek-value: #50d890;
+  --geek-online: #50d890;
+
+  /* Save Slots */
+  --slot-empty: #607890;
+  --slot-date: #90a8c0;
+  --slot-turns: #a0b8d0;
+
+  /* Confirm Overlay */
+  --overlay-bg: rgba(0, 0, 0, 0.5);
+}
+
+/* --- DARK (Night) Theme --- */
+body.night-mode {
+  --color-bg: #0e1520;
+  --color-text: #d0dce8;
+  --color-primary: #5ba8e0;
+  --color-secondary: #3dd88a;
+  --color-danger: #e85050;
+
+  /* Panels */
+  --panel-bg: rgba(18, 25, 38, 0.92);
+  --panel-border: #2a3a55;
+  --panel-shadow-light: rgba(60, 90, 130, 0.3);
+  --panel-shadow-dark: rgba(0, 0, 0, 0.5);
+  --panel-text: #d0dce8;
+
+  /* Buttons */
+  --btn-bg: #2a3a55;
+  --btn-bg-hover: #344868;
+  --btn-border: #0e1520;
+  --btn-shadow-light: #3a5070;
+  --btn-shadow-dark: #101828;
+  --btn-text: #d0dce8;
+
+  /* Select */
+  --select-bg: #1a2538;
+  --select-text: #c0d0e0;
+  --select-border: #2a3a55;
+
+  /* HUD */
+  --hud-fleet-bg: rgba(14, 21, 32, 0.75);
+  --hud-fleet-border: #2a3a55;
+  --hud-stats-bg: rgba(14, 21, 32, 0.8);
+  --hud-stats-border: #2a3a55;
+  --hud-stats-text: #3dd88a;
+
+  /* Mini Board */
+  --mini-board-bg: rgba(14, 21, 32, 0.8);
+  --mini-board-border: #2a3a55;
+  --mini-board-title: #8098b0;
+  --mini-grid-bg: #0e1520;
+  --mini-cell-bg: #1a2538;
+  --mini-cell-fog: #0e1520;
+  --mini-cell-miss: #8098b0;
+
+  /* Geek Stats */
+  --geek-bg: rgba(14, 21, 32, 0.85);
+  --geek-border: #1a2a40;
+  --geek-text: #7088a0;
+  --geek-title: #4a6080;
+  --geek-label: #4a6080;
+  --geek-value: #3dd88a;
+  --geek-online: #3dd88a;
+
+  /* Save Slots */
+  --slot-empty: #4a6080;
+  --slot-date: #7088a0;
+  --slot-turns: #8098b0;
+
+  /* Confirm Overlay */
+  --overlay-bg: rgba(0, 0, 0, 0.7);
 }
 
 body, html {
@@ -12,11 +135,11 @@ body, html {
   padding: 0;
   width: 100%;
   height: 100%;
-  overflow: hidden; /* Prevent scrolling, as it is a 3D app */
+  overflow: hidden;
   background-color: var(--color-bg);
   color: var(--color-text);
   font-family: var(--font-family);
-  user-select: none; /* Prevent text selection dragging */
+  user-select: none;
 }
 
 #app {
@@ -29,13 +152,13 @@ body, html {
 }
 
 canvas {
-  display: block; /* Remove bottom padding of canvas element */
+  display: block;
   width: 100% !important;
   height: 100% !important;
   position: absolute;
   top: 0;
   left: 0;
-  z-index: 1; /* Keep canvas in background */
+  z-index: 1;
 }
 
 /* UI overlays will reside above the canvas (z-index > 1) */
@@ -45,24 +168,24 @@ canvas {
   left: 0;
   width: 100%;
   height: 100%;
-  pointer-events: none; /* Let clicks pass through to canvas by default */
+  pointer-events: none;
   z-index: 10;
   display: flex;
   flex-direction: column;
 }
 
 .ui-interactive {
-  pointer-events: auto; /* Enable clicks on specific UI components */
+  pointer-events: auto;
 }
 
 /* Voxel / Minecraft UI Styling */
 .voxel-panel {
-  background-color: rgba(40, 40, 40, 0.9);
-  border: 4px solid #555;
-  box-shadow: inset 4px 4px 0px 0px rgba(100, 100, 100, 0.5), inset -4px -4px 0px 0px rgba(0, 0, 0, 0.5);
-  color: var(--color-text);
+  background-color: var(--panel-bg);
+  border: 4px solid var(--panel-border);
+  box-shadow: inset 4px 4px 0px 0px var(--panel-shadow-light), inset -4px -4px 0px 0px var(--panel-shadow-dark);
+  color: var(--panel-text);
   padding: 24px;
-  image-rendering: pixelated; /* To give it a retro feel */
+  image-rendering: pixelated;
   pointer-events: auto;
 }
 
@@ -71,31 +194,31 @@ canvas {
   text-align: center;
   margin-bottom: 2rem;
   color: var(--color-primary);
-  text-shadow: 2px 2px 0 #000;
+  text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.6);
   text-transform: uppercase;
 }
 
 .voxel-btn {
-  background-color: #888;
-  color: white;
-  border: 4px solid #222;
-  box-shadow: inset 2px 2px 0px 0px #aaa, inset -2px -2px 0px 0px #444;
+  background-color: var(--btn-bg);
+  color: var(--btn-text);
+  border: 4px solid var(--btn-border);
+  box-shadow: inset 2px 2px 0px 0px var(--btn-shadow-light), inset -2px -2px 0px 0px var(--btn-shadow-dark);
   padding: 12px 24px;
   margin: 10px 0;
   font-family: var(--font-family);
   font-size: 1.2rem;
   text-transform: uppercase;
   cursor: pointer;
-  transition: transform 0.1s, box-shadow 0.1s;
+  transition: transform 0.1s, box-shadow 0.1s, background-color 0.15s;
   width: 100%;
 }
 
 .voxel-btn:hover {
-  background-color: #999;
+  background-color: var(--btn-bg-hover);
 }
 
 .voxel-btn:active {
-  box-shadow: inset 2px 2px 0px 0px #444, inset -2px -2px 0px 0px #aaa;
+  box-shadow: inset 2px 2px 0px 0px var(--btn-shadow-dark), inset -2px -2px 0px 0px var(--btn-shadow-light);
   transform: translate(2px, 2px);
 }
 
@@ -108,10 +231,14 @@ canvas {
   background-color: #27ae60;
 }
 
+.voxel-btn.danger {
+  color: var(--color-danger);
+}
+
 .voxel-select {
-  background-color: #333;
-  color: white;
-  border: 4px solid #555;
+  background-color: var(--select-bg);
+  color: var(--select-text);
+  border: 4px solid var(--select-border);
   padding: 10px;
   font-family: var(--font-family);
   font-size: 1rem;
@@ -153,19 +280,20 @@ canvas {
 .hud-turn-indicator {
   font-size: 2rem;
   font-weight: bold;
-  text-shadow: 2px 2px 0 #000;
+  text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.6);
   color: var(--color-primary);
 }
 
 .hud-fleet-status {
   display: flex;
   flex-direction: column;
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: var(--hud-fleet-bg);
   padding: 5px 10px;
-  border: 2px solid #555;
+  border: 2px solid var(--hud-fleet-border);
   pointer-events: auto;
   font-size: 0.9rem;
   margin-left: 5px;
+  color: var(--panel-text);
 }
 
 .hud-fleet-status span {
@@ -211,9 +339,9 @@ canvas {
 .unified-board-container {
   display: flex;
   gap: 10px;
-  background: rgba(0, 0, 0, 0.6);
+  background: var(--mini-board-bg);
   padding: 10px;
-  border: 3px solid #444;
+  border: 3px solid var(--mini-board-border);
 }
 
 .mini-board-wrapper {
@@ -224,7 +352,7 @@ canvas {
 
 .mini-board-title {
   font-size: 0.7rem;
-  color: #aaa;
+  color: var(--mini-board-title);
   margin-bottom: 2px;
 }
 
@@ -233,30 +361,30 @@ canvas {
   grid-template-columns: repeat(10, 6px);
   grid-template-rows: repeat(10, 6px);
   gap: 1px;
-  background: #222;
+  background: var(--mini-grid-bg);
   padding: 2px;
 }
 
 .mini-cell {
   width: 6px;
   height: 6px;
-  background: #444;
+  background: var(--mini-cell-bg);
 }
 
 .mini-cell.cell-ship { background: var(--color-primary); }
 .mini-cell.cell-hit { background: var(--color-danger); }
-.mini-cell.cell-sunk { background: #8e44ad; } /* Purple for sunk */
-.mini-cell.cell-miss { background: #fff; }
-.mini-cell.cell-fog { background: #222; }
+.mini-cell.cell-sunk { background: #9b59b6; }
+.mini-cell.cell-miss { background: var(--mini-cell-miss); }
+.mini-cell.cell-fog { background: var(--mini-cell-fog); }
 
 .hud-game-stats {
   display: flex;
   gap: 15px;
-  background: rgba(0, 0, 0, 0.7);
+  background: var(--hud-stats-bg);
   padding: 5px 10px;
-  border: 2px solid #555;
+  border: 2px solid var(--hud-stats-border);
   font-size: 0.9rem;
-  color: var(--color-secondary);
+  color: var(--hud-stats-text);
 }
 
 .hud-fleet-status-group {
@@ -289,7 +417,7 @@ canvas {
 }
 
 #enemy-fleet-icons .ship-segment {
-  background-color: #777; /* Hide enemy ship color unless sunk */
+  background-color: #607080;
 }
 
 #enemy-fleet-icons .ship-icon.sunk .ship-segment {
@@ -301,19 +429,19 @@ canvas {
   position: absolute;
   bottom: 20px;
   left: 20px;
-  background: rgba(0, 0, 0, 0.75);
-  border: 2px solid #333;
+  background: var(--geek-bg);
+  border: 2px solid var(--geek-border);
   padding: 8px 12px;
   font-family: 'Courier New', Courier, monospace;
   font-size: 0.75rem;
-  color: #aaa;
+  color: var(--geek-text);
   z-index: 1000;
   pointer-events: none;
   min-width: 140px;
 }
 
 .geek-stats-title {
-  color: #666;
+  color: var(--geek-title);
   font-size: 0.65rem;
   margin-bottom: 4px;
   letter-spacing: 1px;
@@ -326,17 +454,17 @@ canvas {
 }
 
 .gs-label {
-  color: #666;
+  color: var(--geek-label);
   margin-right: 12px;
 }
 
 .gs-value {
-  color: #00ff00;
+  color: var(--geek-value);
   text-align: right;
 }
 
 .gs-online {
-  color: #2ecc71;
+  color: var(--geek-online);
 }
 
 /* Save/Load Dialog */
@@ -378,7 +506,7 @@ canvas {
 }
 
 .save-slot .slot-empty {
-  color: #666;
+  color: var(--slot-empty);
   font-style: italic;
 }
 
@@ -387,11 +515,11 @@ canvas {
 }
 
 .save-slot .slot-date {
-  color: #aaa;
+  color: var(--slot-date);
 }
 
 .save-slot .slot-turns {
-  color: #bbb;
+  color: var(--slot-turns);
 }
 
 .save-slot.slot-disabled {
@@ -406,7 +534,7 @@ canvas {
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0, 0, 0, 0.6);
+  background: var(--overlay-bg);
   display: flex;
   justify-content: center;
   align-items: center;

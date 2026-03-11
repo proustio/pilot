@@ -3,12 +3,16 @@ import { EntityManager } from './presentation/3d/entities/EntityManager';
 import { InteractionManager } from './presentation/3d/interaction/InteractionManager';
 import { GameLoop } from './application/game-loop/GameLoop';
 import { UIManager } from './presentation/ui/UIManager';
+import { Config } from './infrastructure/config/Config';
 console.log('Battleships: Initialization Started');
 
 const init = () => {
     try {
         // 1. Initialize core 3D Engine
         const engine = new Engine3D('app');
+        
+        // Set initial theme class on body
+        document.body.classList.add(Config.visual.isDayMode ? 'day-mode' : 'night-mode');
         
         // 2. Initialize Game Entities (Board, Ships placeholder)
         const entityManager = new EntityManager(engine.scene);

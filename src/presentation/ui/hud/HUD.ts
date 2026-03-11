@@ -133,6 +133,8 @@ export class HUD extends BaseUIComponent {
         dayNightBtn.addEventListener('click', () => {
             Config.visual.isDayMode = !Config.visual.isDayMode;
             dayNightBtn.innerText = Config.visual.isDayMode ? '☀️' : '🌙';
+            document.body.classList.remove('day-mode', 'night-mode');
+            document.body.classList.add(Config.visual.isDayMode ? 'day-mode' : 'night-mode');
             document.dispatchEvent(new CustomEvent('TOGGLE_DAY_NIGHT', { detail: { isDay: Config.visual.isDayMode } }));
         });
         
