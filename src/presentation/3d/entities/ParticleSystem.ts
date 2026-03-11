@@ -22,6 +22,7 @@ export class ParticleSystem {
     private blackSmokeMat = new THREE.MeshStandardMaterial({ color: 0x222222, transparent: true, opacity: 0.9 });
     private splashMatWhite = new THREE.MeshStandardMaterial({ color: 0xffffff, transparent: true, opacity: 0.7, roughness: 0.2 });
     private splashMatBlue = new THREE.MeshStandardMaterial({ color: 0x4fa4ff, transparent: true, opacity: 0.8, roughness: 0.2 });
+    private shipVoxelMat = new THREE.MeshStandardMaterial({ color: 0x888888, roughness: 0.7 });
     
     constructor() {}
     
@@ -86,6 +87,40 @@ export class ParticleSystem {
                 life: 0.6 + Math.random() * 0.4, // Shorter life than fire
                 maxLife: 1.0,
                 isSmoke: false, // Use gravity
+                group
+            });
+        }
+    }
+
+    public spawnVoxelExplosion(x: number, y: number, z: number, count: number, group: THREE.Object3D) {
+        const voxelGeo = new THREE.BoxGeometry(0.1, 0.1, 0.1);
+        for (let i = 0; i < count; i++) {
+            const mesh = new THREE.Mesh(voxelGeo, this.shipVoxelMat);
+            
+            // Position near impact area
+            mesh.position.set(
+                x + (Math.random() - 0.5) * 0.5,
+                y + Math.random() * 0.5,
+                z + (Math.random() - 0.5) * 0.5
+            );
+            
+            // Strong outward/upward blast
+            const velocity = new THREE.Vector3(
+                (Math.random() - 0.5) * 0.15,
+                Math.random() * 0.15 + 0.05,
+                (Math.random() - 0.5) * 0.15
+            );
+            
+            // Random slight rotation
+            mesh.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
+
+            group.add(mesh);
+            this.particles.push({
+                mesh,
+                velocity,
+                life: 1.5 + Math.random() * 0.5, 
+                maxLife: 2.0,
+                isSmoke: false, // Gravity applies
                 group
             });
         }

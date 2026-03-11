@@ -10,11 +10,11 @@ This document breaks down the actionable tasks based on `improvements-2.md` and 
 
 ## 2. Enhanced Ship Models & Destruction
 *Goal: Make ships look more realistic and add dynamic damage/sinking animations to match the "minecraft feel".*
-- [ ] Update ship models (via `.vox` / `.glb` or instanced meshes) to be composed of more voxels, looking like real ships.
-- [ ] Implement a voxel explosion effect when a ship takes damage (voxels visibly fly out).
-- [ ] Add a grey smoke particle effect spawning from damaged ship segments.
-- [ ] Implement a sinking animation (translating downward into the water) for when a ship is destroyed.
-- [ ] Add a black smoke particle effect for sunken ships.
+- [x] Update ship models (via `.vox` / `.glb` or instanced meshes) to be composed of more voxels, looking like real ships.
+- [x] Implement a voxel explosion effect when a ship takes damage (voxels visibly fly out).
+- [x] Add a grey smoke particle effect spawning from damaged ship segments.
+- [x] Implement a sinking animation (translating downward into the water) for when a ship is destroyed.
+- [x] Add a black smoke particle effect for sunken ships.
 
 ## 3. Unified Board & Game Stats
 *Goal: Unify the player and enemy boards and display game statistics.*

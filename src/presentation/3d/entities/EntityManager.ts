@@ -13,8 +13,8 @@ export class EntityManager {
   
   private targetRotationX: number = 0;
   
-  private lastAttackMarker: THREE.Mesh | null = null;
-  private fallingMarkers: { mesh: THREE.Mesh, curve: THREE.QuadraticBezierCurve3, progress: number, worldX: number, worldZ: number, result: string, isPlayer: boolean, cellX: number, cellZ: number }[] = [];
+  private lastAttackMarker: THREE.Object3D | null = null;
+  private fallingMarkers: { mesh: THREE.Object3D, curve: THREE.QuadraticBezierCurve3, progress: number, worldX: number, worldZ: number, result: string, isPlayer: boolean, cellX: number, cellZ: number }[] = [];
   
   private time: number = 0;
   private playerWaterUniforms: any = null;
@@ -222,7 +222,16 @@ export class EntityManager {
           
           if (m.progress >= 1.0) {
               m.progress = 1.0;
-              m.mesh.position.copy(m.curve.getPoint(1.0));
+              // On hit, the projectile should embed into the target.
+              const finalPos = m.curve.getPoint(1.0);
+              m.mesh.position.copy(finalPos);
+              
+              // Apply original material
+              if (m.mesh.userData.meshes) {
+                  m.mesh.userData.meshes.forEach((mesh: THREE.Mesh) => {
+                      mesh.material = m.mesh.userData.originalMat;
+                  });
+              }
               
               const targetGroup = m.isPlayer ? this.enemyBoardGroup : this.playerBoardGroup;
               
@@ -230,21 +239,73 @@ export class EntityManager {
               this.particleSystem.spawnSplash(m.worldX, 0.2, m.worldZ, targetGroup);
 
               if (m.result === 'hit' || m.result === 'sunk') {
+                  // Explode projectile: Hide nose, squish and darken body
+                  if (m.mesh.userData.meshes) {
+                      m.mesh.userData.meshes[1].visible = false; // hide nose
+                      m.mesh.userData.meshes[0].scale.y = 0.5; // squish body
+                      m.mesh.userData.meshes[0].position.y = 0.1; 
+                      
+                      const burntMat = new THREE.MeshStandardMaterial({ color: 0x333333, roughness: 0.9 });
+                      m.mesh.userData.meshes[0].material = burntMat;
+                  }
                   
-                  // Spawn explosion
+                  // Spawn basic explosion
                   this.particleSystem.spawnExplosion(m.worldX, 0.4, m.worldZ, targetGroup);
-                  // Start emitter
-                  // const emitterSpeedMultiplier = Config.timing.gameSpeedMultiplier; // Pass this along if particle system gets updated, assuming it uses fixed time for now
+                  // Start emitter for smoke
                   this.particleSystem.addEmitter(m.worldX, 0.4, m.worldZ, m.result === 'sunk', targetGroup);
                   
-                  // Hide ship segment if it's on the player board (enemy ships are hidden initially)
-                  if (!m.isPlayer) {
-                      this.playerBoardGroup.children.forEach(child => {
-                          if (child.userData.isShipBlock && child.userData.cx === m.cellX && child.userData.cz === m.cellZ) {
-                              child.visible = false;
+                  // Handle Voxel Destruction
+                  const impactPos = new THREE.Vector3(m.worldX, 0.4, m.worldZ);
+                  let voxelsRemoved = 0;
+                  
+                  targetGroup.children.forEach(child => {
+                      if (child.userData.isShip && child.userData.instancedMesh && child.userData.coversCell(m.cellX, m.cellZ)) {
+                          const im = child.userData.instancedMesh as THREE.InstancedMesh;
+                          const dummy = new THREE.Object3D();
+                          let updated = false;
+                          const blastRadius = m.result === 'sunk' ? 0.8 : 0.35;
+                          
+                          for (let i = 0; i < im.count; i++) {
+                              im.getMatrixAt(i, dummy.matrix);
+                              dummy.matrix.decompose(dummy.position, dummy.quaternion, dummy.scale);
+                              
+                              // Transform dummy local position to world position
+                              const worldVoxelPos = dummy.position.clone();
+                              child.localToWorld(worldVoxelPos);
+                              
+                              // If voxel is within blast radius and hasn't been destroyed yet
+                              if (dummy.scale.x > 0 && worldVoxelPos.distanceTo(impactPos) < blastRadius) {
+                                  dummy.scale.set(0, 0, 0); // "Destroy" voxel
+                                  dummy.updateMatrix();
+                                  im.setMatrixAt(i, dummy.matrix);
+                                  updated = true;
+                                  voxelsRemoved++;
+                              }
                           }
-                      });
+                          
+                          if (updated) {
+                              im.instanceMatrix.needsUpdate = true;
+                          }
+                          
+                          // Handle Sinking
+                          if (m.result === 'sunk') {
+                              child.userData.isSinking = true;
+                              child.visible = true; // Reveal if it was a hidden enemy ship
+                          }
+                      }
+                  });
+                  
+                  if (voxelsRemoved > 0) {
+                      this.particleSystem.spawnVoxelExplosion(m.worldX, 0.4, m.worldZ, voxelsRemoved, targetGroup);
                   }
+              } else {
+                  // Miss: sink into water partially
+                  m.mesh.position.y = -0.15; // Lower it so it looks mostly sunk
+                  
+                  // Reset rotation to stick straight up or keep original angle
+                  m.mesh.rotation.set(0, 0, 0);
+                  m.mesh.rotation.x = (Math.random() - 0.5) * 0.5; // Slanted slightly
+                  m.mesh.rotation.z = (Math.random() - 0.5) * 0.5;
               }
               this.fallingMarkers.splice(i, 1);
           } else {
@@ -254,51 +315,120 @@ export class EntityManager {
               m.mesh.lookAt(m.mesh.position.clone().add(tangent));
           }
       }
+      
+      // Animate Sinking Ships
+      const descentRate = 0.005 * Config.timing.gameSpeedMultiplier;
+      [this.playerBoardGroup, this.enemyBoardGroup].forEach(group => {
+          group.children.forEach(child => {
+              if (child.userData.isShip && child.userData.isSinking) {
+                  if (child.position.y > -2.0) { // Sink until out of sight
+                      child.position.y -= descentRate;
+                  }
+              }
+          });
+      });
   }
 
   public addShip(ship: Ship, x: number, z: number, orientation: Orientation, isPlayer: boolean) {
-    if (!isPlayer) return; // Hide enemy ships
+    const targetGroup = isPlayer ? this.playerBoardGroup : this.enemyBoardGroup;
 
-    const targetGroup = this.playerBoardGroup; // Player ships go on player board
+    // Create a parent group for the whole ship
+    const shipGroup = new THREE.Group();
+    shipGroup.userData = { 
+        isShip: true, 
+        isSinking: false,
+        coversCell: (tx: number, tz: number) => {
+            if (orientation === Orientation.Horizontal) {
+                return tz === z && tx >= x && tx < x + ship.size;
+            } else {
+                return tx === x && tz >= z && tz < z + ship.size;
+            }
+        }
+    };
+    
+    // Position ship group at the ship's origin cell
+    const originWorldX = x - 5 + 0.5;
+    const originWorldZ = z - 5 + 0.5;
+    shipGroup.position.set(originWorldX, 0, originWorldZ);
+    shipGroup.visible = isPlayer; // Hide enemy ships initially
 
     const shipMaterial = new THREE.MeshStandardMaterial({
       color: 0x888888,
       roughness: 0.7,
     });
 
-    for (let i = 0; i < ship.size; i++) {
-      const cx = orientation === Orientation.Horizontal ? x + i : x;
-      const cz = orientation === Orientation.Vertical ? z + i : z;
-      
-      const boxG = new THREE.BoxGeometry(0.8, 0.4, 0.8);
-      const block = new THREE.Mesh(boxG, shipMaterial);
-      block.userData = { isShipBlock: true, cx, cz };
-      
-      const worldX = cx - 5 + 0.5;
-      const worldZ = cz - 5 + 0.5;
-      
-      block.position.set(worldX, 0.2, worldZ);
-      block.castShadow = true;
-      block.receiveShadow = true;
-      targetGroup.add(block);
-      
-      if (i === Math.floor(ship.size / 2)) {
-          this.addRipple(worldX, worldZ, true); // Player ships go on player board
-      }
+    // Build the ship from tiny voxels using InstancedMesh
+    const voxelSize = 0.1;
+    const voxelGeo = new THREE.BoxGeometry(voxelSize, voxelSize, voxelSize);
+    
+    // Calculate bounding box of the ship in local space (each cell is 1.0 unit)
+    const length = orientation === Orientation.Horizontal ? ship.size : 1;
+    const width = orientation === Orientation.Vertical ? ship.size : 1;
+    
+    const voxelsLocs: THREE.Vector3[] = [];
+    
+    const L = ship.size * 10;
+    const centerX = L / 2 - 0.5;
+
+    for (let lx = 0; lx < length * 10; lx++) {
+        for (let lz = 0; lz < width * 10; lz++) {
+            const shipLengthPos = orientation === Orientation.Horizontal ? lx : lz;
+            const shipWidthPos = orientation === Orientation.Horizontal ? lz : lx;
+            
+            const xNorm = (shipLengthPos - centerX) / (L / 2);
+            const widthAtX = 4.0 * Math.cos(xNorm * Math.PI / 2);
+            const minW = 4.5 - widthAtX;
+            const maxW = 4.5 + widthAtX;
+            
+            if (shipWidthPos >= Math.floor(minW) && shipWidthPos <= Math.ceil(maxW)) {
+                // Edge if it's near to the min/max width, or near the bow/stern
+                const isEdge = shipWidthPos - minW < 1.0 || maxW - shipWidthPos < 1.0 || Math.abs(xNorm) > 0.85;
+                
+                const yOffset = Math.pow(Math.abs(xNorm), 3) * 2; // Bow/stern rise up
+                const maxLy = isEdge ? 2 + yOffset : 1; // Walls are higher, floor is 1
+                
+                for (let ly = 1; ly <= maxLy; ly++) {
+                    voxelsLocs.push(new THREE.Vector3(
+                        lx * voxelSize - (voxelSize/2 * 9), 
+                        ly * voxelSize, 
+                        lz * voxelSize - (voxelSize/2 * 9)
+                    ));
+                }
+            }
+        }
     }
+    
+    const instancedMesh = new THREE.InstancedMesh(voxelGeo, shipMaterial, voxelsLocs.length);
+    instancedMesh.castShadow = true;
+    instancedMesh.receiveShadow = true;
+    
+    const dummy = new THREE.Object3D();
+    voxelsLocs.forEach((pos, index) => {
+        dummy.position.copy(pos);
+        dummy.updateMatrix();
+        instancedMesh.setMatrixAt(index, dummy.matrix);
+    });
+    
+    shipGroup.userData.instancedMesh = instancedMesh;
+    shipGroup.add(instancedMesh);
+    targetGroup.add(shipGroup);
+
+    // Initial Ripple in center
+    const cx = orientation === Orientation.Horizontal ? x + Math.floor(ship.size / 2) : x;
+    const cz = orientation === Orientation.Vertical ? z + Math.floor(ship.size / 2) : z;
+    const rippleWorldX = cx - 5 + 0.5;
+    const rippleWorldZ = cz - 5 + 0.5;
+    this.addRipple(rippleWorldX, rippleWorldZ, isPlayer); 
   }
 
   public addAttackMarker(x: number, z: number, result: string, isPlayer: boolean) {
     // If the player fired the shot, it lands on the enemy board. If the enemy fired, it lands on the player board.
     const targetGroup = isPlayer ? this.enemyBoardGroup : this.playerBoardGroup;
 
-    // Revert previous last attack marker to its original color
-    if (this.lastAttackMarker) {
-        const originalMat = this.lastAttackMarker.userData.originalMat as THREE.MeshStandardMaterial;
-        this.lastAttackMarker.material = originalMat;
-    }
+    // Revert previous last attack marker to its original color is no longer needed 
+    // since we permanently apply the material at the end of the arc.
 
-    let originalColor = 0xffffff; // Miss -> white
+    let originalColor = 0xcccccc; // Miss -> greyish white
     if (result === 'hit' || result === 'sunk') {
       originalColor = 0xff0000; // Hit -> red
     }
@@ -307,9 +437,43 @@ export class EntityManager {
     // Active yellow material
     const activeMat = new THREE.MeshStandardMaterial({ color: 0xffff00, roughness: 0.2, emissive: 0x888800 });
 
-    const geo = new THREE.BoxGeometry(0.4, 0.6, 0.4);
-    const marker = new THREE.Mesh(geo, activeMat);
-    marker.userData = { originalMat }; // Save original material for later
+    const marker = new THREE.Group();
+    marker.userData = { originalMat, isAttackMarker: true };
+    
+    // Create a inner group to handle the 25-degree pitch down offset
+    const rocketModel = new THREE.Group();
+    rocketModel.rotation.x = 25 * Math.PI / 180; // Pitch down 25 degrees
+    marker.add(rocketModel);
+
+    // Bullet / Rocket Body
+    const bodyGeo = new THREE.CylinderGeometry(0.12, 0.12, 0.4, 8);
+    const bodyMesh = new THREE.Mesh(bodyGeo, activeMat);
+    bodyMesh.rotation.x = Math.PI / 2; // Face +z in local space
+    bodyMesh.position.z = 0.2;
+    bodyMesh.castShadow = true;
+    rocketModel.add(bodyMesh);
+
+    // Bullet / Rocket Nose
+    const noseGeo = new THREE.ConeGeometry(0.12, 0.25, 8);
+    const noseMesh = new THREE.Mesh(noseGeo, activeMat);
+    noseMesh.rotation.x = Math.PI / 2; // Face +z
+    noseMesh.position.z = 0.525; // nose leads
+    noseMesh.castShadow = true;
+    rocketModel.add(noseMesh);
+    
+    // Add fins
+    const finGeo = new THREE.BoxGeometry(0.05, 0.2, 0.3);
+    const finMesh1 = new THREE.Mesh(finGeo, activeMat);
+    finMesh1.position.z = 0.1;
+    finMesh1.rotation.z = Math.PI / 4; // Slanted fins
+    rocketModel.add(finMesh1);
+    const finMesh2 = new THREE.Mesh(finGeo, activeMat);
+    finMesh2.position.z = 0.1;
+    finMesh2.rotation.y = Math.PI / 2;
+    finMesh2.rotation.x = Math.PI / 2;
+    rocketModel.add(finMesh2);
+
+    marker.userData.meshes = [bodyMesh, noseMesh, finMesh1, finMesh2];
 
     const worldX = x - 5 + 0.5;
     const worldZ = z - 5 + 0.5;
@@ -320,14 +484,14 @@ export class EntityManager {
     const sourceGroup = isPlayer ? this.playerBoardGroup : this.enemyBoardGroup;
     let startPos = new THREE.Vector3((Math.random() - 0.5) * 10, 5, (Math.random() - 0.5) * 10);
     
-    const friendlyBlocks: THREE.Mesh[] = [];
+    const friendlyShips: THREE.Group[] = [];
     sourceGroup.children.forEach(c => {
-        if (c.userData.isShipBlock && c.visible) friendlyBlocks.push(c as THREE.Mesh);
+        if (c.userData.isShip && c.visible && !c.userData.isSinking) friendlyShips.push(c as THREE.Group);
     });
     
-    if (friendlyBlocks.length > 0) {
-        const randomBlock = friendlyBlocks[Math.floor(Math.random() * friendlyBlocks.length)];
-        randomBlock.getWorldPosition(startPos);
+    if (friendlyShips.length > 0) {
+        const randomShip = friendlyShips[Math.floor(Math.random() * friendlyShips.length)];
+        randomShip.getWorldPosition(startPos);
         targetGroup.worldToLocal(startPos); // Convert to targetGroup's local space
     } else {
         // Fallback if no ships visible
