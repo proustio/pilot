@@ -26,6 +26,9 @@ export class Board {
     // Map of absolute coordinates "x,z" to a specific Ship and its local segment index
     private shipMap: Map<string, { ship: Ship, segmentIndex: number }>;
     public ships: Ship[] = [];
+    
+    public shotsFired: number = 0;
+    public hits: number = 0;
 
     constructor(width: number = 10, height: number = 10) {
         this.width = width;
@@ -104,11 +107,14 @@ export class Board {
         }
 
         if (state === CellState.Empty) {
+            this.shotsFired++;
             this.gridState[index] = CellState.Miss;
             return AttackResult.Miss;
         }
 
         if (state === CellState.Ship) {
+            this.shotsFired++;
+            this.hits++;
             // Retrieve ship metadata
             const mapKey = `${x},${z}`;
             const target = this.shipMap.get(mapKey);

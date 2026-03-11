@@ -18,10 +18,10 @@ This document breaks down the actionable tasks based on `improvements-2.md` and 
 
 ## 3. Unified Board & Game Stats
 *Goal: Unify the player and enemy boards and display game statistics.*
-- [ ] Refactor the UI and 3D rendering to use a single unified board positioned at the top left.
-- [ ] Implement tracking for total "shots fired" in the Game Controller.
-- [ ] Implement tracking and calculation for "hit/miss ratio".
-- [ ] Update the HUD to display "shots fired" and "hit/miss ratio" stats.
+- [x] Refactor the UI and 3D rendering to use a single unified board positioned at the top left.
+- [x] Implement tracking for total "shots fired" in the Game Controller.
+- [x] Implement tracking and calculation for "hit/miss ratio".
+- [x] Update the HUD to display "shots fired" and "hit/miss ratio" stats.
 
 ## 4. Fog of War
 *Goal: Hide unrevealed parts of the enemy board.*

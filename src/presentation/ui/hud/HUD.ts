@@ -1,13 +1,15 @@
 import { BaseUIComponent } from '../components/BaseUIComponent';
 import { GameLoop, GameState } from '../../../application/game-loop/GameLoop';
 import { Config } from '../../../infrastructure/config/Config';
+import { UnifiedBoardUI } from './UnifiedBoardUI';
 
 export class HUD extends BaseUIComponent {
     private gameLoop: GameLoop;
     private turnIndicator!: HTMLElement;
-    private playerFleetStatus!: HTMLElement;
-    private enemyFleetStatus!: HTMLElement;
+    private playerFleetIcons!: HTMLElement;
+    private enemyFleetIcons!: HTMLElement;
     private fpsCounter!: HTMLElement;
+    private unifiedBoard!: UnifiedBoardUI;
 
     constructor(gameLoop: GameLoop) {
         super('hud');
@@ -24,7 +26,7 @@ export class HUD extends BaseUIComponent {
                 this.updateCounters();
                 
                 // If isPlayer is true, the player fired the shot, so the enemy board was hit
-                const targetElement = isPlayer ? this.enemyFleetStatus : this.playerFleetStatus;
+                const targetElement = isPlayer ? this.enemyFleetIcons : this.playerFleetIcons;
                 
                 // Trigger CSS explosion animation
                 targetElement.classList.remove('hud-explosion-anim');
@@ -35,24 +37,43 @@ export class HUD extends BaseUIComponent {
                     targetElement.classList.remove('hud-explosion-anim');
                 }, 500);
             }
+            this.updateStats();
         });
+
+        this.unifiedBoard = new UnifiedBoardUI(this.gameLoop);
+    }
+
+    public mount(parentElement: HTMLElement): void {
+        super.mount(parentElement);
+        const anchor = this.container.querySelector('#unified-board-anchor') as HTMLElement;
+        this.unifiedBoard.mount(anchor || this.container);
+        this.unifiedBoard.show();
     }
 
     protected render(): void {
         this.container.innerHTML = `
             <div class="hud-top-bar">
-                <div id="player-status" class="hud-fleet-status">
-                    <span>Player Fleet</span>
-                    <span id="player-ships">Ships: ?/?</span>
+                <div class="hud-top-left">
+                    <div id="unified-board-anchor"></div>
+                    <div id="game-stats" class="hud-game-stats">
+                        <div class="stat-item">SHOTS: <span id="stat-shots">0</span></div>
+                        <div class="stat-item">RATIO: <span id="stat-ratio">0%</span></div>
+                    </div>
                 </div>
                 
                 <div id="turn-indicator" class="hud-turn-indicator">
                     WAITING...
                 </div>
 
-                <div id="enemy-status" class="hud-fleet-status">
-                    <span>Enemy Fleet</span>
-                    <span id="enemy-ships">Ships: ?/?</span>
+                <div id="fleet-status-group" class="hud-fleet-status-group">
+                    <div id="player-status" class="hud-fleet-status">
+                        <span class="fleet-label">YOU</span>
+                        <div id="player-fleet-icons" class="fleet-icons"></div>
+                    </div>
+                    <div id="enemy-status" class="hud-fleet-status">
+                        <span class="fleet-label">ENEMY</span>
+                        <div id="enemy-fleet-icons" class="fleet-icons"></div>
+                    </div>
                 </div>
             </div>
             
@@ -69,9 +90,11 @@ export class HUD extends BaseUIComponent {
         `;
 
         this.turnIndicator = this.container.querySelector('#turn-indicator') as HTMLElement;
-        this.playerFleetStatus = this.container.querySelector('#player-ships') as HTMLElement;
-        this.enemyFleetStatus = this.container.querySelector('#enemy-ships') as HTMLElement;
+        this.playerFleetIcons = this.container.querySelector('#player-fleet-icons') as HTMLElement;
+        this.enemyFleetIcons = this.container.querySelector('#enemy-fleet-icons') as HTMLElement;
         this.fpsCounter = this.container.querySelector('#fps-counter') as HTMLElement;
+        
+        this.updateStats();
         
         const settingsBtn = this.container.querySelector('#hud-btn-settings') as HTMLButtonElement;
         settingsBtn.addEventListener('click', () => {
@@ -152,16 +175,46 @@ export class HUD extends BaseUIComponent {
     
     private updateCounters(): void {
         if (this.gameLoop.match) {
-            const countAlive = (board: any) => board.ships.filter((s: any) => !s.isSunk()).length;
+            const renderIcons = (container: HTMLElement, ships: any[]) => {
+                container.innerHTML = '';
+                // Sort ships by size descending
+                const sortedShips = [...ships].sort((a, b) => b.size - a.size);
+                
+                sortedShips.forEach(ship => {
+                    const icon = document.createElement('div');
+                    icon.classList.add('ship-icon');
+                    if (ship.isSunk()) icon.classList.add('sunk');
+                    
+                    for (let i = 0; i < ship.size; i++) {
+                        const segment = document.createElement('div');
+                        segment.classList.add('ship-segment');
+                        icon.appendChild(segment);
+                    }
+                    container.appendChild(icon);
+                });
+            };
             
-            const playerBoard = this.gameLoop.match.playerBoard;
+            renderIcons(this.playerFleetIcons, this.gameLoop.match.playerBoard.ships);
+            renderIcons(this.enemyFleetIcons, this.gameLoop.match.enemyBoard.ships);
+        }
+    }
+
+    private updateStats(): void {
+        if (this.gameLoop.match) {
             const enemyBoard = this.gameLoop.match.enemyBoard;
-            
-            const playerTotal = playerBoard.ships.length || this.gameLoop.match.getRequiredFleet().length;
-            const enemyTotal = enemyBoard.ships.length || this.gameLoop.match.getRequiredFleet().length;
-            
-            this.playerFleetStatus.innerText = `Ships Alive: ${countAlive(playerBoard)}/${playerTotal}`;
-            this.enemyFleetStatus.innerText = `Ships Alive: ${countAlive(enemyBoard)}/${enemyTotal}`;
+
+            // Player attacks enemy board, so stats are on enemyBoard (shots fired at enemy)
+            // Or total shots fired by both? The prompt says "shots fired, hit/miss ratio"
+            // Usually this means the player's performance.
+            const shots = enemyBoard.shotsFired;
+            const hits = enemyBoard.hits;
+            const ratio = shots > 0 ? Math.round((hits / shots) * 100) : 0;
+
+            const shotsEl = this.container.querySelector('#stat-shots');
+            const ratioEl = this.container.querySelector('#stat-ratio');
+
+            if (shotsEl) shotsEl.textContent = shots.toString();
+            if (ratioEl) ratioEl.textContent = `${ratio}%`;
         }
     }
 }
