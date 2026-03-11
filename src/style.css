@@ -300,6 +300,16 @@ canvas {
   margin-bottom: 5px;
 }
 
+#pause-menu {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 300px;
+  display: flex;
+  flex-direction: column;
+}
+
 #settings-modal {
   position: absolute;
   top: 50%;

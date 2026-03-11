@@ -41,14 +41,14 @@ Action items derived from `improvements-3.md`. Each top-level item is a self-con
 ---
 
 ## 5. Pause Menu Options Rework
-- [ ] Update the Pause Menu to contain exactly these options:
+- [x] Update the Pause Menu to contain exactly these options:
   1. Resume
   2. Save
   3. Load
   4. Settings
   5. Exit to Main Menu
-- [ ] Remove any options that are not in the list above.
-- [ ] Ensure each button triggers the correct action (Resume closes overlay, Save/Load opens dialog, Settings opens settings panel, Exit returns to main menu with confirmation).
+- [x] Remove any options that are not in the list above.
+- [x] Ensure each button triggers the correct action (Resume closes overlay, Save/Load opens dialog, Settings opens settings panel, Exit returns to main menu with confirmation).
 
 ---
 

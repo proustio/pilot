@@ -1,6 +1,7 @@
 import { GameLoop, GameState } from '../../application/game-loop/GameLoop';
 import { MainMenu } from './menu/MainMenu';
 import { HUD } from './hud/HUD';
+import { PauseMenu } from './pause/PauseMenu';
 import { Settings } from './settings/Settings';
 import { GameOver } from './menu/GameOver';
 import { SaveLoadDialog } from './components/SaveLoadDialog';
@@ -12,6 +13,7 @@ export class UIManager {
     
     private mainMenu: MainMenu;
     private hud: HUD;
+    private pauseMenu: PauseMenu;
     private settings: Settings;
     private gameOver: GameOver;
     private saveLoadDialog: SaveLoadDialog;
@@ -29,6 +31,7 @@ export class UIManager {
         // Instantiate components
         this.mainMenu = new MainMenu(this.gameLoop);
         this.hud = new HUD(this.gameLoop);
+        this.pauseMenu = new PauseMenu(this.gameLoop);
         this.settings = new Settings(this.gameLoop);
         this.gameOver = new GameOver();
         this.saveLoadDialog = new SaveLoadDialog();
@@ -36,6 +39,7 @@ export class UIManager {
         // Mount components to the UI wrapper
         this.mainMenu.mount(this.uiLayer);
         this.hud.mount(this.uiLayer);
+        this.pauseMenu.mount(this.uiLayer);
         this.settings.mount(this.uiLayer);
         this.gameOver.mount(this.uiLayer);
         this.saveLoadDialog.mount(this.uiLayer);
@@ -46,6 +50,10 @@ export class UIManager {
         });
 
         // Global Event listeners for UI interaction coming from other components
+        document.addEventListener('SHOW_PAUSE_MENU', () => {
+            this.pauseMenu.show();
+        });
+
         document.addEventListener('SHOW_SETTINGS', () => {
             this.settings.show();
         });
@@ -106,7 +114,7 @@ export class UIManager {
         } else {
             this.hud.show();
             // Note: If coming from main menu to setup board, enable interaction. Settings handles its own toggle via onShow/onHide.
-            if (!this.settings['isVisible']) {
+            if (!this.pauseMenu['isVisible'] && !this.settings['isVisible']) {
                 document.dispatchEvent(new CustomEvent('SET_INTERACTION_ENABLED', { detail: { enabled: true } }));
             }
         }

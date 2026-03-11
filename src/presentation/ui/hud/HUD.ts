@@ -103,7 +103,7 @@ export class HUD extends BaseUIComponent {
         
         const settingsBtn = this.container.querySelector('#hud-btn-settings') as HTMLButtonElement;
         settingsBtn.addEventListener('click', () => {
-            document.dispatchEvent(new CustomEvent('SHOW_SETTINGS'));
+            document.dispatchEvent(new CustomEvent('SHOW_PAUSE_MENU'));
         });
 
         const speedBtn = this.container.querySelector('#hud-btn-speed') as HTMLButtonElement;
