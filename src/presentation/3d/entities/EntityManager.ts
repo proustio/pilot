@@ -392,23 +392,33 @@ export class EntityManager {
         shipGroup.position.set(originWorldX, 0, originWorldZ);
         shipGroup.visible = isPlayer; // Hide enemy ships initially
 
-        const shipMaterial = new THREE.MeshStandardMaterial({
-            color: 0x888888,
-            roughness: 0.7,
-        });
+        // --- Color palette ---
+        const hullColor = new THREE.Color(0x3a3f4a);
+        const deckColor = new THREE.Color(0x8B6914);
+        const accentColor = new THREE.Color(0x6a7a8a);
+        const bridgeColor = new THREE.Color(0x505560);
 
         // Build the ship from tiny voxels using InstancedMesh
         const voxelSize = 0.1;
         const voxelGeo = new THREE.BoxGeometry(voxelSize, voxelSize, voxelSize);
 
-        // Calculate bounding box of the ship in local space (each cell is 1.0 unit)
         const length = orientation === Orientation.Horizontal ? ship.size : 1;
         const width = orientation === Orientation.Vertical ? ship.size : 1;
 
-        const voxelsLocs: THREE.Vector3[] = [];
+        const voxelsData: { pos: THREE.Vector3, color: THREE.Color }[] = [];
 
         const L = ship.size * 10;
         const centerX = L / 2 - 0.5;
+
+        // Piecewise hull width — sharper, more military
+        const getHullWidth = (xNorm: number): number => {
+            const absX = Math.abs(xNorm);
+            if (absX > 0.9) return 1.5 * (1.0 - (absX - 0.9) / 0.1);
+            if (absX > 0.7) return 1.5 + 2.5 * (1.0 - (absX - 0.7) / 0.2);
+            return 4.0;
+        };
+
+        const isBridgeZone = (xNorm: number): boolean => Math.abs(xNorm) < 0.15;
 
         for (let lx = 0; lx < length * 10; lx++) {
             for (let lz = 0; lz < width * 10; lz++) {
@@ -416,41 +426,113 @@ export class EntityManager {
                 const shipWidthPos = orientation === Orientation.Horizontal ? lz : lx;
 
                 const xNorm = (shipLengthPos - centerX) / (L / 2);
-                const widthAtX = 4.0 * Math.cos(xNorm * Math.PI / 2);
-                const minW = 4.5 - widthAtX;
-                const maxW = 4.5 + widthAtX;
+                const halfWidth = getHullWidth(xNorm);
+                const center = 4.5;
+                const minW = center - halfWidth;
+                const maxW = center + halfWidth;
 
                 if (shipWidthPos >= Math.floor(minW) && shipWidthPos <= Math.ceil(maxW)) {
-                    // Edge if it's near to the min/max width, or near the bow/stern
-                    const isEdge = shipWidthPos - minW < 1.0 || maxW - shipWidthPos < 1.0 || Math.abs(xNorm) > 0.85;
+                    const isEdge = (shipWidthPos - minW) < 1.0 || (maxW - shipWidthPos) < 1.0;
+                    const isBowStern = Math.abs(xNorm) > 0.80;
+                    const isBridge = isBridgeZone(xNorm);
 
-                    const yOffset = Math.pow(Math.abs(xNorm), 3) * 2; // Bow/stern rise up
-                    const maxLy = isEdge ? 2 + yOffset : 1; // Walls are higher, floor is 1
+                    const bowRise = Math.pow(Math.max(0, Math.abs(xNorm) - 0.7) / 0.3, 2) * 3;
+                    let maxLy: number;
+                    if (isBridge && !isEdge) {
+                        maxLy = 4;
+                    } else if (isEdge || isBowStern) {
+                        maxLy = 3 + bowRise;
+                    } else {
+                        maxLy = 1;
+                    }
 
                     for (let ly = 1; ly <= maxLy; ly++) {
-                        voxelsLocs.push(new THREE.Vector3(
-                            lx * voxelSize - (voxelSize / 2 * 9),
-                            ly * voxelSize,
-                            lz * voxelSize - (voxelSize / 2 * 9)
-                        ));
+                        let color: THREE.Color;
+                        if (ly === 1 && !isEdge) {
+                            color = deckColor;
+                        } else if (ly === 1 && isEdge) {
+                            color = accentColor;
+                        } else if (isBridge && ly >= 3) {
+                            color = bridgeColor;
+                        } else {
+                            color = hullColor;
+                        }
+
+                        voxelsData.push({
+                            pos: new THREE.Vector3(
+                                lx * voxelSize - (voxelSize / 2 * 9),
+                                ly * voxelSize,
+                                lz * voxelSize - (voxelSize / 2 * 9)
+                            ),
+                            color
+                        });
                     }
                 }
             }
         }
 
-        const instancedMesh = new THREE.InstancedMesh(voxelGeo, shipMaterial, voxelsLocs.length);
+        const shipMaterial = new THREE.MeshStandardMaterial({
+            color: 0xffffff,
+            roughness: 0.7,
+        });
+
+        const instancedMesh = new THREE.InstancedMesh(voxelGeo, shipMaterial, voxelsData.length);
         instancedMesh.castShadow = true;
         instancedMesh.receiveShadow = true;
 
         const dummy = new THREE.Object3D();
-        voxelsLocs.forEach((pos, index) => {
-            dummy.position.copy(pos);
+        voxelsData.forEach((vd, index) => {
+            dummy.position.copy(vd.pos);
             dummy.updateMatrix();
             instancedMesh.setMatrixAt(index, dummy.matrix);
+            instancedMesh.setColorAt(index, vd.color);
         });
+
+        if (instancedMesh.instanceColor) {
+            instancedMesh.instanceColor.needsUpdate = true;
+        }
 
         shipGroup.userData.instancedMesh = instancedMesh;
         shipGroup.add(instancedMesh);
+
+        // --- Cannon Turrets ---
+        const turretCount = ship.size <= 2 ? 1 : ship.size <= 4 ? 2 : 3;
+        const turretBaseMat = new THREE.MeshStandardMaterial({ color: 0x2a2a2a, roughness: 0.6 });
+        const barrelMat = new THREE.MeshStandardMaterial({ color: 0x555555, roughness: 0.5 });
+
+        const shipLen = ship.size;
+
+        for (let i = 0; i < turretCount; i++) {
+            const turretGroup = new THREE.Group();
+
+            // Distribute turrets evenly along the ship length
+            // Using (i + 1) / (turretCount + 1) ensures perfect spacing
+            const tPos = ((i + 1) / (turretCount + 1)) * shipLen - 0.5;
+
+            const baseGeo = new THREE.BoxGeometry(0.15, 0.08, 0.15);
+            const baseMesh = new THREE.Mesh(baseGeo, turretBaseMat);
+            baseMesh.castShadow = true;
+            turretGroup.add(baseMesh);
+
+            const barrelGeo = new THREE.CylinderGeometry(0.025, 0.025, 0.2, 6);
+            const barrelMesh = new THREE.Mesh(barrelGeo, barrelMat);
+            barrelMesh.castShadow = true;
+
+            if (orientation === Orientation.Horizontal) {
+                barrelMesh.rotation.z = Math.PI / 2;
+                barrelMesh.position.x = 0.12;
+                turretGroup.position.set(tPos, 0.2, 0);
+            } else {
+                barrelMesh.rotation.x = Math.PI / 2;
+                barrelMesh.position.z = 0.12;
+                turretGroup.position.set(0, 0.2, tPos);
+            }
+            barrelMesh.position.y = 0.02;
+            turretGroup.add(barrelMesh);
+
+            shipGroup.add(turretGroup);
+        }
+
         targetGroup.add(shipGroup);
 
         // Initial Ripple in center

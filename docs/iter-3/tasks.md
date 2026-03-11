@@ -60,7 +60,7 @@ Action items derived from `improvements-3.md`. Each top-level item is a self-con
 ---
 
 ## 7. Improved Ship Models
-- [ ] Redesign ship voxel models with **colour variation** (hull, deck, accents).
-- [ ] Make silhouettes more aggressive / military (angled bows, sharper profiles).
-- [ ] Add **cannon turrets** (small voxel barrel groups) to each ship, scaled to ship size.
-- [ ] Ensure the new models still work correctly with hit detection, destruction particles, and sinking animations.
+- [x] Redesign ship voxel models with **colour variation** (hull, deck, accents).
+- [x] Make silhouettes more aggressive / military (angled bows, sharper profiles).
+- [x] Add **cannon turrets** (small voxel barrel groups) to each ship, scaled to ship size.
+- [x] Ensure the new models still work correctly with hit detection, destruction particles, and sinking animations.
