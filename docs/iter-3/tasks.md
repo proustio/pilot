@@ -34,9 +34,9 @@ Action items derived from `improvements-3.md`. Each top-level item is a self-con
 ---
 
 ## 4. Fix Sunk-Ship Depth on Opposite Side
-- [ ] Audit the current sinking animation / final resting depth for destroyed ships.
-- [ ] Adjust the sink depth to a value proportional to the new (deeper) pool dimensions.
-- [ ] Ensure sunk ships sit convincingly on or near the sand bottom rather than floating on the surface.
+- [x] Audit the current sinking animation / final resting depth for destroyed ships.
+- [x] Adjust the sink depth to a value proportional to the new (deeper) pool dimensions.
+- [x] Ensure sunk ships sit convincingly on or near the sand bottom rather than floating on the surface.
 
 ---
 

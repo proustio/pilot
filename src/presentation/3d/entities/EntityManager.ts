@@ -353,11 +353,16 @@ export class EntityManager {
 
         // Animate Sinking Ships
         const descentRate = 0.005 * Config.timing.gameSpeedMultiplier;
+        const sinkFloor = -1.1; // Rest just above the sand bottom (world y ≈ 0.1)
         [this.playerBoardGroup, this.enemyBoardGroup].forEach(group => {
             group.children.forEach(child => {
                 if (child.userData.isShip && child.userData.isSinking) {
-                    if (child.position.y > -1.0) { // Sink until near sand bottom
+                    if (child.position.y > sinkFloor) {
                         child.position.y -= descentRate;
+                        // Add a gentle settling tilt as ship sinks
+                        const sinkProgress = Math.min(1.0, -child.position.y / Math.abs(sinkFloor));
+                        child.rotation.z = sinkProgress * 0.15; // Subtle lean
+                        child.rotation.x = sinkProgress * 0.08; // Slight forward pitch
                     }
                 }
             });
