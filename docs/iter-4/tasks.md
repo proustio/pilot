@@ -5,10 +5,11 @@ Each item is an independent, committable change.
 
 ---
 
-## 1. Board Proximity & Default Zoom
+## 1. Board Proximity & Default Zoom ✅
 Adjust camera defaults so the board fills the viewport with minimal margin to window edges.
-- Update default camera distance / FOV in `Engine3D.ts` or `Config.ts`.
-- Ensure both 2D and 3D views respect the tighter framing.
+- [x] Default 3D camera position: `(0,15,15)` → `(0,12,12)`, FOV: 60° → 50°
+- [x] 2D top-down height: 30 → 16
+- [x] Orbit maxDistance: 50 → 30
 
 ## 2. Raycasting Highlight Fix
 Mouse highlight is projected too low — it lands on the pool bottom instead of the ship/water surface.

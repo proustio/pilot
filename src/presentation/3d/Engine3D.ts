@@ -6,13 +6,13 @@ export class Engine3D {
   public camera: THREE.PerspectiveCamera;
   public renderer: THREE.WebGLRenderer;
   
-  public targetCameraPos = new THREE.Vector3(0, 15, 15);
+  public targetCameraPos = new THREE.Vector3(0, 12, 12);
   public targetLookAt = new THREE.Vector3(0, 0, 0);
   private currentLookAt = new THREE.Vector3(0, 0, 0);
   
   public orbitControls!: OrbitControls;
   public is2DMode: boolean = false;
-  private saved3DPosition = new THREE.Vector3(0, 15, 15);
+  private saved3DPosition = new THREE.Vector3(0, 12, 12);
   private saved3DTarget = new THREE.Vector3(0, 0, 0);
   private isTransitioning: boolean = false;
   
@@ -33,9 +33,9 @@ export class Engine3D {
 
     // 2. Camera
     const aspect = window.innerWidth / window.innerHeight;
-    this.camera = new THREE.PerspectiveCamera(60, aspect, 0.1, 1000);
+    this.camera = new THREE.PerspectiveCamera(50, aspect, 0.1, 1000);
     // Position camera at an isometric-like angle looking down at origin
-    this.camera.position.set(0, 15, 15);
+    this.camera.position.set(0, 12, 12);
     this.camera.lookAt(0, 0, 0);
 
     // 3. Renderer
@@ -59,7 +59,7 @@ export class Engine3D {
     this.orbitControls.dampingFactor = 0.05;
     this.orbitControls.maxPolarAngle = Math.PI / 2 - 0.1; // Don't allow going below the board
     this.orbitControls.minDistance = 5;
-    this.orbitControls.maxDistance = 50;
+    this.orbitControls.maxDistance = 30;
     this.orbitControls.target.copy(this.targetLookAt);
     
     // Custom logic to require CTRL/CMD for panning
@@ -173,7 +173,7 @@ export class Engine3D {
       this.saved3DPosition.copy(this.camera.position);
       this.saved3DTarget.copy(this.orbitControls.target);
       
-      this.targetCameraPos.set(0, 30, 0);
+      this.targetCameraPos.set(0, 16, 0.01);
       this.targetLookAt.set(0, 0, 0);
     } else {
       // Switching to 3D
