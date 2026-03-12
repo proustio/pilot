@@ -11,9 +11,9 @@ Adjust camera defaults so the board fills the viewport with minimal margin to wi
 - [x] 2D top-down height: 30 → 16
 - [x] Orbit maxDistance: 50 → 30
 
-## 2. Raycasting Highlight Fix
+## 2. Raycasting Highlight Fix ✅
 Mouse highlight is projected too low — it lands on the pool bottom instead of the ship/water surface.
-- Fix the raycast plane height in `InteractionManager.ts` so the highlight sits at ship-level.
+- [x] Both hover cursor and ghost placement preview now use `getWorldPosition()` instead of copying local tile position, so they sit at the water/ship surface level.
 
 ## 3. Smooth & Stable 2D ↔ 3D View Transitions
 2D view breaks after switching to 3D and back, and also resets when a turn ends.

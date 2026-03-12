@@ -31,16 +31,46 @@ export class InteractionManager {
     this.raycaster = new THREE.Raycaster();
     this.mouse = new THREE.Vector2();
 
-    // Create the visual hover cursor
-    const cursorGeo = new THREE.BoxGeometry(1.05, 0.25, 1.05); // Slightly larger than tile
-    const cursorMat = new THREE.MeshBasicMaterial({
-      color: 0xffff00,
+    // Create the visual hover cursor — glow effect that shines up from water through fog
+    const glowVertexShader = `
+      varying vec2 vUv;
+      void main() {
+        vUv = uv;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `;
+    const glowFragmentShader = `
+      varying vec2 vUv;
+      void main() {
+        // Horizontal fade: strongest in center, fades to edges
+        float hFade = 1.0 - pow(abs(vUv.x - 0.5) * 2.0, 2.0);
+        // Vertical fade: strongest at bottom (vUv.y=0), fully transparent at top (vUv.y=1)
+        float vFade = pow(1.0 - vUv.y, 2.0);
+        float alpha = hFade * vFade * 0.6;
+        gl_FragColor = vec4(1.0, 0.95, 0.3, alpha);
+      }
+    `;
+    const glowMat = new THREE.ShaderMaterial({
+      vertexShader: glowVertexShader,
+      fragmentShader: glowFragmentShader,
       transparent: true,
-      opacity: 0.5,
-      depthTest: false, // Ensure it draws over
-      wireframe: true
+      depthTest: false,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+      blending: THREE.AdditiveBlending
     });
-    this.hoverCursor = new THREE.Mesh(cursorGeo, cursorMat);
+
+    // Two crossed planes for a volumetric glow illusion
+    const glowGroup = new THREE.Group();
+    const planeGeo = new THREE.PlaneGeometry(1.0, 2.5);
+    const plane1 = new THREE.Mesh(planeGeo, glowMat);
+    const plane2 = new THREE.Mesh(planeGeo, glowMat.clone());
+    plane2.rotation.y = Math.PI / 2; // Perpendicular cross
+    glowGroup.add(plane1);
+    glowGroup.add(plane2);
+    glowGroup.renderOrder = 999;
+
+    this.hoverCursor = glowGroup as any;
     this.hoverCursor.visible = false;
     scene.add(this.hoverCursor);
 
@@ -138,19 +168,24 @@ export class InteractionManager {
             mesh.position.set(cx, 0, cz);
           });
 
-          this.ghostGroup.position.copy(hit.object.position);
+          const ghostWorldPos = new THREE.Vector3();
+          hit.object.getWorldPosition(ghostWorldPos);
+          this.ghostGroup.position.copy(ghostWorldPos);
           this.ghostGroup.position.y += 0.45; // raised to match actual ships
           this.ghostGroup.quaternion.copy(hit.object.parent!.quaternion);
           this.ghostGroup.visible = true;
 
         } else {
           this.ghostGroup.visible = false;
-          // Snap cursor to tile position
-          this.hoverCursor.position.copy(hit.object.position);
+          // Snap cursor to tile world position (not local) so it sits at water/ship level
+          const worldPos = new THREE.Vector3();
+          hit.object.getWorldPosition(worldPos);
+          this.hoverCursor.position.copy(worldPos);
+          this.hoverCursor.position.y += 1.25; // Shift up by half the glow plane height so bottom is at water level
           this.hoverCursor.visible = true;
 
-          // Ensure cursor inherits the board's rotation (UP or DOWN) by attaching to parent or copying quaternion
-          this.hoverCursor.quaternion.copy(hit.object.parent!.quaternion);
+          // Reset quaternion so glow always shines upward regardless of board flip
+          this.hoverCursor.quaternion.identity();
         }
 
         this.hoveredCell = {
