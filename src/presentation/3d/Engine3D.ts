@@ -11,9 +11,6 @@ export class Engine3D {
   private currentLookAt = new THREE.Vector3(0, 0, 0);
   
   public orbitControls!: OrbitControls;
-  public is2DMode: boolean = false;
-  private saved3DPosition = new THREE.Vector3(0, 12, 12);
-  private saved3DTarget = new THREE.Vector3(0, 0, 0);
   private isTransitioning: boolean = false;
   
   private ambientLight!: THREE.AmbientLight;
@@ -87,16 +84,10 @@ export class Engine3D {
     // Listen for Camera Auto-Lerp from GameLoop
     document.addEventListener('SET_CAMERA_TARGET', (e: Event) => {
         const ce = e as CustomEvent;
-        if (ce.detail && !this.is2DMode && !this.isTransitioning) {
-            // Initiate a transition to the new target
+        if (ce.detail && !this.isTransitioning) {
             this.targetCameraPos.set(ce.detail.x, ce.detail.y, ce.detail.z);
             this.isTransitioning = true;
         }
-    });
-
-    // Listen for 2D/3D toggle
-    document.addEventListener('TOGGLE_CAMERA_VIEW', () => {
-        this.toggle2D3DView();
     });
 
     // Resize Handler
@@ -163,27 +154,6 @@ export class Engine3D {
     this.renderer.setSize(window.innerWidth, window.innerHeight);
   }
 
-  private toggle2D3DView() {
-    if (this.isTransitioning) return;
-    this.isTransitioning = true;
-    
-    if (!this.is2DMode) {
-      // Switching to 2D
-      this.is2DMode = true;
-      this.saved3DPosition.copy(this.camera.position);
-      this.saved3DTarget.copy(this.orbitControls.target);
-      
-      this.targetCameraPos.set(0, 16, 0.01);
-      this.targetLookAt.set(0, 0, 0);
-    } else {
-      // Switching to 3D
-      this.is2DMode = false;
-      this.targetCameraPos.copy(this.saved3DPosition);
-      this.targetLookAt.copy(this.saved3DTarget);
-    }
-    
-    // Let user interact again only after transition (wait ~1 sec or managed in render loop when distance is small)
-  }
 
   public render() {
     const cameraSpeed = Config.timing.cameraLerpSpeed * Config.timing.gameSpeedMultiplier;
@@ -196,27 +166,15 @@ export class Engine3D {
       this.orbitControls.target.copy(this.currentLookAt);
       this.camera.lookAt(this.currentLookAt);
       
-      // Check if close enough to stop transitioning
-      if (this.camera.position.distanceTo(this.targetCameraPos) < 0.1 && 
+      if (this.camera.position.distanceTo(this.targetCameraPos) < 0.1 &&
           this.currentLookAt.distanceTo(this.targetLookAt) < 0.1) {
         this.isTransitioning = false;
-        
-        if (!this.is2DMode) {
-            this.orbitControls.enabled = true; // Re-enable orbit only in 3D
-        } else {
-            // Keep controls active but heavily restricted in 2D? The spec says:
-            // "In 2D view we should see the board from top". If we want strict 2D, we disable rotate.
-            this.orbitControls.enabled = true;
-            this.orbitControls.enableRotate = false; // no rotation in 2D
-        }
+        this.orbitControls.enabled = true;
+        this.orbitControls.enableRotate = true;
       }
     } else {
-      // Regular orbit controls update
-      if (!this.is2DMode) {
-          this.orbitControls.enableRotate = true;
-      }
+      this.orbitControls.enableRotate = true;
       this.orbitControls.update();
-      // Keep track of current look at so transitions start smoothly
       this.currentLookAt.copy(this.orbitControls.target);
     }
     

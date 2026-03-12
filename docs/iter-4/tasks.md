@@ -15,14 +15,15 @@ Adjust camera defaults so the board fills the viewport with minimal margin to wi
 Mouse highlight is projected too low — it lands on the pool bottom instead of the ship/water surface.
 - [x] Both hover cursor and ghost placement preview now use `getWorldPosition()` instead of copying local tile position, so they sit at the water/ship surface level.
 
-## 3. Smooth & Stable 2D ↔ 3D View Transitions
-2D view breaks after switching to 3D and back, and also resets when a turn ends.
-- Ensure the 2D view state persists across turn changes.
-- Make transitions between 2D and 3D smooth and always available (no broken state).
+## 3. Smooth & Stable 2D ↔ 3D View Transitions ✅
+Removed 2D mode entirely instead of fixing its broken state.
+- [x] Removed `is2DMode`, `saved3D*`, `toggle2D3DView`, `TOGGLE_CAMERA_VIEW` listener from `Engine3D.ts`
+- [x] Simplified `render()` to always use orbit controls (no 2D branch)
+- [x] Removed 2D/3D toggle button and event listener from `HUD.ts`
 
 ## 4. Enhanced Save/Load Persistence
 Include all view-state in save data so loading a game restores the exact visual context.
-- Add to `SaveData`: camera position/rotation, 2D vs 3D mode, zoom level, pan offset, board orientation, day/night mode.
+- Add to `SaveData`: camera position/rotation, zoom level, pan offset, board orientation, day/night mode.
 - Serialise & restore these fields in `Storage.ts`.
 - On load, apply restored view-state in `Engine3D.ts` and HUD.
 

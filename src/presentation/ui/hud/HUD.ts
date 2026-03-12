@@ -79,7 +79,6 @@ export class HUD extends BaseUIComponent {
             
             <div style="position: absolute; bottom: 20px; right: 20px; display: flex; gap: 10px;">
                 <button id="hud-btn-peek" class="voxel-btn ui-interactive" style="width: auto; padding: 10px; display: ${Config.visual.peekEnabled ? 'inline-block' : 'none'};" title="Peek at other side">👁️</button>
-                <button id="hud-btn-view-toggle" class="voxel-btn ui-interactive" style="width: auto; padding: 10px;">3D View</button>
                 <button id="hud-btn-day-night" class="voxel-btn ui-interactive" style="width: auto; padding: 10px;">${Config.visual.isDayMode ? '☀️' : '🌙'}</button>
                 <button id="hud-btn-speed" class="voxel-btn ui-interactive" style="width: auto; padding: 10px;">Speed: ${Config.timing.gameSpeedMultiplier}x</button>
                 <button id="hud-btn-settings" class="voxel-btn ui-interactive" style="width: auto; padding: 10px;">Pause</button>
@@ -164,14 +163,7 @@ export class HUD extends BaseUIComponent {
             document.dispatchEvent(new CustomEvent('TOGGLE_DAY_NIGHT', { detail: { isDay: Config.visual.isDayMode } }));
         });
         
-        const viewToggleBtn = this.container.querySelector('#hud-btn-view-toggle') as HTMLButtonElement;
-        let is2D = false;
-        viewToggleBtn.addEventListener('click', () => {
-            is2D = !is2D;
-            viewToggleBtn.innerText = is2D ? '2D View' : '3D View';
-            document.dispatchEvent(new CustomEvent('TOGGLE_CAMERA_VIEW'));
-        });
-        
+
         document.addEventListener('UPDATE_GEEK_STATS', (e: Event) => {
             const customEvent = e as CustomEvent;
             const d = customEvent.detail;
