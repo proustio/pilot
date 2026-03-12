@@ -14,7 +14,8 @@ export const Config = {
         turnDelayMs: 2000,            // Base post-turn observation delay
         boardFlipSpeed: 0.05,         // Base lerp speed for board flip
         projectileSpeed: 0.04,        // Base increment per frame for projectile progress
-        cameraLerpSpeed: 0.05         // Base lerp speed for camera movement
+        cameraLerpSpeed: 0.05,        // Base lerp speed for camera movement
+        boardFlipWaitMs: 100          // ms to wait after board flip before enemy/auto-battler fires
     },
     visual: {
         isDayMode: new Date().getHours() >= 6 && new Date().getHours() < 18,

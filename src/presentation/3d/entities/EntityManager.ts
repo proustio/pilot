@@ -254,6 +254,17 @@ export class EntityManager {
                 // Always spawn water splash on impact (hit or miss)
                 this.particleSystem.spawnSplash(m.worldX, 0.2, m.worldZ, targetGroup);
 
+                // Trigger water ripple on impact (not on launch)
+                this.addRipple(m.worldX, m.worldZ, !m.isPlayer);
+
+                // Sunk-ship turbulence on impact
+                if (m.result === 'sunk') {
+                    const targetUniforms = m.isPlayer ? this.enemyWaterUniforms : this.playerWaterUniforms;
+                    if (targetUniforms) {
+                        targetUniforms.globalTurbulence.value = 0.4;
+                    }
+                }
+
                 // Reveal Fog
                 if (m.isPlayer) {
                     const fogIdx = m.cellZ * 10 + m.cellX;
@@ -261,8 +272,6 @@ export class EntityManager {
                     if (fogMesh) {
                         this.enemyBoardGroup.remove(fogMesh);
                         this.fogMeshes[fogIdx] = null;
-                        // Trigger ripple nearby to show impact through the clearing fog
-                        this.addRipple(m.worldX, m.worldZ, false);
                     }
                 }
 
@@ -629,15 +638,7 @@ export class EntityManager {
         marker.position.copy(startPos);
         targetGroup.add(marker);
 
-        // Trigger water ripple
-        this.addRipple(worldX, worldZ, !isPlayer); // If player fired, it lands on enemy board
-
-        if (result === 'sunk') {
-            const targetUniforms = isPlayer ? this.enemyWaterUniforms : this.playerWaterUniforms;
-            if (targetUniforms) {
-                targetUniforms.globalTurbulence.value = 0.4;
-            }
-        }
+        // Note: ripple and turbulence now triggered on impact (in update loop), not here
 
         this.fallingMarkers.push({
             mesh: marker,
