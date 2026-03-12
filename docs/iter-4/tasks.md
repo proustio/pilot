@@ -1,48 +1,50 @@
-# Iteration 4 — Advanced UI & Persistence Improvements
+# Iteration 4 — Task List
 
-Action items derived from `docs/iter-4/summary.md` and user feedback. Each top-level item is a self-contained, committable unit of work.
-
----
-
-## 1. Viewport & 2D/3D Transition Fixes
-- [ ] Fix bug where 2D view breaks after transitioning to 3D and back.
-- [ ] Ensure 2D view is correctly restored or maintained when a turn ends.
-- [ ] Implement smooth animated transitions between 🗺️ (2D) and 🌍 (3D) views.
-- [ ] Minimize board margin relative to window boundaries by default.
+Derived from [summary.md](file:///Users/alx/code/repos/praust/2-battlehsips/docs/iter-4/summary.md).
+Each item is an independent, committable change.
 
 ---
 
-## 2. Ship-Level Highlight (Raycasting)
-- [ ] Adjust `InteractionManager.ts` to project the mouse highlight onto the ship/grid plane.
-- [ ] Fix the "projected too low" issue caused by the increased pool depth.
-- [ ] Ensure highlight is visible even when hovering over already placed ships or wreckage.
+## 1. Board Proximity & Default Zoom
+Adjust camera defaults so the board fills the viewport with minimal margin to window edges.
+- Update default camera distance / FOV in `Engine3D.ts` or `Config.ts`.
+- Ensure both 2D and 3D views respect the tighter framing.
+
+## 2. Raycasting Highlight Fix
+Mouse highlight is projected too low — it lands on the pool bottom instead of the ship/water surface.
+- Fix the raycast plane height in `InteractionManager.ts` so the highlight sits at ship-level.
+
+## 3. Smooth & Stable 2D ↔ 3D View Transitions
+2D view breaks after switching to 3D and back, and also resets when a turn ends.
+- Ensure the 2D view state persists across turn changes.
+- Make transitions between 2D and 3D smooth and always available (no broken state).
+
+## 4. Enhanced Save/Load Persistence
+Include all view-state in save data so loading a game restores the exact visual context.
+- Add to `SaveData`: camera position/rotation, 2D vs 3D mode, zoom level, pan offset, board orientation, day/night mode.
+- Serialise & restore these fields in `Storage.ts`.
+- On load, apply restored view-state in `Engine3D.ts` and HUD.
+
+## 5. HUD — Replace Text Labels with Emoji Buttons
+All HUD control buttons should use only emoji, no text labels.
+
+| Current label            | New label        |
+|--------------------------|------------------|
+| `3D View` / `2D View`   | 🗺️ / 🌍        |
+| `☀️` / `🌙`             | 🌞 / 🌚         |
+| `Speed: 1x`             | `1x ▶️`          |
+| *(after cycle)*          | `0.5x ⏯️` · `2x ⏩` · `4x ⏫` |
+| `Pause`                  | ⏸️               |
+
+- Update button rendering and the speed-cycle logic in `HUD.ts`.
+
+## 6. Remove Completed Items from HUD
+- Remove "Auto-Battler" and "Geek Stats" toggle entry-points from the bottom HUD bar (they were already added in a previous iteration — marked as completed in summary).
+- Verify they remain accessible through the Settings / Pause menu only.
 
 ---
 
-## 3. Emoji-fied HUD Interface
-- [ ] Replace all text labels on HUD buttons with pure emoji icons.
-- [ ] Use 🗺️ for 2D View and 🌎 for 3D View.
-- [ ] Use 🌞 for Day Mode and 🌚 for Night Mode.
-- [ ] Replace "Pause" text with ⏸️.
-- [ ] Implement stylized Speed button states:
-    - 0.5x: `0.5x ⏯️`
-    - 1.0x: `1x ▶️`
-    - 2.0x: `2x ⏩`
-    - 4.0x: `4x ⏫`
-
----
-
-## 4. Comprehensive Game Persistence
-- [ ] Update `Storage.ts` to include all ship instances (alive and dead status).
-- [ ] Include detailed hit/miss coordinate history in the save state.
-- [ ] Persist `OrbitControls` state (zoom, pan, rotation).
-- [ ] Persist board orientation (which side is being viewed).
-- [ ] Verify that loading accurately reconstructs the entire battlefield state and view exactly as it was.
-
----
-
-## 5. Update Default Game Settings
-- [ ] Update `Config.ts` to set `gameSpeedMultiplier` to `4.0`.
-- [ ] Update `Config.ts` to set `autoBattler` to `true`.
-- [ ] Update `AIEngine.ts` to default `difficulty` to `hard`.
-- [ ] Verify that a fresh game starts with these high-intensity settings active.
+### Commit order recommendation
+Items are mostly independent — commit each separately. Suggested order:
+`2 → 1 → 3 → 5 → 4 → 6`
+(fix the raycast bug first, then visual/UX changes, save-state last because it touches multiple files).
