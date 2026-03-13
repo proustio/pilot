@@ -86,6 +86,7 @@ export class Settings extends BaseUIComponent {
         toggleGeekStats.addEventListener('change', (e) => {
             const isChecked = (e.target as HTMLInputElement).checked;
             Config.visual.showGeekStats = isChecked;
+            Config.saveConfig();
             document.dispatchEvent(new CustomEvent('TOGGLE_GEEK_STATS', { detail: { show: isChecked } }));
         });
 
@@ -93,6 +94,7 @@ export class Settings extends BaseUIComponent {
         gameSpeedSelect.addEventListener('change', (e) => {
             const speed = (e.target as HTMLSelectElement).value;
             Config.timing.gameSpeedMultiplier = parseFloat(speed);
+            Config.saveConfig();
             document.dispatchEvent(new CustomEvent('SET_GAME_SPEED', { detail: { speed } }));
         });
 
@@ -119,6 +121,8 @@ export class Settings extends BaseUIComponent {
         aiSelect.addEventListener('change', (e) => {
             const difficulty = (e.target as HTMLSelectElement).value;
             console.log("AI Difficulty set to: ", difficulty);
+            Config.aiDifficulty = difficulty;
+            Config.saveConfig();
             document.dispatchEvent(new CustomEvent('SET_AI_DIFFICULTY', { detail: { difficulty } }));
         });
 
@@ -126,6 +130,7 @@ export class Settings extends BaseUIComponent {
         autoBattlerSettingsToggle.addEventListener('change', (e) => {
             const isChecked = (e.target as HTMLInputElement).checked;
             Config.autoBattler = isChecked;
+            Config.saveConfig();
             document.dispatchEvent(new CustomEvent('TOGGLE_AUTO_BATTLER', { detail: { enabled: isChecked } }));
         });
 
@@ -150,6 +155,7 @@ export class Settings extends BaseUIComponent {
         peekToggle.addEventListener('change', (e) => {
             const isChecked = (e.target as HTMLInputElement).checked;
             Config.visual.peekEnabled = isChecked;
+            Config.saveConfig();
             document.dispatchEvent(new CustomEvent('PEEK_ENABLED_CHANGED', { detail: { enabled: isChecked } }));
         });
     }

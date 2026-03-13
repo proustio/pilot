@@ -141,6 +141,7 @@ export class HUD extends BaseUIComponent {
             const nextSpeed = speedCycle[nextIndex];
             
             Config.timing.gameSpeedMultiplier = nextSpeed;
+            Config.saveConfig();
             speedBtn.innerText = this.getSpeedLabel(nextSpeed);
             document.dispatchEvent(new CustomEvent('SET_GAME_SPEED', { detail: { speed: nextSpeed.toFixed(1) } }));
         });
@@ -157,6 +158,7 @@ export class HUD extends BaseUIComponent {
         const dayNightBtn = this.container.querySelector('#hud-btn-day-night') as HTMLButtonElement;
         dayNightBtn.addEventListener('click', () => {
             Config.visual.isDayMode = !Config.visual.isDayMode;
+            Config.saveConfig();
             dayNightBtn.innerText = Config.visual.isDayMode ? '🌞' : '🌚';
             document.body.classList.remove('day-mode', 'night-mode');
             document.body.classList.add(Config.visual.isDayMode ? 'day-mode' : 'night-mode');

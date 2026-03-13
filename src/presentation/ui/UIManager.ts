@@ -92,10 +92,20 @@ export class UIManager {
             const loaded = Storage.loadGame(slotId);
             if (loaded) {
                 console.log(`Auto-loading game from slot ${slotId}`);
-                this.gameLoop.loadMatch(loaded.match, loaded.viewState);
+                this.gameLoop.loadMatch(loaded.match);
                 // Fire event so main.ts can restore camera and visual state
                 if (loaded.viewState) {
                     document.dispatchEvent(new CustomEvent('RESTORE_VIEW_STATE', { detail: loaded.viewState }));
+                }
+            }
+        } else {
+            // Check for an active session to resume
+            const sessionLoaded = Storage.loadGame('session');
+            if (sessionLoaded) {
+                console.log(`Resuming previous session`);
+                this.gameLoop.loadMatch(sessionLoaded.match);
+                if (sessionLoaded.viewState) {
+                    document.dispatchEvent(new CustomEvent('RESTORE_VIEW_STATE', { detail: sessionLoaded.viewState }));
                 }
             }
         }

@@ -45,6 +45,7 @@ export class MainMenu extends BaseUIComponent {
         newGameBtn.addEventListener('click', () => {
             const modeValue = modeSelect.value as string;
             Config.autoBattler = autoBattlerToggle.checked;
+            Config.saveConfig();
 
             let matchMode = MatchMode.Classic;
 

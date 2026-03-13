@@ -1,5 +1,6 @@
 import { BaseUIComponent } from '../components/BaseUIComponent';
 import { GameLoop } from '../../../application/game-loop/GameLoop';
+import { Storage } from '../../../infrastructure/storage/Storage';
 
 export class PauseMenu extends BaseUIComponent {
     private gameLoop: GameLoop;
@@ -78,6 +79,7 @@ export class PauseMenu extends BaseUIComponent {
                 const noBtn = this.container.querySelector('#exit-confirm-no') as HTMLButtonElement;
 
                 yesBtn.addEventListener('click', () => {
+                    Storage.clearSession();
                     window.location.reload();
                 }, { once: true });
 
@@ -85,6 +87,7 @@ export class PauseMenu extends BaseUIComponent {
                     overlay.style.display = 'none';
                 }, { once: true });
             } else {
+                Storage.clearSession();
                 window.location.reload();
             }
         });
