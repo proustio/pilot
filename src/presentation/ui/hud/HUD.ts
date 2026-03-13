@@ -79,9 +79,9 @@ export class HUD extends BaseUIComponent {
             
             <div style="position: absolute; bottom: 20px; right: 20px; display: flex; gap: 10px;">
                 <button id="hud-btn-peek" class="voxel-btn ui-interactive" style="width: auto; padding: 10px; display: ${Config.visual.peekEnabled ? 'inline-block' : 'none'};" title="Peek at other side">👁️</button>
-                <button id="hud-btn-day-night" class="voxel-btn ui-interactive" style="width: auto; padding: 10px;">${Config.visual.isDayMode ? '☀️' : '🌙'}</button>
-                <button id="hud-btn-speed" class="voxel-btn ui-interactive" style="width: auto; padding: 10px;">Speed: ${Config.timing.gameSpeedMultiplier}x</button>
-                <button id="hud-btn-settings" class="voxel-btn ui-interactive" style="width: auto; padding: 10px;">Pause</button>
+                <button id="hud-btn-day-night" class="voxel-btn ui-interactive" style="width: auto; padding: 10px;" title="Toggle Day/Night">${Config.visual.isDayMode ? '🌞' : '🌚'}</button>
+                <button id="hud-btn-speed" class="voxel-btn ui-interactive" style="width: auto; padding: 10px;" title="Cycle Speed">${this.getSpeedLabel(Config.timing.gameSpeedMultiplier)}</button>
+                <button id="hud-btn-settings" class="voxel-btn ui-interactive" style="width: auto; padding: 10px;" title="Pause Menu">⏸️</button>
             </div>
             
             <div id="geek-stats" class="geek-stats-panel" style="display: ${Config.visual.showGeekStats ? 'block' : 'none'};">
@@ -141,23 +141,23 @@ export class HUD extends BaseUIComponent {
             const nextSpeed = speedCycle[nextIndex];
             
             Config.timing.gameSpeedMultiplier = nextSpeed;
-            const speedStr = nextSpeed.toFixed(1);
-            speedBtn.innerText = `Speed: ${speedStr}x`;
-            document.dispatchEvent(new CustomEvent('SET_GAME_SPEED', { detail: { speed: speedStr } }));
+            speedBtn.innerText = this.getSpeedLabel(nextSpeed);
+            document.dispatchEvent(new CustomEvent('SET_GAME_SPEED', { detail: { speed: nextSpeed.toFixed(1) } }));
         });
         
         // Listen for internal speed changes triggered from Settings Modal
         document.addEventListener('SET_GAME_SPEED', (e: Event) => {
             const customEvent = e as CustomEvent;
             if (customEvent.detail && customEvent.detail.speed) {
-                speedBtn.innerText = `Speed: ${customEvent.detail.speed}x`;
+                const speed = parseFloat(customEvent.detail.speed);
+                speedBtn.innerText = this.getSpeedLabel(speed);
             }
         });
 
         const dayNightBtn = this.container.querySelector('#hud-btn-day-night') as HTMLButtonElement;
         dayNightBtn.addEventListener('click', () => {
             Config.visual.isDayMode = !Config.visual.isDayMode;
-            dayNightBtn.innerText = Config.visual.isDayMode ? '☀️' : '🌙';
+            dayNightBtn.innerText = Config.visual.isDayMode ? '🌞' : '🌚';
             document.body.classList.remove('day-mode', 'night-mode');
             document.body.classList.add(Config.visual.isDayMode ? 'day-mode' : 'night-mode');
             document.dispatchEvent(new CustomEvent('TOGGLE_DAY_NIGHT', { detail: { isDay: Config.visual.isDayMode } }));
@@ -265,5 +265,10 @@ export class HUD extends BaseUIComponent {
             if (shotsEl) shotsEl.textContent = shots.toString();
             if (ratioEl) ratioEl.textContent = `${ratio}%`;
         }
+    }
+
+    private getSpeedLabel(speed: number): string {
+        const emoji = speed === 0.5 ? '⏯️' : speed === 2.0 ? '⏩' : speed === 4.0 ? '⏫' : '▶️';
+        return `${speed}x ${emoji}`;
     }
 }
