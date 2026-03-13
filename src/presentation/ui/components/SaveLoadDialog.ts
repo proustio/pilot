@@ -20,10 +20,12 @@ export class SaveLoadDialog extends BaseUIComponent {
     }
 
     protected onShow(): void {
+        document.dispatchEvent(new CustomEvent('PAUSE_GAME'));
         document.dispatchEvent(new CustomEvent('SET_INTERACTION_ENABLED', { detail: { enabled: false } }));
     }
 
     protected onHide(): void {
+        document.dispatchEvent(new CustomEvent('RESUME_GAME'));
         document.dispatchEvent(new CustomEvent('SET_INTERACTION_ENABLED', { detail: { enabled: true } }));
     }
 

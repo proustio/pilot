@@ -113,10 +113,10 @@ export class Storage {
     /**
      * Serializes the current Match state and optional view/camera state.
      */
-    public static saveGame(slotId: number, match: Match, viewState?: ViewState): boolean {
-        if (slotId < 1 || slotId > Config.storage.maxSlots) return false;
+    public static saveGame(slotId: number | 'session', match: Match, viewState?: ViewState): boolean {
+        if (typeof slotId === 'number' && (slotId < 1 || slotId > Config.storage.maxSlots)) return false;
 
-        const key = `${Config.storage.prefix}${slotId}`;
+        const key = slotId === 'session' ? 'battleships_session' : `${Config.storage.prefix}${slotId}`;
 
         try {
             const totalShots = match.playerBoard.shotsFired + match.enemyBoard.shotsFired;
@@ -144,8 +144,8 @@ export class Storage {
     /**
      * Loads a Match + optional ViewState from localStorage.
      */
-    public static loadGame(slotId: number): LoadedGame | null {
-        const key = `${Config.storage.prefix}${slotId}`;
+    public static loadGame(slotId: number | 'session'): LoadedGame | null {
+        const key = slotId === 'session' ? 'battleships_session' : `${Config.storage.prefix}${slotId}`;
         const data = localStorage.getItem(key);
 
         if (!data) return null;
@@ -185,5 +185,9 @@ export class Storage {
     public static clearSave(slotId: number): void {
         const key = `${Config.storage.prefix}${slotId}`;
         localStorage.removeItem(key);
+    }
+
+    public static clearSession(): void {
+        localStorage.removeItem('battleships_session');
     }
 }

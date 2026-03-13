@@ -9,6 +9,9 @@ console.log('Battleships: Initialization Started');
 
 const init = () => {
     try {
+        // Load user configuration
+        Config.loadConfig();
+
         // 1. Initialize core 3D Engine
         const engine = new Engine3D('app');
 

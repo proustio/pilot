@@ -28,7 +28,6 @@ export class GameLoop {
     public isPaused: boolean = false;
     public aiEngine: AIEngine;
     public playerAIEngine: AIEngine;
-    public loadedViewState: ViewState | null = null;
 
     private listeners: StateChangeListener[] = [];
     private shipPlacedListeners: ShipPlacedListener[] = [];
@@ -37,6 +36,10 @@ export class GameLoop {
     constructor() {
         this.aiEngine = new AIEngine();
         this.playerAIEngine = new AIEngine();
+
+        // Apply initial config difficulty
+        this.aiEngine.setDifficulty(Config.aiDifficulty as AIDifficulty);
+        this.playerAIEngine.setDifficulty(Config.aiDifficulty as AIDifficulty);
 
         // Listen for AI difficulty changes
         document.addEventListener('SET_AI_DIFFICULTY', (e: Event) => {
@@ -82,6 +85,11 @@ export class GameLoop {
 
         document.addEventListener('RESUME_GAME', () => {
             this.isPaused = false;
+        });
+
+        // Listen for internal state request to trigger session auto save
+        document.addEventListener('TRIGGER_AUTO_SAVE', () => {
+            this.triggerAutoSave();
         });
 
         // Listen for Save/Load events
@@ -139,6 +147,19 @@ export class GameLoop {
     }
 
     /**
+     * Triggers an auto-save for the current session.
+     */
+    public triggerAutoSave() {
+        if (!this.match || !this.hasUnsavedProgress()) return;
+
+        // We emit a SAVE_GAME event with slotId='session' so that UIManager/main.ts
+        // intercepts it and populates viewState before Storage.saveGame is called.
+        document.dispatchEvent(new CustomEvent('SAVE_GAME', {
+            detail: { slotId: 'session' }
+        }));
+    }
+
+    /**
      * Executes a state transition and notifies all subscribers.
      */
     public transitionTo(newState: GameState) {
@@ -149,6 +170,13 @@ export class GameLoop {
 
         // Broadcast
         this.listeners.forEach(listener => listener(newState, oldState));
+
+        // Auto-save the session when the turn changes or game ends
+        this.triggerAutoSave();
+
+        if (newState === GameState.GAME_OVER) {
+            Storage.clearSession();
+        }
 
         if (newState === GameState.ENEMY_TURN) {
             this.handleEnemyTurn();
@@ -214,11 +242,10 @@ export class GameLoop {
     }
 
     /**
-     * Resumes an existing match, optionally restoring saved view state.
+     * Resumes an existing match.
      */
-    public loadMatch(match: Match, viewState?: ViewState | null) {
+    public loadMatch(match: Match) {
         this.match = match;
-        this.loadedViewState = viewState ?? null;
 
         // Replay ship placement events so 3D entity meshes get spawned
         this.replayShips(match);
@@ -416,6 +443,8 @@ export class GameLoop {
                 if (placed) {
                     this.playerShipsToPlace.shift(); // Remove from queue
                     this.shipPlacedListeners.forEach(l => l(nextShip, x, z, this.currentPlacementOrientation, true));
+
+                    this.triggerAutoSave();
 
                     if (this.playerShipsToPlace.length === 0) {
                         this.transitionTo(GameState.PLAYER_TURN);
