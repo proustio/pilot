@@ -62,7 +62,7 @@ export class UnifiedBoardUI extends BaseUIComponent {
         this.updateGrid(this.enemyGridContainer, enemyBoard.gridState, false);
     }
 
-    private updateGrid(container: HTMLElement, gridState: CellState[], isPlayer: boolean): void {
+    private updateGrid(container: HTMLElement, gridState: Uint8Array, isPlayer: boolean): void {
         const cells = container.querySelectorAll('.mini-cell');
         gridState.forEach((state, index) => {
             const cell = cells[index] as HTMLElement;

@@ -21,7 +21,7 @@ export class Board {
     
     // Using a simple 1D array mapped as 2D for memory layout optimizations later if needed.
     // Index = z * width + x
-    public gridState: CellState[];
+    public gridState: Uint8Array;
     
     // Map of absolute coordinates "x,z" to a specific Ship and its local segment index
     private shipMap: Map<string, { ship: Ship, segmentIndex: number }>;
@@ -33,7 +33,7 @@ export class Board {
     constructor(width: number = 10, height: number = 10) {
         this.width = width;
         this.height = height;
-        this.gridState = new Array(width * height).fill(CellState.Empty);
+        this.gridState = new Uint8Array(width * height);
         this.shipMap = new Map();
     }
 
