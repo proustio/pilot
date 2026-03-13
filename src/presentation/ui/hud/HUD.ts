@@ -78,6 +78,8 @@ export class HUD extends BaseUIComponent {
             </div>
             
             <div style="position: absolute; bottom: 20px; right: 20px; display: flex; gap: 10px;">
+                <button id="hud-btn-geek-stats" class="voxel-btn ui-interactive" style="width: auto; padding: 10px;" title="Toggle Geek Stats">📈</button>
+                <button id="hud-btn-auto-battler" class="voxel-btn ui-interactive" style="width: auto; padding: 10px;" title="Toggle Auto-Battler">🤖</button>
                 <button id="hud-btn-peek" class="voxel-btn ui-interactive" style="width: auto; padding: 10px; display: ${Config.visual.peekEnabled ? 'inline-block' : 'none'};" title="Peek at other side">👁️</button>
                 <button id="hud-btn-day-night" class="voxel-btn ui-interactive" style="width: auto; padding: 10px;" title="Toggle Day/Night">${Config.visual.isDayMode ? '🌞' : '🌚'}</button>
                 <button id="hud-btn-speed" class="voxel-btn ui-interactive" style="width: auto; padding: 10px;" title="Cycle Speed">${this.getSpeedLabel(Config.timing.gameSpeedMultiplier)}</button>
@@ -92,6 +94,8 @@ export class HUD extends BaseUIComponent {
                 <div class="geek-stats-row"><span class="gs-label">STATUS</span><span class="gs-value gs-online" id="gs-status">● LOCAL</span></div>
                 <div class="geek-stats-row"><span class="gs-label">TIME</span><span class="gs-value" id="gs-time">00:00</span></div>
             </div>
+
+            <div id="mouse-coords" class="mouse-coords" style="display: none;">(0,0)</div>
         `;
 
         this.turnIndicator = this.container.querySelector('#turn-indicator') as HTMLElement;
@@ -114,6 +118,28 @@ export class HUD extends BaseUIComponent {
             peekBtn.style.opacity = isPeeking ? '0.6' : '1';
             peekBtn.style.boxShadow = isPeeking ? 'inset 0 0 10px rgba(255,255,0,0.4)' : '';
             document.dispatchEvent(new CustomEvent('TOGGLE_PEEK', { detail: { peeking: isPeeking } }));
+        });
+
+        // Geek Stats button
+        const geekStatsBtn = this.container.querySelector('#hud-btn-geek-stats') as HTMLButtonElement;
+        geekStatsBtn.style.opacity = Config.visual.showGeekStats ? '1' : '0.6';
+        geekStatsBtn.style.boxShadow = Config.visual.showGeekStats ? 'inset 0 0 10px rgba(255,255,255,0.8)' : '';
+        geekStatsBtn.addEventListener('click', () => {
+            Config.visual.showGeekStats = !Config.visual.showGeekStats;
+            geekStatsBtn.style.opacity = Config.visual.showGeekStats ? '1' : '0.6';
+            geekStatsBtn.style.boxShadow = Config.visual.showGeekStats ? 'inset 0 0 10px rgba(255,255,255,0.8)' : '';
+            document.dispatchEvent(new CustomEvent('TOGGLE_GEEK_STATS', { detail: { show: Config.visual.showGeekStats } }));
+        });
+
+        // Auto-Battler button
+        const autoBattlerBtn = this.container.querySelector('#hud-btn-auto-battler') as HTMLButtonElement;
+        autoBattlerBtn.style.opacity = Config.autoBattler ? '1' : '0.6';
+        autoBattlerBtn.style.boxShadow = Config.autoBattler ? 'inset 0 0 10px rgba(255,102,102,0.8)' : '';
+        autoBattlerBtn.addEventListener('click', () => {
+            Config.autoBattler = !Config.autoBattler;
+            autoBattlerBtn.style.opacity = Config.autoBattler ? '1' : '0.6';
+            autoBattlerBtn.style.boxShadow = Config.autoBattler ? 'inset 0 0 10px rgba(255,102,102,0.8)' : '';
+            document.dispatchEvent(new CustomEvent('TOGGLE_AUTO_BATTLER', { detail: { enabled: Config.autoBattler } }));
         });
 
         // Listen for peek enabled/disabled from settings
@@ -201,6 +227,20 @@ export class HUD extends BaseUIComponent {
             const customEvent = e as CustomEvent;
             if (customEvent.detail && customEvent.detail.show !== undefined) {
                 this.geekStats.style.display = customEvent.detail.show ? 'block' : 'none';
+            }
+        });
+
+        const mouseCoordsEl = this.container.querySelector('#mouse-coords') as HTMLElement;
+        document.addEventListener('MOUSE_CELL_HOVER', (e: Event) => {
+            const ce = e as CustomEvent;
+            if (ce.detail) {
+                const { x, z, clientX, clientY } = ce.detail;
+                mouseCoordsEl.textContent = `(${x},${z})`;
+                mouseCoordsEl.style.left = `${clientX}px`;
+                mouseCoordsEl.style.top = `${clientY}px`;
+                mouseCoordsEl.style.display = 'block';
+            } else {
+                mouseCoordsEl.style.display = 'none';
             }
         });
     }

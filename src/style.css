@@ -3,131 +3,137 @@
    ============================================= */
 
 :root {
-  --font-family: 'Courier New', Courier, monospace;
+  --font-family: 'JetBrains Mono', Courier, monospace;
 }
+
+/* Base Palette:
+  Friendly Green: #2e7d32 (Base), #4caf50 (Accent), #81c784 (Light)
+  Foe Red: #c62828 (Base), #f44336 (Accent), #e57373 (Light)
+  Neutral: #222222, #333333
+*/
 
 /* --- LIGHT (Day) Theme --- */
 body.day-mode {
-  --color-bg: #e8f0f8;
-  --color-text: #1a2233;
-  --color-primary: #2566a8;
-  --color-secondary: #1a8a52;
-  --color-danger: #c0392b;
+  --color-bg: #f5f5f5;
+  --color-text: #222222;
+  --color-primary: #2e7d32;   /* Friendly Green */
+  --color-secondary: #4caf50;
+  --color-danger: #c62828;    /* Foe Red */
 
   /* Panels */
-  --panel-bg: rgba(30, 45, 70, 0.88);
-  --panel-border: #4a6a8a;
-  --panel-shadow-light: rgba(100, 140, 180, 0.4);
-  --panel-shadow-dark: rgba(0, 0, 0, 0.35);
-  --panel-text: #e8f0f8;
+  --panel-bg: rgba(255, 255, 255, 0.9);
+  --panel-border: #2e7d32;
+  --panel-shadow-light: rgba(255, 255, 255, 0.8);
+  --panel-shadow-dark: rgba(46, 125, 50, 0.3);
+  --panel-text: #222222;
 
   /* Buttons */
-  --btn-bg: #4a6a8a;
-  --btn-bg-hover: #5a7a9a;
-  --btn-border: #1a2a40;
-  --btn-shadow-light: #6a8aaa;
-  --btn-shadow-dark: #2a3a50;
-  --btn-text: #f0f4f8;
+  --btn-bg: linear-gradient(135deg, #4caf50, #2e7d32);
+  --btn-bg-hover: linear-gradient(135deg, #66bb6a, #388e3c);
+  --btn-border: #1b5e20;
+  --btn-shadow-light: rgba(255, 255, 255, 0.5);
+  --btn-shadow-dark: rgba(0, 0, 0, 0.2);
+  --btn-text: #330033;
 
   /* Select */
-  --select-bg: #2a3a50;
-  --select-text: #e0e8f0;
-  --select-border: #4a6a8a;
+  --select-bg: #fff;
+  --select-text: #222222;
+  --select-border: #2e7d32;
 
   /* HUD */
-  --hud-fleet-bg: rgba(20, 35, 60, 0.7);
-  --hud-fleet-border: #4a6a8a;
-  --hud-stats-bg: rgba(20, 35, 60, 0.75);
-  --hud-stats-border: #4a6a8a;
-  --hud-stats-text: #50d890;
+  --hud-fleet-bg: rgba(255, 255, 255, 0.9);
+  --hud-fleet-border: #2e7d32;
+  --hud-stats-bg: rgba(255, 255, 255, 0.9);
+  --hud-stats-border: #2e7d32;
+  --hud-stats-text: #c62828;
 
   /* Mini Board */
-  --mini-board-bg: rgba(20, 35, 60, 0.75);
-  --mini-board-border: #4a6a8a;
-  --mini-board-title: #b0c8e0;
-  --mini-grid-bg: #1a2a40;
-  --mini-cell-bg: #2a4060;
-  --mini-cell-fog: #1a2a40;
-  --mini-cell-miss: #c0d8f0;
+  --mini-board-bg: rgba(255, 255, 255, 0.9);
+  --mini-board-border: #2e7d32;
+  --mini-board-title: #4caf50;
+  --mini-grid-bg: #e8f5e9;
+  --mini-cell-bg: #c8e6c9;
+  --mini-cell-fog: #e8f5e9;
+  --mini-cell-miss: #a5d6a7;
 
   /* Geek Stats */
-  --geek-bg: rgba(20, 35, 60, 0.82);
-  --geek-border: #3a5a7a;
-  --geek-text: #90a8c0;
-  --geek-title: #607890;
-  --geek-label: #607890;
-  --geek-value: #50d890;
-  --geek-online: #50d890;
+  --geek-bg: rgba(255, 255, 255, 0.9);
+  --geek-border: #2e7d32;
+  --geek-text: #222222;
+  --geek-title: #c62828;
+  --geek-label: #1b5e20;
+  --geek-value: #2e7d32;
+  --geek-online: #4caf50;
 
   /* Save Slots */
-  --slot-empty: #607890;
-  --slot-date: #90a8c0;
-  --slot-turns: #a0b8d0;
+  --slot-empty: #757575;
+  --slot-date: #c62828;
+  --slot-turns: #2e7d32;
 
   /* Confirm Overlay */
-  --overlay-bg: rgba(0, 0, 0, 0.5);
+  --overlay-bg: rgba(255, 255, 255, 0.7);
 }
 
 /* --- DARK (Night) Theme --- */
 body.night-mode {
-  --color-bg: #0e1520;
-  --color-text: #d0dce8;
-  --color-primary: #5ba8e0;
-  --color-secondary: #3dd88a;
-  --color-danger: #e85050;
+  --color-bg: #121212;
+  --color-text: #e0e0e0;
+  --color-primary: #66bb6a;
+  --color-secondary: #a5d6a7;
+  --color-danger: #ef5350;
 
   /* Panels */
-  --panel-bg: rgba(18, 25, 38, 0.92);
-  --panel-border: #2a3a55;
-  --panel-shadow-light: rgba(60, 90, 130, 0.3);
-  --panel-shadow-dark: rgba(0, 0, 0, 0.5);
-  --panel-text: #d0dce8;
+  --panel-bg: rgba(30, 30, 30, 0.9);
+  --panel-border: #1b5e20;
+  --panel-shadow-light: rgba(102, 187, 106, 0.2);
+  --panel-shadow-dark: rgba(0, 0, 0, 0.8);
+  --panel-text: #e0e0e0;
 
   /* Buttons */
-  --btn-bg: #2a3a55;
-  --btn-bg-hover: #344868;
-  --btn-border: #0e1520;
-  --btn-shadow-light: #3a5070;
-  --btn-shadow-dark: #101828;
-  --btn-text: #d0dce8;
+  --btn-bg: linear-gradient(135deg, #1b5e20, #0d3b11);
+  --btn-bg-hover: linear-gradient(135deg, #2e7d32, #1b5e20);
+  --btn-border: #000;
+  --btn-shadow-light: rgba(102, 187, 106, 0.2);
+  --btn-shadow-dark: rgba(0, 0, 0, 0.6);
+  --btn-text: #e0e0e0;
 
   /* Select */
-  --select-bg: #1a2538;
-  --select-text: #c0d0e0;
-  --select-border: #2a3a55;
+  --select-bg: #1e1e1e;
+  --select-text: #e0e0e0;
+  --select-border: #1b5e20;
 
   /* HUD */
-  --hud-fleet-bg: rgba(14, 21, 32, 0.75);
-  --hud-fleet-border: #2a3a55;
-  --hud-stats-bg: rgba(14, 21, 32, 0.8);
-  --hud-stats-border: #2a3a55;
-  --hud-stats-text: #3dd88a;
+  --hud-fleet-bg: rgba(30, 30, 30, 0.85);
+  --hud-fleet-border: #1b5e20;
+  --hud-stats-bg: rgba(30, 30, 30, 0.85);
+  --hud-stats-border: #1b5e20;
+  --hud-stats-text: #ef5350;
 
   /* Mini Board */
-  --mini-board-bg: rgba(14, 21, 32, 0.8);
-  --mini-board-border: #2a3a55;
-  --mini-board-title: #8098b0;
-  --mini-grid-bg: #0e1520;
-  --mini-cell-bg: #1a2538;
-  --mini-cell-fog: #0e1520;
-  --mini-cell-miss: #8098b0;
+  --mini-board-bg: rgba(30, 30, 30, 0.85);
+  --mini-board-border: #1b5e20;
+  --mini-board-title: #66bb6a;
+  --mini-grid-bg: #0d1b0d;
+  --mini-cell-bg: #1b5e20;
+  --mini-cell-fog: #0d1b0d;
+  --mini-cell-miss: #263238;
 
   /* Geek Stats */
-  --geek-bg: rgba(14, 21, 32, 0.85);
-  --geek-border: #1a2a40;
-  --geek-text: #7088a0;
-  --geek-title: #4a6080;
-  --geek-label: #4a6080;
-  --geek-value: #3dd88a;
-  --geek-online: #3dd88a;
+  --geek-bg: rgba(30, 30, 30, 0.9);
+  --geek-border: #1b5e20;
+  --geek-text: #66bb6a;
+  --geek-title: #ef5350;
+  --geek-label: #a5d6a7;
+  --geek-value: #66bb6a;
+  --geek-online: #66bb6a;
 
   /* Save Slots */
-  --slot-empty: #4a6080;
-  --slot-date: #7088a0;
-  --slot-turns: #8098b0;
+  --slot-empty: #424242;
+  --slot-date: #66bb6a;
+  --slot-turns: #ef5350;
 
   /* Confirm Overlay */
-  --overlay-bg: rgba(0, 0, 0, 0.7);
+  --overlay-bg: rgba(26, 0, 26, 0.8);
 }
 
 body, html {
@@ -181,11 +187,11 @@ canvas {
 /* Voxel / Minecraft UI Styling */
 .voxel-panel {
   background-color: var(--panel-bg);
-  border: 4px solid var(--panel-border);
-  box-shadow: inset 4px 4px 0px 0px var(--panel-shadow-light), inset -4px -4px 0px 0px var(--panel-shadow-dark);
+  border: 2px solid var(--panel-border);
+  border-radius: 12px;
+  box-shadow: inset 0px 4px 10px var(--panel-shadow-light), inset 0px -4px 10px var(--panel-shadow-dark), 0 8px 16px rgba(0,0,0,0.4);
   color: var(--panel-text);
   padding: 24px;
-  image-rendering: pixelated;
   pointer-events: auto;
 }
 
@@ -194,41 +200,45 @@ canvas {
   text-align: center;
   margin-bottom: 2rem;
   color: var(--color-primary);
-  text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.6);
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.6);
   text-transform: uppercase;
+  font-weight: 700;
 }
 
 .voxel-btn {
-  background-color: var(--btn-bg);
+  background: var(--btn-bg);
   color: var(--btn-text);
-  border: 4px solid var(--btn-border);
-  box-shadow: inset 2px 2px 0px 0px var(--btn-shadow-light), inset -2px -2px 0px 0px var(--btn-shadow-dark);
+  border: 2px solid var(--btn-border);
+  border-radius: 8px;
+  box-shadow: inset 0px 2px 5px var(--btn-shadow-light), inset 0px -2px 5px var(--btn-shadow-dark), 0 4px 6px rgba(0,0,0,0.3);
   padding: 12px 24px;
   margin: 10px 0;
   font-family: var(--font-family);
   font-size: 1.2rem;
+  font-weight: bold;
   text-transform: uppercase;
   cursor: pointer;
-  transition: transform 0.1s, box-shadow 0.1s, background-color 0.15s;
+  transition: transform 0.1s, box-shadow 0.1s, background 0.15s;
   width: 100%;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
 }
 
 .voxel-btn:hover {
-  background-color: var(--btn-bg-hover);
+  background: var(--btn-bg-hover);
 }
 
 .voxel-btn:active {
-  box-shadow: inset 2px 2px 0px 0px var(--btn-shadow-dark), inset -2px -2px 0px 0px var(--btn-shadow-light);
-  transform: translate(2px, 2px);
+  box-shadow: inset 0px 2px 5px var(--btn-shadow-dark), inset 0px -2px 5px var(--btn-shadow-light);
+  transform: translate(0px, 2px);
 }
 
 .voxel-btn.primary {
-  background-color: var(--color-secondary);
-  box-shadow: inset 2px 2px 0px 0px #58d68d, inset -2px -2px 0px 0px #1e8449;
+  background: linear-gradient(135deg, var(--color-secondary), #ff3333);
+  box-shadow: inset 0px 2px 5px rgba(255,153,153,0.5), inset 0px -2px 5px rgba(128,0,0,0.4), 0 4px 6px rgba(0,0,0,0.3);
 }
 
 .voxel-btn.primary:hover {
-  background-color: #27ae60;
+  background: linear-gradient(135deg, #ff8080, var(--color-secondary));
 }
 
 .voxel-btn.danger {
@@ -238,13 +248,16 @@ canvas {
 .voxel-select {
   background-color: var(--select-bg);
   color: var(--select-text);
-  border: 4px solid var(--select-border);
+  border: 2px solid var(--select-border);
+  border-radius: 8px;
   padding: 10px;
   font-family: var(--font-family);
   font-size: 1rem;
+  font-weight: bold;
   width: 100%;
   margin-bottom: 15px;
   cursor: pointer;
+  box-shadow: inset 0px 2px 4px rgba(0,0,0,0.2);
 }
 
 /* Specific UI Component Layouts */
@@ -290,8 +303,11 @@ canvas {
   background-color: var(--hud-fleet-bg);
   padding: 5px 10px;
   border: 2px solid var(--hud-fleet-border);
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.3);
   pointer-events: auto;
   font-size: 0.9rem;
+  font-weight: bold;
   margin-left: 5px;
   color: var(--panel-text);
 }
@@ -351,7 +367,9 @@ canvas {
   gap: 10px;
   background: var(--mini-board-bg);
   padding: 10px;
-  border: 3px solid var(--mini-board-border);
+  border: 2px solid var(--mini-board-border);
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.3);
 }
 
 .mini-board-wrapper {
@@ -361,9 +379,11 @@ canvas {
 }
 
 .mini-board-title {
-  font-size: 0.7rem;
+  font-size: 0.75rem;
+  font-weight: bold;
   color: var(--mini-board-title);
   margin-bottom: 2px;
+  text-transform: uppercase;
 }
 
 .mini-grid {
@@ -383,7 +403,7 @@ canvas {
 
 .mini-cell.cell-ship { background: var(--color-primary); }
 .mini-cell.cell-hit { background: var(--color-danger); }
-.mini-cell.cell-sunk { background: #9b59b6; }
+.mini-cell.cell-sunk { background: #555555; }
 .mini-cell.cell-miss { background: var(--mini-cell-miss); }
 .mini-cell.cell-fog { background: var(--mini-cell-fog); }
 
@@ -393,7 +413,10 @@ canvas {
   background: var(--hud-stats-bg);
   padding: 5px 10px;
   border: 2px solid var(--hud-stats-border);
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.3);
   font-size: 0.9rem;
+  font-weight: bold;
   color: var(--hud-stats-text);
 }
 
@@ -427,7 +450,7 @@ canvas {
 }
 
 #enemy-fleet-icons .ship-segment {
-  background-color: #607080;
+  background-color: #f44336;
 }
 
 #enemy-fleet-icons .ship-icon.sunk .ship-segment {
@@ -441,9 +464,12 @@ canvas {
   left: 20px;
   background: var(--geek-bg);
   border: 2px solid var(--geek-border);
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.3);
   padding: 8px 12px;
-  font-family: 'Courier New', Courier, monospace;
+  font-family: var(--font-family);
   font-size: 0.75rem;
+  font-weight: bold;
   color: var(--geek-text);
   z-index: 1000;
   pointer-events: none;
@@ -574,4 +600,21 @@ canvas {
 .confirm-dialog p {
   margin-bottom: 15px;
   font-size: 1.1rem;
+}
+
+/* Mouse Coordinate Indicator */
+.mouse-coords {
+  position: fixed;
+  pointer-events: none;
+  background: rgba(0, 0, 0, 0.75);
+  color: #fff;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-family: var(--font-family);
+  font-size: 0.85rem;
+  font-weight: bold;
+  z-index: 10000;
+  transform: translate(15px, 15px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  white-space: nowrap;
 }

@@ -42,10 +42,31 @@ export class UnifiedBoardUI extends BaseUIComponent {
     private initGrids(): void {
         const createGrid = (container: HTMLElement) => {
             container.innerHTML = '';
+            const boardWidth = this.gameLoop.match ? this.gameLoop.match.playerBoard.width : Config.board.width;
             const cellCount = this.gameLoop.match ? (this.gameLoop.match.playerBoard.width * this.gameLoop.match.playerBoard.height) : (Config.board.width * Config.board.height);
             for (let i = 0; i < cellCount; i++) {
                 const cell = document.createElement('div');
                 cell.classList.add('mini-cell');
+                
+                const x = i % boardWidth;
+                const z = Math.floor(i / boardWidth);
+                
+                const onHover = (e: MouseEvent) => {
+                    document.dispatchEvent(new CustomEvent('MOUSE_CELL_HOVER', {
+                        detail: {
+                            x, z,
+                            clientX: e.clientX,
+                            clientY: e.clientY
+                        }
+                    }));
+                };
+                
+                cell.addEventListener('mouseenter', onHover);
+                cell.addEventListener('mousemove', onHover);
+                cell.addEventListener('mouseleave', () => {
+                    document.dispatchEvent(new CustomEvent('MOUSE_CELL_HOVER', { detail: null }));
+                });
+
                 container.appendChild(cell);
             }
         };
