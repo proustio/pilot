@@ -36,8 +36,8 @@ export class PauseMenu extends BaseUIComponent {
                 <div class="confirm-dialog voxel-panel">
                     <p>You have unsaved progress.<br>Are you sure you want to quit?</p>
                     <div style="display:flex; gap:10px; justify-content:center;">
-                        <button id="exit-confirm-yes" class="voxel-btn primary" style="width:auto; padding:10px 24px;">Yes, Exit</button>
-                        <button id="exit-confirm-no" class="voxel-btn" style="width:auto; padding:10px 24px;">Cancel</button>
+                        <button id="exit-confirm-yes" class="voxel-btn primary" style="width:auto; padding:10px 24px;">Yes</button>
+                        <button id="exit-confirm-no" class="voxel-btn" style="width:auto; padding:10px 24px;">No</button>
                     </div>
                 </div>
             </div>
