@@ -147,9 +147,9 @@ export class EntityManager {
         // Animated Voxel Fog
         const fogVoxelGeo = new THREE.BoxGeometry(0.15, 0.15, 0.15);
         const fogMat = new THREE.MeshStandardMaterial({
-            color: 0x555555, // Darker grey to be denser
+            color: 0x708238, // Darker grey to be denser
             transparent: true,
-            opacity: 0.95, // Higher opacity
+            opacity: 0.55, // Higher opacity
             roughness: 0.9
         });
 
