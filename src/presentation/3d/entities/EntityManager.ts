@@ -12,6 +12,10 @@ export class EntityManager {
     private enemyBoardGroup: THREE.Group;
 
     private targetRotationX: number = 0;
+
+    public get boardOrientation(): 'player' | 'enemy' {
+        return Math.abs(this.targetRotationX - Math.PI) < 0.1 ? 'enemy' : 'player';
+    }
     private fogMeshes: (THREE.Mesh | null)[] = new Array(100).fill(null);
     private fallingMarkers: { mesh: THREE.Object3D, curve: THREE.QuadraticBezierCurve3, progress: number, worldX: number, worldZ: number, result: string, isPlayer: boolean, cellX: number, cellZ: number }[] = [];
 
@@ -566,7 +570,7 @@ export class EntityManager {
         this.addRipple(rippleWorldX, rippleWorldZ, isPlayer);
     }
 
-    public addAttackMarker(x: number, z: number, result: string, isPlayer: boolean) {
+    public addAttackMarker(x: number, z: number, result: string, isPlayer: boolean, isReplay: boolean = false) {
         // If the player fired the shot, it lands on the enemy board. If the enemy fired, it lands on the player board.
         const targetGroup = isPlayer ? this.enemyBoardGroup : this.playerBoardGroup;
 
@@ -624,6 +628,20 @@ export class EntityManager {
         const worldZ = z - 5 + 0.5;
 
         const targetLocalPos = new THREE.Vector3(worldX, 0.4, worldZ);
+
+        // Instant placement for replay — skip arc animation entirely
+        if (isReplay) {
+            marker.userData.meshes.forEach((mesh: THREE.Mesh) => {
+                mesh.material = originalMat;
+            });
+            marker.position.set(worldX, 0.4, worldZ);
+            // Clear fog for replayed player attacks
+            if (isPlayer) {
+                this.clearFogCell(x, z);
+            }
+            targetGroup.add(marker);
+            return;
+        }
 
         // Find a random friendly ship block to start from
         const sourceGroup = isPlayer ? this.playerBoardGroup : this.enemyBoardGroup;

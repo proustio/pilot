@@ -11,23 +11,23 @@ const init = () => {
     try {
         // 1. Initialize core 3D Engine
         const engine = new Engine3D('app');
-        
+
         // Set initial theme class on body
         document.body.classList.add(Config.visual.isDayMode ? 'day-mode' : 'night-mode');
-        
+
         // 2. Initialize Game Entities (Board, Ships placeholder)
         const entityManager = new EntityManager(engine.scene);
-        
+
         // 3. Initialize Interaction (Raycasting, Hovering)
         const interactionManager = new InteractionManager(
-            engine.scene, 
-            engine.camera, 
+            engine.scene,
+            engine.camera,
             entityManager
         );
 
         // 4. Initialize Core Game Loop Logic
         const gameLoop = new GameLoop();
-        
+
         // Pass gameLoop to InteractionManager for context-aware raycasting
         interactionManager.setGameLoop(gameLoop);
 
@@ -43,8 +43,8 @@ const init = () => {
             entityManager.addShip(ship, x, z, orientation, isPlayer);
         });
 
-        gameLoop.onAttackResult((x, z, result, isPlayer) => {
-            entityManager.addAttackMarker(x, z, result, isPlayer);
+        gameLoop.onAttackResult((x, z, result, isPlayer, isReplay) => {
+            entityManager.addAttackMarker(x, z, result, isPlayer, isReplay);
         });
 
         // 5. Initialize UI Manager (Hooks UI into GameLoop)
@@ -57,7 +57,7 @@ const init = () => {
         const FPS_CAP = 60;
         const frameInterval = 1000 / FPS_CAP;
         let lastFrameTime = performance.now();
-        
+
         // Geek Stats variables
         let framesRendered = 0;
         let lastFpsUpdateTime = performance.now();
@@ -66,17 +66,17 @@ const init = () => {
 
         const animate = (time: DOMHighResTimeStamp) => {
             requestAnimationFrame(animate);
-            
+
             const deltaTime = time - lastFrameTime;
-            
+
             if (deltaTime < frameInterval) {
                 // Skip frame if it arrived too early to enforce FPS cap
                 return;
             }
-            
+
             lastFrameTime = time - (deltaTime % frameInterval);
             lastFrameTimeMs = deltaTime;
-            
+
             // Calculate FPS & dispatch geek stats
             framesRendered++;
             if (time - lastFpsUpdateTime >= 1000) {
@@ -87,13 +87,13 @@ const init = () => {
                 framesRendered = 0;
                 lastFpsUpdateTime = time;
             }
-            
+
             // Update systems if not paused
             if (!gameLoop.isPaused) {
                 interactionManager.update();
                 entityManager.update();
             }
-            
+
             // Render frame
             engine.render();
         };
@@ -118,7 +118,7 @@ const init = () => {
             const ce = e as CustomEvent;
             if (!ce.detail?.viewState && gameLoop.match) {
                 // Build viewState from live engine/entity state
-                const isEnemyBoardShowing = Math.abs(entityManager.masterBoardGroup.rotation.x - Math.PI) < 0.5;
+                const isEnemyBoardShowing = entityManager.boardOrientation === 'enemy';
                 const vs: ViewState = {
                     cameraX: engine.camera.position.x,
                     cameraY: engine.camera.position.y,
@@ -170,7 +170,7 @@ const init = () => {
         document.addEventListener('TOGGLE_PEEK', (e: Event) => {
             const ce = e as CustomEvent;
             const peeking = ce.detail?.peeking;
-            
+
             if (peeking) {
                 // Flip the board to show the opposite side temporarily
                 const currentState = gameLoop.currentState;

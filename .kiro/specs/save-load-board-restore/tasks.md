@@ -1,6 +1,6 @@
 # Implementation Plan
 
-- [ ] 1. Write bug condition exploration test
+- [x] 1. Write bug condition exploration test
   - **Property 1: Bug Condition** - Attack Markers Not Restored on Load
   - **CRITICAL**: This test MUST FAIL on unfixed code — failure confirms the bug exists
   - **DO NOT attempt to fix the test or the code when it fails**
@@ -23,7 +23,7 @@
   - Mark task complete when test is written, run, and failure is documented
   - _Requirements: 1.1, 1.2, 1.3_
 
-- [ ] 2. Write preservation property tests (BEFORE implementing fix)
+- [x] 2. Write preservation property tests (BEFORE implementing fix)
   - **Property 2: Preservation** - Non-Load Gameplay Unchanged
   - **IMPORTANT**: Follow observation-first methodology
   - **Test file**: `src/application/game-loop/__tests__/GameLoop.preservation.test.ts`
@@ -39,9 +39,9 @@
   - Mark task complete when tests are written, run, and passing on unfixed code
   - _Requirements: 3.1, 3.2, 3.4_
 
-- [ ] 3. Implement attack replay on load
+- [x] 3. Implement attack replay on load
 
-  - [ ] 3.1 Extend `AttackResultListener` type to accept optional `isReplay` parameter
+  - [x] 3.1 Extend `AttackResultListener` type to accept optional `isReplay` parameter
     - In `src/application/game-loop/GameLoop.ts`, change the type alias:
     - `type AttackResultListener = (x: number, z: number, result: string, isPlayer: boolean, isReplay?: boolean) => void;`
     - The optional 5th parameter ensures backward compatibility — existing 4-arg callbacks still work
@@ -50,7 +50,7 @@
     - _Preservation: existing 4-parameter callbacks continue to work unchanged_
     - _Requirements: 2.1, 3.1, 3.4_
 
-  - [ ] 3.2 Add `replayAttacks()` method to `GameLoop`
+  - [x] 3.2 Add `replayAttacks()` method to `GameLoop`
     - In `src/application/game-loop/GameLoop.ts`, add a private method after `replayShips()`:
     - Import `CellState` from `../../domain/board/Board`
     - Iterate `match.playerBoard.gridState` — for each cell with `CellState.Hit`, `CellState.Miss`, or `CellState.Sunk`:
@@ -63,14 +63,14 @@
     - _Preservation: replayAttacks() is only called from loadMatch(), never from startNewMatch() or live gameplay_
     - _Requirements: 1.1, 2.1, 2.3_
 
-  - [ ] 3.3 Call `replayAttacks()` from `loadMatch()`
+  - [x] 3.3 Call `replayAttacks()` from `loadMatch()`
     - In `GameLoop.loadMatch()`, add `this.replayAttacks(match)` after `this.replayShips(match)` and before `this.transitionTo()`
     - Order matters: ships must exist before attack markers reference them
     - _Bug_Condition: loadMatch() only calls replayShips(), missing replayAttacks()_
     - _Expected_Behavior: loadMatch() now calls replayShips() then replayAttacks() then transitionTo()_
     - _Requirements: 2.1, 2.3_
 
-  - [ ] 3.4 Add instant placement support to `EntityManager.addAttackMarker()`
+  - [x] 3.4 Add instant placement support to `EntityManager.addAttackMarker()`
     - In `src/presentation/3d/entities/EntityManager.ts`, add optional `isReplay: boolean = false` parameter to `addAttackMarker()`
     - When `isReplay` is `true`:
       - Create the rocket marker mesh group with the final `originalMat` material (not `activeMat`)
@@ -84,7 +84,7 @@
     - _Preservation: isReplay=false (default) preserves existing animated arc behavior for live gameplay_
     - _Requirements: 2.1, 2.2, 3.4_
 
-  - [ ] 3.5 Update `main.ts` event wiring to forward `isReplay` parameter
+  - [x] 3.5 Update `main.ts` event wiring to forward `isReplay` parameter
     - In `src/main.ts`, update the `gameLoop.onAttackResult` callback to pass through the 5th parameter:
     - Change: `gameLoop.onAttackResult((x, z, result, isPlayer) => { entityManager.addAttackMarker(x, z, result, isPlayer); });`
     - To: `gameLoop.onAttackResult((x, z, result, isPlayer, isReplay) => { entityManager.addAttackMarker(x, z, result, isPlayer, isReplay); });`
@@ -94,7 +94,7 @@
     - _Preservation: when isReplay is undefined/false, addAttackMarker() uses default animated behavior_
     - _Requirements: 2.1, 3.4_
 
-  - [ ] 3.6 Verify bug condition exploration test now passes
+  - [x] 3.6 Verify bug condition exploration test now passes
     - **Property 1: Expected Behavior** - Attack Markers Restored on Load
     - **IMPORTANT**: Re-run the SAME test from task 1 — do NOT write a new test
     - The test from task 1 encodes the expected behavior (correct callbacks with correct arguments)
@@ -103,7 +103,7 @@
     - **EXPECTED OUTCOME**: Test PASSES (confirms bug is fixed — all 5 attack callbacks fire with correct coordinates, results, isPlayer flags, and isReplay=true)
     - _Requirements: 2.1, 2.3_
 
-  - [ ] 3.7 Verify preservation tests still pass
+  - [x] 3.7 Verify preservation tests still pass
     - **Property 2: Preservation** - Non-Load Gameplay Unchanged
     - **IMPORTANT**: Re-run the SAME tests from task 2 — do NOT write new tests
     - Run: `npx vitest --run src/application/game-loop/__tests__/GameLoop.preservation.test.ts`

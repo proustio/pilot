@@ -1,5 +1,6 @@
 import { Match } from '../../domain/match/Match';
 import { Ship, Orientation } from '../../domain/fleet/Ship';
+import { CellState } from '../../domain/board/Board';
 import { AIEngine, AIDifficulty } from '../ai/AIEngine';
 import { Config } from '../../infrastructure/config/Config';
 import { Storage, ViewState } from '../../infrastructure/storage/Storage';
@@ -14,12 +15,12 @@ export enum GameState {
 
 type StateChangeListener = (newState: GameState, oldState: GameState) => void;
 type ShipPlacedListener = (ship: Ship, x: number, z: number, orientation: Orientation, isPlayer: boolean) => void;
-type AttackResultListener = (x: number, z: number, result: string, isPlayer: boolean) => void;
+type AttackResultListener = (x: number, z: number, result: string, isPlayer: boolean, isReplay?: boolean) => void;
 
 export class GameLoop {
     public currentState: GameState = GameState.MAIN_MENU;
     public match: Match | null = null;
-    
+
     public playerShipsToPlace: Ship[] = [];
     public currentPlacementOrientation: Orientation = Orientation.Horizontal;
     public isAnimating: boolean = false;
@@ -35,7 +36,7 @@ export class GameLoop {
     constructor() {
         this.aiEngine = new AIEngine();
         this.playerAIEngine = new AIEngine();
-        
+
         // Listen for AI difficulty changes
         document.addEventListener('SET_AI_DIFFICULTY', (e: Event) => {
             const customEvent = e as CustomEvent;
@@ -67,8 +68,8 @@ export class GameLoop {
         // Listen for Ship Rotation requested by key
         document.addEventListener('keydown', (e: KeyboardEvent) => {
             if (e.key.toLowerCase() === 'r' && this.currentState === GameState.SETUP_BOARD) {
-                this.currentPlacementOrientation = this.currentPlacementOrientation === Orientation.Horizontal 
-                    ? Orientation.Vertical 
+                this.currentPlacementOrientation = this.currentPlacementOrientation === Orientation.Horizontal
+                    ? Orientation.Vertical
                     : Orientation.Horizontal;
             }
         });
@@ -141,13 +142,13 @@ export class GameLoop {
      */
     public transitionTo(newState: GameState) {
         if (this.currentState === newState) return;
-        
+
         const oldState = this.currentState;
         this.currentState = newState;
-        
+
         // Broadcast
         this.listeners.forEach(listener => listener(newState, oldState));
-        
+
         // Handle automated state triggers
         if (newState === GameState.ENEMY_TURN) {
             this.handleEnemyTurn();
@@ -163,10 +164,10 @@ export class GameLoop {
         this.match = match;
         this.aiEngine.reset();
         this.playerAIEngine.reset();
-        
+
         // Setup fleets
         this.playerShipsToPlace = match.getRequiredFleet();
-        
+
         // Auto-place player ships if Auto-Battler is ON initially
         if (Config.autoBattler) {
             const playerShips = match.getRequiredFleet();
@@ -177,7 +178,7 @@ export class GameLoop {
                     const x = Math.floor(Math.random() * match.playerBoard.width);
                     const z = Math.floor(Math.random() * match.playerBoard.height);
                     const orient = Math.random() > 0.5 ? Orientation.Horizontal : Orientation.Vertical;
-                    
+
                     if (match.validatePlacement(match.playerBoard, ship, x, z, orient)) {
                         placed = match.playerBoard.placeShip(ship, x, z, orient);
                         if (placed) {
@@ -189,7 +190,7 @@ export class GameLoop {
             }
             this.playerShipsToPlace = [];
         }
-        
+
         // Auto-place enemy ships (temporary basic random placement)
         const enemyShips = match.getRequiredFleet();
         for (const ship of enemyShips) {
@@ -199,7 +200,7 @@ export class GameLoop {
                 const x = Math.floor(Math.random() * match.enemyBoard.width);
                 const z = Math.floor(Math.random() * match.enemyBoard.height);
                 const orient = Math.random() > 0.5 ? Orientation.Horizontal : Orientation.Vertical;
-                
+
                 if (match.validatePlacement(match.enemyBoard, ship, x, z, orient)) {
                     placed = match.enemyBoard.placeShip(ship, x, z, orient);
                     if (placed) {
@@ -216,7 +217,7 @@ export class GameLoop {
             this.transitionTo(GameState.SETUP_BOARD);
         }
     }
-    
+
     /**
      * Resumes an existing match, optionally restoring saved view state.
      */
@@ -227,14 +228,15 @@ export class GameLoop {
         // Replay ship placement events so 3D entity meshes get spawned
         this.replayShips(match);
 
+        // Replay attack results so 3D markers are placed instantly (isReplay=true)
+        this.replayAttacks(match);
+
         this.transitionTo(GameState.PLAYER_TURN);
     }
 
     /**
      * Fires onShipPlaced for every already-placed ship in both boards.
      * This makes EntityManager spawn the 3D meshes for a loaded game.
-     * Note: attack marker replay is handled separately via RESTORE_VIEW_STATE in main.ts
-     * to allow instant fog clearing without reanimating old projectiles.
      */
     private replayShips(match: Match) {
         for (const ship of match.playerBoard.ships) {
@@ -249,14 +251,47 @@ export class GameLoop {
         }
     }
 
+    /**
+     * Fires onAttackResult for every Hit/Miss/Sunk cell in both boards.
+     * Called after replayShips() so ships exist before markers reference them.
+     * isReplay=true lets the presentation layer place markers instantly (no arc animation).
+     */
+    private replayAttacks(match: Match) {
+        const resultMap: Record<number, string> = {
+            [CellState.Hit]: 'hit',
+            [CellState.Miss]: 'miss',
+            [CellState.Sunk]: 'sunk',
+        };
+
+        // Attacks on player board were fired by the enemy → isPlayer=false
+        match.playerBoard.gridState.forEach((cell, index) => {
+            const result = resultMap[cell];
+            if (result) {
+                const x = index % match.playerBoard.width;
+                const z = Math.floor(index / match.playerBoard.width);
+                this.attackResultListeners.forEach(l => l(x, z, result, false, true));
+            }
+        });
+
+        // Attacks on enemy board were fired by the player → isPlayer=true
+        match.enemyBoard.gridState.forEach((cell, index) => {
+            const result = resultMap[cell];
+            if (result) {
+                const x = index % match.enemyBoard.width;
+                const z = Math.floor(index / match.enemyBoard.width);
+                this.attackResultListeners.forEach(l => l(x, z, result, true, true));
+            }
+        });
+    }
+
     private handleEnemyTurn() {
         if (!this.match) return;
 
         console.log(`Enemy is thinking... (Difficulty: ${this.aiEngine.difficulty})`);
-        
+
         const executeTurn = () => {
             if (!this.match) return;
-            
+
             if (this.isPaused) {
                 setTimeout(executeTurn, 100);
                 return;
@@ -269,46 +304,46 @@ export class GameLoop {
             setTimeout(() => {
                 setTimeout(() => {
                     if (!this.match) return;
-                    
+
                     // Re-check pause after delay
                     if (this.isPaused) {
                         this.isAnimating = false; // Reset so it can be re-triggered
                         executeTurn();
                         return;
                     }
-                    
+
                     // Ask AI Engine for next move
                     const target = this.aiEngine.computeNextMove(this.match.playerBoard, this.match);
-                    
+
                     // Perform Attack
                     const result = this.match.playerBoard.receiveAttack(target.x, target.z);
-                    
+
                     // Report result back to AI so it can learn (for Normal/Hard modes)
                     this.aiEngine.reportResult(target.x, target.z, result.toString(), this.match.playerBoard);
-                    
+
                     // Show the result maker
                     this.attackResultListeners.forEach(l => l(target.x, target.z, result.toString(), false));
-                    
+
                     // Wait for player to see what happened before flipping board
                     const finalizeTurn = () => {
                         if (this.isPaused) {
                             setTimeout(finalizeTurn, 100);
                             return;
                         }
-                        
+
                         // Re-evaluate game over
                         const status = this.match!.checkGameEnd();
                         this.isAnimating = false;
-                        
+
                         if (status !== 'ongoing') {
                             this.transitionTo(GameState.GAME_OVER);
                         } else {
                             this.transitionTo(GameState.PLAYER_TURN);
                         }
                     };
-                    
+
                     setTimeout(finalizeTurn, Config.timing.turnDelayMs / Config.timing.gameSpeedMultiplier);
-                    
+
                 }, Config.timing.aiThinkingTimeMs / Config.timing.gameSpeedMultiplier);
             }, flipWait);
         };
@@ -320,7 +355,7 @@ export class GameLoop {
         if (!this.match || this.isAnimating) return;
 
         console.log(`Auto-Battler is thinking...`);
-        
+
         const executeTurn = () => {
             if (!this.match) return;
 
@@ -343,39 +378,39 @@ export class GameLoop {
                         executeTurn();
                         return;
                     }
-                    
+
                     // Ask Player AI Engine for next move against Enemy Board
                     const target = this.playerAIEngine.computeNextMove(this.match.enemyBoard, this.match);
-                    
+
                     // Perform Attack
                     const result = this.match.enemyBoard.receiveAttack(target.x, target.z);
-                    
+
                     // Report result back to AI so it can learn
                     this.playerAIEngine.reportResult(target.x, target.z, result.toString(), this.match.enemyBoard);
-                    
+
                     // Show the result maker
                     this.attackResultListeners.forEach(l => l(target.x, target.z, result.toString(), true));
-                    
+
                     // Wait for player to see what happened before flipping board
                     const finalizeTurn = () => {
                         if (this.isPaused) {
                             setTimeout(finalizeTurn, 100);
                             return;
                         }
-                        
+
                         // Re-evaluate game over
                         const status = this.match!.checkGameEnd();
                         this.isAnimating = false;
-                        
+
                         if (status !== 'ongoing') {
                             this.transitionTo(GameState.GAME_OVER);
                         } else {
                             this.transitionTo(GameState.ENEMY_TURN);
                         }
                     };
-                    
+
                     setTimeout(finalizeTurn, Config.timing.turnDelayMs / Config.timing.gameSpeedMultiplier);
-                    
+
                 }, Config.timing.aiThinkingTimeMs / Config.timing.gameSpeedMultiplier);
             }, flipWait);
         };
@@ -391,16 +426,16 @@ export class GameLoop {
 
         if (this.currentState === GameState.SETUP_BOARD) {
             if (this.playerShipsToPlace.length === 0) return;
-            
+
             const nextShip = this.playerShipsToPlace[0];
             const isValid = this.match.validatePlacement(this.match.playerBoard, nextShip, x, z, this.currentPlacementOrientation);
-            
+
             if (isValid) {
                 const placed = this.match.playerBoard.placeShip(nextShip, x, z, this.currentPlacementOrientation);
                 if (placed) {
                     this.playerShipsToPlace.shift(); // Remove from queue
                     this.shipPlacedListeners.forEach(l => l(nextShip, x, z, this.currentPlacementOrientation, true));
-                    
+
                     if (this.playerShipsToPlace.length === 0) {
                         this.transitionTo(GameState.PLAYER_TURN);
                     }
@@ -414,10 +449,10 @@ export class GameLoop {
 
             console.log(`Player attacking enemy grid at ${x},${z}`);
             const result = this.match.enemyBoard.receiveAttack(x, z);
-            
+
             if (result !== 'invalid') {
                 this.attackResultListeners.forEach(l => l(x, z, result, true));
-                
+
                 this.isAnimating = true;
 
                 // Wait for player to see what happened before flipping board
@@ -425,7 +460,7 @@ export class GameLoop {
                     // Successful action, check if game ended
                     const status = this.match!.checkGameEnd();
                     this.isAnimating = false;
-                    
+
                     if (status !== 'ongoing') {
                         this.transitionTo(GameState.GAME_OVER);
                     } else {

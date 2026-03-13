@@ -537,6 +537,21 @@ canvas {
   cursor: not-allowed;
 }
 
+.slot-wrapper {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.slot-delete-btn {
+  width: 50px;
+  padding: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-shrink: 0;
+}
+
 /* Confirmation Overlay */
 .confirm-overlay {
   position: absolute;
