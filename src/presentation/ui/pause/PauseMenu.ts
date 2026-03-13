@@ -29,11 +29,11 @@ export class PauseMenu extends BaseUIComponent {
             <button id="btn-pause-save" class="voxel-btn">Save</button>
             <button id="btn-pause-load" class="voxel-btn">Load</button>
             <button id="btn-pause-settings" class="voxel-btn">Settings</button>
-            <button id="btn-pause-exit" class="voxel-btn danger">Exit to Main Menu</button>
+            <button id="btn-pause-exit" class="voxel-btn danger">Quit</button>
 
             <div id="exit-confirm-overlay" class="confirm-overlay" style="display:none;">
                 <div class="confirm-dialog voxel-panel">
-                    <p>You have unsaved progress.<br>Are you sure you want to exit?</p>
+                    <p>You have unsaved progress.<br>Are you sure you want to quit?</p>
                     <div style="display:flex; gap:10px; justify-content:center;">
                         <button id="exit-confirm-yes" class="voxel-btn primary" style="width:auto; padding:10px 24px;">Yes, Exit</button>
                         <button id="exit-confirm-no" class="voxel-btn" style="width:auto; padding:10px 24px;">Cancel</button>

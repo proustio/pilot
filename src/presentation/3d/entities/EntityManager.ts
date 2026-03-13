@@ -147,9 +147,9 @@ export class EntityManager {
         // Animated Voxel Fog
         const fogVoxelGeo = new THREE.BoxGeometry(0.15, 0.15, 0.15);
         const fogMat = new THREE.MeshStandardMaterial({
-            color: 0x888888,
+            color: 0x555555, // Darker grey to be denser
             transparent: true,
-            opacity: 0.8,
+            opacity: 0.95, // Higher opacity
             roughness: 0.9
         });
 
@@ -170,16 +170,18 @@ export class EntityManager {
                 etile.userData = { isGridTile: true, cellX: x, cellZ: z, isPlayerSide: false };
                 this.enemyBoardGroup.add(etile);
 
-                // Voxel Fog cloud per cell
-                const fogCloud = new THREE.InstancedMesh(fogVoxelGeo, fogMat, 15);
+                // Voxel Fog cloud per cell - increased voxel count for density
+                const numVoxels = 30;
+                const fogCloud = new THREE.InstancedMesh(fogVoxelGeo, fogMat, numVoxels);
                 fogCloud.position.set(worldX, 0.3, worldZ);
 
                 const dummy = new THREE.Object3D();
                 const voxelData = [];
-                for (let i = 0; i < 15; i++) {
-                    const vx = (Math.random() - 0.5) * 0.7;
-                    const vy = (Math.random() - 0.5) * 0.4;
-                    const vz = (Math.random() - 0.5) * 0.7;
+                for (let i = 0; i < numVoxels; i++) {
+                    // Spread a bit wider and taller to completely obscure cell
+                    const vx = (Math.random() - 0.5) * 0.85;
+                    const vy = (Math.random() - 0.5) * 0.6;
+                    const vz = (Math.random() - 0.5) * 0.85;
                     dummy.position.set(vx, vy, vz);
                     dummy.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
                     dummy.scale.setScalar(0.8 + Math.random() * 0.6);
@@ -327,10 +329,12 @@ export class EntityManager {
                 const finalPos = m.curve.getPoint(1.0);
                 m.mesh.position.copy(finalPos);
 
-                // Apply original material
+                // Apply original material, kill glow on hit
                 if (m.mesh.userData.instancedMesh) {
                     const im = m.mesh.userData.instancedMesh as THREE.InstancedMesh;
-                    im.material = m.mesh.userData.originalMat;
+                    const finalMat = m.mesh.userData.originalMat.clone();
+                    finalMat.emissive.setHex(0x000000);
+                    im.material = finalMat;
 
                     // Destroy missile voxels based on result
                     const destroyRatio = m.result === 'hit' || m.result === 'sunk' ? 0.60 : 0.30;
@@ -739,20 +743,21 @@ export class EntityManager {
         // If the player fired the shot, it lands on the enemy board. If the enemy fired, it lands on the player board.
         const targetGroup = isPlayer ? this.enemyBoardGroup : this.playerBoardGroup;
 
-        // Revert previous last attack marker to its original color is no longer needed 
-        // since we permanently apply the material at the end of the arc.
-
-        let originalColor = 0xcccccc; // Miss -> greyish white
+        // Ensure projectile looks the same in flight and when stuck
+        // So we just use the final state color for the entire flight path.
+        // It sticks to the voxel approach and doesn't get a magic color swap.
+        let finalColor = 0xcccccc; // Miss -> greyish white
         if (result === 'hit' || result === 'sunk') {
-            originalColor = 0xff0000; // Hit -> red
+            finalColor = 0xff0000; // Hit -> red
         }
 
-        const originalMat = new THREE.MeshStandardMaterial({ color: originalColor, roughness: 0.5 });
-        // Active yellow material
-        const activeMat = new THREE.MeshStandardMaterial({ color: 0xffff00, roughness: 0.2, emissive: 0x888800 });
+        const activeMat = new THREE.MeshStandardMaterial({ color: finalColor, roughness: 0.5 });
+        // Make the marker glow slightly while flying, then we'll remove emission on hit
+        const activeGlowColor = result === 'hit' || result === 'sunk' ? 0x880000 : 0x444444;
+        activeMat.emissive.setHex(activeGlowColor);
 
         const marker = new THREE.Group();
-        marker.userData = { originalMat, isAttackMarker: true };
+        marker.userData = { originalMat: activeMat, isAttackMarker: true };
 
         // Create a inner group to handle the 25-degree pitch down offset
         const rocketModel = new THREE.Group();
@@ -817,7 +822,23 @@ export class EntityManager {
         if (isReplay) {
             if (marker.userData.instancedMesh) {
                 const im = marker.userData.instancedMesh as THREE.InstancedMesh;
-                im.material = originalMat;
+                const finalMat = marker.userData.originalMat.clone();
+                finalMat.emissive.setHex(0x000000); // kill the glow
+                im.material = finalMat;
+
+                // Also apply partial destruction visually so replays don't look brand new
+                const destroyRatio = result === 'hit' || result === 'sunk' ? 0.60 : 0.30;
+                const dummy = new THREE.Object3D();
+                for (let j = 0; j < im.count; j++) {
+                    if (Math.random() < destroyRatio) {
+                        im.getMatrixAt(j, dummy.matrix);
+                        dummy.matrix.decompose(dummy.position, dummy.quaternion, dummy.scale);
+                        dummy.scale.set(0, 0, 0);
+                        dummy.updateMatrix();
+                        im.setMatrixAt(j, dummy.matrix);
+                    }
+                }
+                im.instanceMatrix.needsUpdate = true;
             }
             marker.position.set(worldX, 0.4, worldZ);
             // Clear fog for replayed player attacks
