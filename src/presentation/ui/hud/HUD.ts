@@ -78,6 +78,8 @@ export class HUD extends BaseUIComponent {
             </div>
             
             <div style="position: absolute; bottom: 20px; right: 20px; display: flex; gap: 10px;">
+                <button id="hud-btn-geek-stats" class="voxel-btn ui-interactive" style="width: auto; padding: 10px;" title="Toggle Geek Stats">📈</button>
+                <button id="hud-btn-auto-battler" class="voxel-btn ui-interactive" style="width: auto; padding: 10px;" title="Toggle Auto-Battler">🤖</button>
                 <button id="hud-btn-peek" class="voxel-btn ui-interactive" style="width: auto; padding: 10px; display: ${Config.visual.peekEnabled ? 'inline-block' : 'none'};" title="Peek at other side">👁️</button>
                 <button id="hud-btn-day-night" class="voxel-btn ui-interactive" style="width: auto; padding: 10px;" title="Toggle Day/Night">${Config.visual.isDayMode ? '🌞' : '🌚'}</button>
                 <button id="hud-btn-speed" class="voxel-btn ui-interactive" style="width: auto; padding: 10px;" title="Cycle Speed">${this.getSpeedLabel(Config.timing.gameSpeedMultiplier)}</button>
@@ -114,6 +116,28 @@ export class HUD extends BaseUIComponent {
             peekBtn.style.opacity = isPeeking ? '0.6' : '1';
             peekBtn.style.boxShadow = isPeeking ? 'inset 0 0 10px rgba(255,255,0,0.4)' : '';
             document.dispatchEvent(new CustomEvent('TOGGLE_PEEK', { detail: { peeking: isPeeking } }));
+        });
+
+        // Geek Stats button
+        const geekStatsBtn = this.container.querySelector('#hud-btn-geek-stats') as HTMLButtonElement;
+        geekStatsBtn.style.opacity = Config.visual.showGeekStats ? '1' : '0.6';
+        geekStatsBtn.style.boxShadow = Config.visual.showGeekStats ? 'inset 0 0 10px rgba(255,255,255,0.8)' : '';
+        geekStatsBtn.addEventListener('click', () => {
+            Config.visual.showGeekStats = !Config.visual.showGeekStats;
+            geekStatsBtn.style.opacity = Config.visual.showGeekStats ? '1' : '0.6';
+            geekStatsBtn.style.boxShadow = Config.visual.showGeekStats ? 'inset 0 0 10px rgba(255,255,255,0.8)' : '';
+            document.dispatchEvent(new CustomEvent('TOGGLE_GEEK_STATS', { detail: { show: Config.visual.showGeekStats } }));
+        });
+
+        // Auto-Battler button
+        const autoBattlerBtn = this.container.querySelector('#hud-btn-auto-battler') as HTMLButtonElement;
+        autoBattlerBtn.style.opacity = Config.autoBattler ? '1' : '0.6';
+        autoBattlerBtn.style.boxShadow = Config.autoBattler ? 'inset 0 0 10px rgba(255,102,102,0.8)' : '';
+        autoBattlerBtn.addEventListener('click', () => {
+            Config.autoBattler = !Config.autoBattler;
+            autoBattlerBtn.style.opacity = Config.autoBattler ? '1' : '0.6';
+            autoBattlerBtn.style.boxShadow = Config.autoBattler ? 'inset 0 0 10px rgba(255,102,102,0.8)' : '';
+            document.dispatchEvent(new CustomEvent('TOGGLE_AUTO_BATTLER', { detail: { enabled: Config.autoBattler } }));
         });
 
         // Listen for peek enabled/disabled from settings
