@@ -90,7 +90,7 @@ export class Storage {
 
     private static deserialiseBoard(data: BoardData): Board {
         const board = new Board(data.width, data.height);
-        board.gridState = [...data.gridState];
+        board.gridState.set(data.gridState);
         board.shotsFired = data.shotsFired;
         board.hits = data.hits;
 
