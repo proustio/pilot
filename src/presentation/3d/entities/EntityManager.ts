@@ -59,8 +59,8 @@ export class EntityManager {
 
         const createWaterUniforms = (isEnemy: boolean) => ({
             time: { value: 0 },
-            baseColor: { value: isEnemy ? new THREE.Color(0xFF9900) : new THREE.Color(0x800080) }, // Orange/Yellowish vs Pinkish/Magenta base
-            peakColor: { value: isEnemy ? new THREE.Color(0xFFCC33) : new THREE.Color(0xFF6666) }, // Brighter peaks
+            baseColor: { value: isEnemy ? new THREE.Color(0xd32f2f) : new THREE.Color(0x388e3c) }, // Red (Foe) vs Green (Friendly)
+            peakColor: { value: isEnemy ? new THREE.Color(0xf44336) : new THREE.Color(0x66bb6a) }, // Brighter peaks
             opacity: { value: 0.85 },
             globalTurbulence: { value: 0.0 },
             rippleCenters: { value: [new THREE.Vector2(), new THREE.Vector2(), new THREE.Vector2(), new THREE.Vector2(), new THREE.Vector2()] },
@@ -69,7 +69,7 @@ export class EntityManager {
 
         // Create the "Master Metal Frame" (hollow inside)
         const frameMat = new THREE.MeshStandardMaterial({
-            color: 0x330033, // Dark Purple
+            color: 0x222222, // Dark Grey
             metalness: 0.6,
             roughness: 0.3
         });
@@ -97,7 +97,7 @@ export class EntityManager {
         // Bottom plane separating the two sides
         const bottomGeo = new THREE.PlaneGeometry(boardSize, boardSize);
         const bottomMat = new THREE.MeshStandardMaterial({
-            color: 0x660066, // Magenta
+            color: 0x111111, // Near Black
             metalness: 0.4,
             roughness: 0.6,
             side: THREE.DoubleSide
@@ -111,7 +111,7 @@ export class EntityManager {
         // Create water panes for the boards
         const boardWaterGeo = new THREE.PlaneGeometry(boardSize, boardSize, 32, 32);
 
-        this.playerWaterUniforms = createWaterUniforms(false); // Player water (pinkish/purple)
+        this.playerWaterUniforms = createWaterUniforms(false); // Player water (green)
         const playerWaterMat = new THREE.ShaderMaterial({
             vertexShader: WaterShader.vertexShader,
             fragmentShader: WaterShader.fragmentShader,
@@ -125,7 +125,7 @@ export class EntityManager {
         playerWaterPlane.receiveShadow = true;
         this.playerBoardGroup.add(playerWaterPlane);
 
-        this.enemyWaterUniforms = createWaterUniforms(true); // Enemy water (orange/yellow)
+        this.enemyWaterUniforms = createWaterUniforms(true); // Enemy water (red)
         const enemyWaterMat = new THREE.ShaderMaterial({
             vertexShader: WaterShader.vertexShader,
             fragmentShader: WaterShader.fragmentShader,
@@ -149,7 +149,7 @@ export class EntityManager {
         const fogMat = new THREE.MeshStandardMaterial({
             color: 0x708238, // Darker grey to be denser
             transparent: true,
-            opacity: 0.55, // Higher opacity
+            opacity: 0.75, // Higher opacity
             roughness: 0.9
         });
 
@@ -546,12 +546,12 @@ export class EntityManager {
         shipGroup.visible = isPlayer; // Hide enemy ships initially
 
         // --- Color palette ---
-        // Player: Yellowish orange tones, Enemy: Pinkish purple tones
-        const hullColor = isPlayer ? new THREE.Color(0xFF9900) : new THREE.Color(0x800080);
-        const deckColor = isPlayer ? new THREE.Color(0xFFCC33) : new THREE.Color(0xFF6666);
-        const accentColor = isPlayer ? new THREE.Color(0xFFCC00) : new THREE.Color(0xFF9999);
-        const bridgeColor = isPlayer ? new THREE.Color(0xFFCC33) : new THREE.Color(0xFF6666);
-        const darkAccent = isPlayer ? new THREE.Color(0xCC7A00) : new THREE.Color(0x4d004d);
+        // Player: Metallic Grey with Navy Blue accents, Enemy: Navy Blue with Metallic Grey accents
+        const hullColor = isPlayer ? new THREE.Color(0x757575) : new THREE.Color(0x001f3f);
+        const deckColor = isPlayer ? new THREE.Color(0x9e9e9e) : new THREE.Color(0x003366);
+        const accentColor = isPlayer ? new THREE.Color(0x001f3f) : new THREE.Color(0x757575);
+        const bridgeColor = isPlayer ? new THREE.Color(0x616161) : new THREE.Color(0x002b55);
+        const darkAccent = isPlayer ? new THREE.Color(0x001a33) : new THREE.Color(0x424242);
 
         // Build the ship from tiny voxels using InstancedMesh
         const voxelSize = 0.1;
