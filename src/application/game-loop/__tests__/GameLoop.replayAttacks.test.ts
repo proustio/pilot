@@ -19,7 +19,7 @@ import { CellState } from '../../../domain/board/Board';
 describe('GameLoop.loadMatch() — attack replay bug condition', () => {
     it('fires onAttackResult callbacks for every Hit/Miss/Sunk cell in both boards on load', () => {
         const gameLoop = new GameLoop();
-        const match = new Match(MatchMode.Classic);
+        const match = new Match(MatchMode.Classic, 10, 10);
 
         // Set up player board attack state (enemy fired these):
         //   Hit  at (3, 4) → index = 4 * 10 + 3 = 43

@@ -153,7 +153,7 @@ export class Storage {
         try {
             const parsed: SaveData = JSON.parse(data);
 
-            const match = new Match(parsed.mode as MatchMode);
+            const match = new Match(parsed.mode as MatchMode, Config.board.width, Config.board.height);
             (match as any).playerBoard = Storage.deserialiseBoard(parsed.playerBoard);
             (match as any).enemyBoard = Storage.deserialiseBoard(parsed.enemyBoard);
 
