@@ -4,6 +4,7 @@ import { CellState } from '../../domain/board/Board';
 import { AIEngine, AIDifficulty } from '../ai/AIEngine';
 import { Config } from '../../infrastructure/config/Config';
 import { Storage, ViewState } from '../../infrastructure/storage/Storage';
+import { getCoords } from '../../domain/board/BoardUtils';
 
 export enum GameState {
     MAIN_MENU = 'MAIN_MENU',
@@ -149,7 +150,6 @@ export class GameLoop {
         // Broadcast
         this.listeners.forEach(listener => listener(newState, oldState));
 
-        // Handle automated state triggers
         if (newState === GameState.ENEMY_TURN) {
             this.handleEnemyTurn();
         } else if (newState === GameState.PLAYER_TURN && Config.autoBattler) {
@@ -157,9 +157,6 @@ export class GameLoop {
         }
     }
 
-    /**
-     * Initializes a brand new match logic and enters SETUP state.
-     */
     public startNewMatch(match: Match) {
         this.match = match;
         this.aiEngine.reset();
@@ -168,7 +165,6 @@ export class GameLoop {
         // Setup fleets
         this.playerShipsToPlace = match.getRequiredFleet();
 
-        // Auto-place player ships if Auto-Battler is ON initially
         if (Config.autoBattler) {
             const playerShips = match.getRequiredFleet();
             for (const ship of playerShips) {
@@ -191,7 +187,6 @@ export class GameLoop {
             this.playerShipsToPlace = [];
         }
 
-        // Auto-place enemy ships (temporary basic random placement)
         const enemyShips = match.getRequiredFleet();
         for (const ship of enemyShips) {
             let placed = false;
@@ -267,8 +262,7 @@ export class GameLoop {
         match.playerBoard.gridState.forEach((cell, index) => {
             const result = resultMap[cell];
             if (result) {
-                const x = index % match.playerBoard.width;
-                const z = Math.floor(index / match.playerBoard.width);
+                const { x, z } = getCoords(index, match.playerBoard.width);
                 this.attackResultListeners.forEach(l => l(x, z, result, false, true));
             }
         });
@@ -277,8 +271,7 @@ export class GameLoop {
         match.enemyBoard.gridState.forEach((cell, index) => {
             const result = resultMap[cell];
             if (result) {
-                const x = index % match.enemyBoard.width;
-                const z = Math.floor(index / match.enemyBoard.width);
+                const { x, z } = getCoords(index, match.enemyBoard.width);
                 this.attackResultListeners.forEach(l => l(x, z, result, true, true));
             }
         });
@@ -305,33 +298,26 @@ export class GameLoop {
                 setTimeout(() => {
                     if (!this.match) return;
 
-                    // Re-check pause after delay
                     if (this.isPaused) {
-                        this.isAnimating = false; // Reset so it can be re-triggered
+                        this.isAnimating = false;
                         executeTurn();
                         return;
                     }
 
-                    // Ask AI Engine for next move
                     const target = this.aiEngine.computeNextMove(this.match.playerBoard, this.match);
 
-                    // Perform Attack
                     const result = this.match.playerBoard.receiveAttack(target.x, target.z);
 
-                    // Report result back to AI so it can learn (for Normal/Hard modes)
                     this.aiEngine.reportResult(target.x, target.z, result.toString(), this.match.playerBoard);
 
-                    // Show the result maker
                     this.attackResultListeners.forEach(l => l(target.x, target.z, result.toString(), false));
 
-                    // Wait for player to see what happened before flipping board
                     const finalizeTurn = () => {
                         if (this.isPaused) {
                             setTimeout(finalizeTurn, 100);
                             return;
                         }
 
-                        // Re-evaluate game over
                         const status = this.match!.checkGameEnd();
                         this.isAnimating = false;
 
@@ -372,33 +358,26 @@ export class GameLoop {
                 setTimeout(() => {
                     if (!this.match) return;
 
-                    // Re-check pause after delay
                     if (this.isPaused) {
                         this.isAnimating = false;
                         executeTurn();
                         return;
                     }
 
-                    // Ask Player AI Engine for next move against Enemy Board
                     const target = this.playerAIEngine.computeNextMove(this.match.enemyBoard, this.match);
 
-                    // Perform Attack
                     const result = this.match.enemyBoard.receiveAttack(target.x, target.z);
 
-                    // Report result back to AI so it can learn
                     this.playerAIEngine.reportResult(target.x, target.z, result.toString(), this.match.enemyBoard);
 
-                    // Show the result maker
                     this.attackResultListeners.forEach(l => l(target.x, target.z, result.toString(), true));
 
-                    // Wait for player to see what happened before flipping board
                     const finalizeTurn = () => {
                         if (this.isPaused) {
                             setTimeout(finalizeTurn, 100);
                             return;
                         }
 
-                        // Re-evaluate game over
                         const status = this.match!.checkGameEnd();
                         this.isAnimating = false;
 
@@ -445,7 +424,7 @@ export class GameLoop {
             }
 
         } else if (this.currentState === GameState.PLAYER_TURN) {
-            if (this.isAnimating || Config.autoBattler) return; // Prevent spam clicking and manual play when auto-battler is on
+            if (this.isAnimating || Config.autoBattler) return;
 
             console.log(`Player attacking enemy grid at ${x},${z}`);
             const result = this.match.enemyBoard.receiveAttack(x, z);
@@ -455,9 +434,7 @@ export class GameLoop {
 
                 this.isAnimating = true;
 
-                // Wait for player to see what happened before flipping board
                 setTimeout(() => {
-                    // Successful action, check if game ended
                     const status = this.match!.checkGameEnd();
                     this.isAnimating = false;
 

@@ -32,7 +32,7 @@ import { Config } from '../../../infrastructure/config/Config';
 function createStartedGameLoop(): { gameLoop: GameLoop; match: Match } {
     Config.autoBattler = true;
     const gameLoop = new GameLoop();
-    const match = new Match(MatchMode.Classic);
+    const match = new Match(MatchMode.Classic, 10, 10);
     gameLoop.startNewMatch(match);
     // Reset autoBattler so onGridClick manual attacks are accepted
     Config.autoBattler = false;
@@ -82,7 +82,7 @@ describe('Preservation — startNewMatch() fires zero attack callbacks', () => {
     it('never invokes attackResultListeners for Classic mode match', () => {
         Config.autoBattler = true;
         const gameLoop = new GameLoop();
-        const match = new Match(MatchMode.Classic);
+        const match = new Match(MatchMode.Classic, 10, 10);
 
         const spy = vi.fn();
         gameLoop.onAttackResult(spy);
@@ -97,7 +97,7 @@ describe('Preservation — startNewMatch() fires zero attack callbacks', () => {
     it('never invokes attackResultListeners for Russian mode match', () => {
         Config.autoBattler = true;
         const gameLoop = new GameLoop();
-        const match = new Match(MatchMode.Russian);
+        const match = new Match(MatchMode.Russian, 10, 10);
 
         const spy = vi.fn();
         gameLoop.onAttackResult(spy);
@@ -114,7 +114,7 @@ describe('Preservation — startNewMatch() fires zero attack callbacks', () => {
             Config.autoBattler = true;
             const gameLoop = new GameLoop();
             const mode = trial % 2 === 0 ? MatchMode.Classic : MatchMode.Russian;
-            const match = new Match(mode);
+            const match = new Match(mode, 10, 10);
 
             const spy = vi.fn();
             gameLoop.onAttackResult(spy);

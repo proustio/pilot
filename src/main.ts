@@ -47,6 +47,23 @@ const init = () => {
             entityManager.addAttackMarker(x, z, result, isPlayer, isReplay);
         });
 
+        let matchStartTime: number | null = null;
+
+        // Listen for internal game state to flip board
+        gameLoop.onStateChange((newState) => {
+            if (newState === 'SETUP_BOARD') {
+                matchStartTime = performance.now();
+                entityManager.showPlayerBoard();
+                engine.targetCameraPos.set(0, 10, 12);
+            } else if (newState === 'ENEMY_TURN') {
+                entityManager.showPlayerBoard();
+                engine.targetCameraPos.set(0, 14, 18);
+            } else if (newState === 'PLAYER_TURN') {
+                entityManager.showEnemyBoard();
+                engine.targetCameraPos.set(0, 12, 12);
+            }
+        });
+
         // 5. Initialize UI Manager (Hooks UI into GameLoop)
         // NOTE: UIManager constructor calls checkAutoLoad which triggers replayShips — must come after listener setup above
         const uiManager = new UIManager(gameLoop);
@@ -61,7 +78,6 @@ const init = () => {
         // Geek Stats variables
         let framesRendered = 0;
         let lastFpsUpdateTime = performance.now();
-        let matchStartTime: number | null = null;
         let lastFrameTimeMs = 0;
 
         const animate = (time: DOMHighResTimeStamp) => {
@@ -97,21 +113,6 @@ const init = () => {
             // Render frame
             engine.render();
         };
-
-        // Listen for internal game state to flip board
-        gameLoop.onStateChange((newState) => {
-            if (newState === 'SETUP_BOARD') {
-                matchStartTime = performance.now();
-                entityManager.showPlayerBoard();
-                engine.targetCameraPos.set(0, 10, 12);
-            } else if (newState === 'ENEMY_TURN') {
-                entityManager.showPlayerBoard();
-                engine.targetCameraPos.set(0, 14, 18);
-            } else if (newState === 'PLAYER_TURN') {
-                entityManager.showEnemyBoard();
-                engine.targetCameraPos.set(0, 12, 12);
-            }
-        });
 
         // Intercept SAVE_GAME before it reaches GameLoop to inject current viewState
         document.addEventListener('SAVE_GAME', (e: Event) => {

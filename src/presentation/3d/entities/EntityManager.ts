@@ -3,6 +3,7 @@ import { Ship, Orientation } from '../../../domain/fleet/Ship';
 import { WaterShader } from '../materials/WaterShader';
 import { ParticleSystem } from './ParticleSystem';
 import { Config } from '../../../infrastructure/config/Config';
+import { getIndex } from '../../../domain/board/BoardUtils';
 
 export class EntityManager {
     private scene: THREE.Scene;
@@ -16,7 +17,7 @@ export class EntityManager {
     public get boardOrientation(): 'player' | 'enemy' {
         return Math.abs(this.targetRotationX - Math.PI) < 0.1 ? 'enemy' : 'player';
     }
-    private fogMeshes: (THREE.Mesh | null)[] = new Array(100).fill(null);
+    private fogMeshes: (THREE.Mesh | null)[] = new Array(Config.board.width * Config.board.height).fill(null);
     private fallingMarkers: { mesh: THREE.Object3D, curve: THREE.QuadraticBezierCurve3, progress: number, worldX: number, worldZ: number, result: string, isPlayer: boolean, cellX: number, cellZ: number }[] = [];
 
     private time: number = 0;
@@ -53,7 +54,7 @@ export class EntityManager {
     }
 
     private createBoardMeshes() {
-        const boardSize = 10;
+        const boardSize = Config.board.width;
         const offset = boardSize / 2;
 
         const createWaterUniforms = () => ({
@@ -69,11 +70,13 @@ export class EntityManager {
         // Create the "Master Wood Frame" (hollow inside)
         const woodMat = new THREE.MeshStandardMaterial({ color: 0x8B4513, roughness: 0.9 });
 
+        const borderOffset = offset + 0.25;
+        const borderLength = boardSize + 1;
         const borders = [
-            { x: 11, z: 0.5, posZ: -5.25, posX: 0 },  // Top
-            { x: 11, z: 0.5, posZ: 5.25, posX: 0 },   // Bottom
-            { x: 0.5, z: 10, posZ: 0, posX: -5.25 },   // Left
-            { x: 0.5, z: 10, posZ: 0, posX: 5.25 }     // Right
+            { x: borderLength, z: 0.5, posZ: -borderOffset, posX: 0 },  // Top
+            { x: borderLength, z: 0.5, posZ: borderOffset, posX: 0 },   // Bottom
+            { x: 0.5, z: boardSize, posZ: 0, posX: -borderOffset },   // Left
+            { x: 0.5, z: boardSize, posZ: 0, posX: borderOffset }     // Right
         ];
 
         borders.forEach(b => {
@@ -86,7 +89,7 @@ export class EntityManager {
         });
 
         // Sand-coloured bottom plane separating the two sides
-        const sandGeo = new THREE.PlaneGeometry(10, 10);
+        const sandGeo = new THREE.PlaneGeometry(boardSize, boardSize);
         const sandMat = new THREE.MeshStandardMaterial({ color: 0xD2B48C, roughness: 1.0, side: THREE.DoubleSide });
         const sandPlane = new THREE.Mesh(sandGeo, sandMat);
         sandPlane.rotation.x = -Math.PI / 2;
@@ -95,7 +98,7 @@ export class EntityManager {
         this.masterBoardGroup.add(sandPlane);
 
         // Create water panes for the boards
-        const boardWaterGeo = new THREE.PlaneGeometry(10, 10, 32, 32);
+        const boardWaterGeo = new THREE.PlaneGeometry(boardSize, boardSize, 32, 32);
 
         this.playerWaterUniforms = createWaterUniforms();
         const playerWaterMat = new THREE.ShaderMaterial({
@@ -158,12 +161,12 @@ export class EntityManager {
         }
 
         // GridHelpers for visual debug
-        const pGrid = new THREE.GridHelper(10, 10, 0xffffff, 0xffffff);
+        const pGrid = new THREE.GridHelper(boardSize, boardSize, 0xffffff, 0xffffff);
         pGrid.position.y = 0.05;
         pGrid.material.transparent = true; pGrid.material.opacity = 0.5;
         this.playerBoardGroup.add(pGrid);
 
-        const eGrid = new THREE.GridHelper(10, 10, 0xffffff, 0xffffff);
+        const eGrid = new THREE.GridHelper(boardSize, boardSize, 0xffffff, 0xffffff);
         eGrid.position.y = 0.05;
         eGrid.material.transparent = true; eGrid.material.opacity = 0.5;
         this.enemyBoardGroup.add(eGrid);
@@ -211,7 +214,7 @@ export class EntityManager {
      * are visible instantly without waiting for projectile animations.
      */
     public clearFogCell(x: number, z: number) {
-        const fogIdx = z * 10 + x;
+        const fogIdx = getIndex(x, z, Config.board.width);
         const fogMesh = this.fogMeshes[fogIdx];
         if (fogMesh) {
             this.enemyBoardGroup.remove(fogMesh);
@@ -285,7 +288,7 @@ export class EntityManager {
 
                 // Reveal Fog
                 if (m.isPlayer) {
-                    const fogIdx = m.cellZ * 10 + m.cellX;
+                    const fogIdx = getIndex(m.cellX, m.cellZ, Config.board.width);
                     const fogMesh = this.fogMeshes[fogIdx];
                     if (fogMesh) {
                         this.enemyBoardGroup.remove(fogMesh);
@@ -414,8 +417,9 @@ export class EntityManager {
         };
 
         // Position ship group at the ship's origin cell
-        const originWorldX = x - 5 + 0.5;
-        const originWorldZ = z - 5 + 0.5;
+        const boardOffset = Config.board.width / 2;
+        const originWorldX = x - boardOffset + 0.5;
+        const originWorldZ = z - boardOffset + 0.5;
         shipGroup.position.set(originWorldX, 0, originWorldZ);
         shipGroup.visible = isPlayer; // Hide enemy ships initially
 
@@ -565,8 +569,8 @@ export class EntityManager {
         // Initial Ripple in center
         const cx = orientation === Orientation.Horizontal ? x + Math.floor(ship.size / 2) : x;
         const cz = orientation === Orientation.Vertical ? z + Math.floor(ship.size / 2) : z;
-        const rippleWorldX = cx - 5 + 0.5;
-        const rippleWorldZ = cz - 5 + 0.5;
+        const rippleWorldX = cx - boardOffset + 0.5;
+        const rippleWorldZ = cz - boardOffset + 0.5;
         this.addRipple(rippleWorldX, rippleWorldZ, isPlayer);
     }
 
@@ -624,8 +628,9 @@ export class EntityManager {
 
         marker.userData.meshes = [bodyMesh, noseMesh, finMesh1, finMesh2];
 
-        const worldX = x - 5 + 0.5;
-        const worldZ = z - 5 + 0.5;
+        const boardOffset = Config.board.width / 2;
+        const worldX = x - boardOffset + 0.5;
+        const worldZ = z - boardOffset + 0.5;
 
         const targetLocalPos = new THREE.Vector3(worldX, 0.4, worldZ);
 

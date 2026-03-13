@@ -1,6 +1,7 @@
 import { Board, CellState, AttackResult } from '../../domain/board/Board';
 import { Ship, Orientation } from '../../domain/fleet/Ship';
 import { MatchMode, Match } from '../../domain/match/Match';
+import { getIndex } from '../../domain/board/BoardUtils';
 
 export type AIDifficulty = 'easy' | 'normal' | 'hard';
 
@@ -55,7 +56,7 @@ export class AIEngine {
 
                 for (const pos of adjacent) {
                     if (!playerBoard.isOutOfBounds(pos.x, pos.z)) {
-                        const idx = pos.z * playerBoard.width + pos.x;
+                        const idx = getIndex(pos.x, pos.z, playerBoard.width);
                         const state = playerBoard.gridState[idx];
                         if (state === CellState.Empty || state === CellState.Ship) {
                             // Ensure it's not already in the stack
@@ -84,7 +85,7 @@ export class AIEngine {
             x = Math.floor(Math.random() * board.width);
             z = Math.floor(Math.random() * board.height);
             
-            const idx = z * board.width + x;
+            const idx = getIndex(x, z, board.width);
             const state = board.gridState[idx];
             
             if (state === CellState.Empty || state === CellState.Ship) {
@@ -100,7 +101,7 @@ export class AIEngine {
         while (this.huntStack.length > 0) {
             const target = this.huntStack.pop()!;
             
-            const idx = target.z * board.width + target.x;
+            const idx = getIndex(target.x, target.z, board.width);
             const state = board.gridState[idx];
             
             // Re-verify the target is still valid (it could have been shot randomly or adjacent to another sunk ship)
@@ -150,7 +151,7 @@ export class AIEngine {
                 for (let s = 0; s < shipToPlace.size; s++) {
                     const cx = orient === Orientation.Horizontal ? x + s : x;
                     const cz = orient === Orientation.Vertical ? z + s : z;
-                    const idx = cz * width + cx;
+                    const idx = getIndex(cx, cz, width);
                     heatMap[idx]++;
                 }
             }
@@ -162,7 +163,7 @@ export class AIEngine {
 
         for (let z = 0; z < height; z++) {
             for (let x = 0; x < width; x++) {
-                const idx = z * width + x;
+                const idx = getIndex(x, z, width);
                 const state = board.gridState[idx];
                 
                 // We can only target unrevealed cells
@@ -196,7 +197,7 @@ export class AIEngine {
         for (let i = 0; i < ship.size; i++) {
             const cx = orientation === Orientation.Horizontal ? headX + i : headX;
             const cz = orientation === Orientation.Vertical ? headZ + i : headZ;
-            const idx = cz * board.width + cx;
+            const idx = getIndex(cx, cz, board.width);
             const state = board.gridState[idx];
 
             // AI knows it cannot place a ship where there is a Miss or a Sunk ship
@@ -211,7 +212,7 @@ export class AIEngine {
                         const nx = cx + dx;
                         const nz = cz + dz;
                         if (board.isOutOfBounds(nx, nz)) continue;
-                        const nIdx = nz * board.width + nx;
+                        const nIdx = getIndex(nx, nz, board.width);
                         if (board.gridState[nIdx] === CellState.Sunk) {
                             return false;
                         }
