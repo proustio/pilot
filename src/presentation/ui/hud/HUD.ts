@@ -21,7 +21,7 @@ export class HUD extends BaseUIComponent {
         });
 
         // Listen for attack results to update ship counts immediately
-        this.gameLoop.onAttackResult((_x, _z, result, isPlayer) => {
+        this.gameLoop.onAttackResult((_x, _z, result, isPlayer, _isReplay) => {
             if (result === 'sunk') {
                 this.updateCounters();
                 
