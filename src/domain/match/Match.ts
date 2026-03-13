@@ -1,5 +1,6 @@
 import { Board } from '../board/Board';
 import { Ship, Orientation } from '../fleet/Ship';
+import { getIndex } from '../board/BoardUtils';
 
 export enum MatchMode {
     Classic = 'classic',
@@ -11,10 +12,10 @@ export class Match {
     public enemyBoard: Board;
     public mode: MatchMode;
 
-    constructor(mode: MatchMode = MatchMode.Classic) {
+    constructor(mode: MatchMode = MatchMode.Classic, width: number = 10, height: number = 10) {
         this.mode = mode;
-        this.playerBoard = new Board(10, 10);
-        this.enemyBoard = new Board(10, 10);
+        this.playerBoard = new Board(width, height);
+        this.enemyBoard = new Board(width, height);
     }
 
     /**
@@ -66,7 +67,7 @@ export class Match {
                         // Skip out of bounds
                         if (board.isOutOfBounds(nx, nz)) continue;
                         // Determine index
-                        const idx = nz * board.width + nx;
+                        const idx = getIndex(nx, nz, board.width);
                         // In Russian version, even diagonal touching is forbidden
                         // Since placing updates `CellState.Ship`, we just check for that.
                         if (board.gridState[idx] === 2 /* CellState.Ship */) {
