@@ -94,6 +94,8 @@ export class HUD extends BaseUIComponent {
                 <div class="geek-stats-row"><span class="gs-label">STATUS</span><span class="gs-value gs-online" id="gs-status">● LOCAL</span></div>
                 <div class="geek-stats-row"><span class="gs-label">TIME</span><span class="gs-value" id="gs-time">00:00</span></div>
             </div>
+
+            <div id="mouse-coords" class="mouse-coords" style="display: none;">(0,0)</div>
         `;
 
         this.turnIndicator = this.container.querySelector('#turn-indicator') as HTMLElement;
@@ -223,6 +225,20 @@ export class HUD extends BaseUIComponent {
             const customEvent = e as CustomEvent;
             if (customEvent.detail && customEvent.detail.show !== undefined) {
                 this.geekStats.style.display = customEvent.detail.show ? 'block' : 'none';
+            }
+        });
+
+        const mouseCoordsEl = this.container.querySelector('#mouse-coords') as HTMLElement;
+        document.addEventListener('MOUSE_CELL_HOVER', (e: Event) => {
+            const ce = e as CustomEvent;
+            if (ce.detail) {
+                const { x, z, clientX, clientY } = ce.detail;
+                mouseCoordsEl.textContent = `(${x},${z})`;
+                mouseCoordsEl.style.left = `${clientX}px`;
+                mouseCoordsEl.style.top = `${clientY}px`;
+                mouseCoordsEl.style.display = 'block';
+            } else {
+                mouseCoordsEl.style.display = 'none';
             }
         });
     }

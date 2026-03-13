@@ -5,6 +5,8 @@ import { Orientation } from '../../../domain/fleet/Ship';
 export class InteractionManager {
   private raycaster: THREE.Raycaster;
   private mouse: THREE.Vector2;
+  private lastMouseClientX: number = 0;
+  private lastMouseClientY: number = 0;
 
   private camera: THREE.PerspectiveCamera;
   private entityManager: any; // We'll type this dynamically to avoid circular issues
@@ -121,6 +123,8 @@ export class InteractionManager {
     // Normalize mouse coordinates to -1 to +1 range
     this.mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
     this.mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+    this.lastMouseClientX = event.clientX;
+    this.lastMouseClientY = event.clientY;
   }
 
   public update() {
@@ -193,15 +197,31 @@ export class InteractionManager {
           z: hit.object.userData.cellZ
         };
 
+        // Dispatch hover event for UI indicator
+        document.dispatchEvent(new CustomEvent('MOUSE_CELL_HOVER', {
+            detail: {
+                x: this.hoveredCell.x,
+                z: this.hoveredCell.z,
+                clientX: this.lastMouseClientX,
+                clientY: this.lastMouseClientY
+            }
+        }));
+
       } else {
         this.hoverCursor.visible = false;
         this.ghostGroup.visible = false;
-        this.hoveredCell = null;
+        if (this.hoveredCell !== null) {
+            this.hoveredCell = null;
+            document.dispatchEvent(new CustomEvent('MOUSE_CELL_HOVER', { detail: null }));
+        }
       }
     } else {
       this.hoverCursor.visible = false;
       this.ghostGroup.visible = false;
-      this.hoveredCell = null;
+      if (this.hoveredCell !== null) {
+          this.hoveredCell = null;
+          document.dispatchEvent(new CustomEvent('MOUSE_CELL_HOVER', { detail: null }));
+      }
     }
   }
 

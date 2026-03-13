@@ -601,3 +601,20 @@ canvas {
   margin-bottom: 15px;
   font-size: 1.1rem;
 }
+
+/* Mouse Coordinate Indicator */
+.mouse-coords {
+  position: fixed;
+  pointer-events: none;
+  background: rgba(0, 0, 0, 0.75);
+  color: #fff;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-family: var(--font-family);
+  font-size: 0.85rem;
+  font-weight: bold;
+  z-index: 10000;
+  transform: translate(15px, 15px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  white-space: nowrap;
+}
