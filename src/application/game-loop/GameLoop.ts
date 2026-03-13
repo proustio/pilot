@@ -16,7 +16,7 @@ export enum GameState {
 
 type StateChangeListener = (newState: GameState, oldState: GameState) => void;
 type ShipPlacedListener = (ship: Ship, x: number, z: number, orientation: Orientation, isPlayer: boolean) => void;
-type AttackResultListener = (x: number, z: number, result: string, isPlayer: boolean, isReplay?: boolean) => void;
+type AttackResultListener = (x: number, z: number, result: string, isPlayer: boolean, isReplay: boolean) => void;
 
 export class GameLoop {
     public currentState: GameState = GameState.MAIN_MENU;
@@ -310,7 +310,8 @@ export class GameLoop {
 
                     this.aiEngine.reportResult(target.x, target.z, result.toString(), this.match.playerBoard);
 
-                    this.attackResultListeners.forEach(l => l(target.x, target.z, result.toString(), false));
+                    // Show the result maker
+                    this.attackResultListeners.forEach(l => l(target.x, target.z, result.toString(), false, false));
 
                     const finalizeTurn = () => {
                         if (this.isPaused) {
@@ -370,7 +371,8 @@ export class GameLoop {
 
                     this.playerAIEngine.reportResult(target.x, target.z, result.toString(), this.match.enemyBoard);
 
-                    this.attackResultListeners.forEach(l => l(target.x, target.z, result.toString(), true));
+                    // Show the result maker
+                    this.attackResultListeners.forEach(l => l(target.x, target.z, result.toString(), true, false));
 
                     const finalizeTurn = () => {
                         if (this.isPaused) {
@@ -430,7 +432,7 @@ export class GameLoop {
             const result = this.match.enemyBoard.receiveAttack(x, z);
 
             if (result !== 'invalid') {
-                this.attackResultListeners.forEach(l => l(x, z, result, true));
+                this.attackResultListeners.forEach(l => l(x, z, result, true, false));
 
                 this.isAnimating = true;
 

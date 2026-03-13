@@ -14,7 +14,7 @@ export class UnifiedBoardUI extends BaseUIComponent {
 
         // Listen for board updates
         this.gameLoop.onShipPlaced(() => this.refresh());
-        this.gameLoop.onAttackResult(() => this.refresh());
+        this.gameLoop.onAttackResult((_x, _z, _result, _isPlayer, _isReplay) => this.refresh());
         this.gameLoop.onStateChange(() => this.refresh());
     }
 
