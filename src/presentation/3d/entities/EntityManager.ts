@@ -743,15 +743,13 @@ export class EntityManager {
         // If the player fired the shot, it lands on the enemy board. If the enemy fired, it lands on the player board.
         const targetGroup = isPlayer ? this.enemyBoardGroup : this.playerBoardGroup;
 
-        // Ensure projectile looks the same in flight and when stuck
-        // So we just use the final state color for the entire flight path.
-        // It sticks to the voxel approach and doesn't get a magic color swap.
-        let finalColor = 0xcccccc; // Miss -> greyish white
-        if (result === 'hit' || result === 'sunk') {
-            finalColor = 0xff0000; // Hit -> red
-        }
-
-        const activeMat = new THREE.MeshStandardMaterial({ color: finalColor, roughness: 0.5 });
+        // Projectile now uses black and white stripes for high visibility.
+        // We set the base material to white, and then color individual voxels.
+        const activeMat = new THREE.MeshStandardMaterial({
+            color: 0xffffff,
+            roughness: 0.5,
+            vertexColors: true // Enable vertex colors for InstancedMesh
+        });
         // Make the marker glow slightly while flying, then we'll remove emission on hit
         const activeGlowColor = result === 'hit' || result === 'sunk' ? 0x880000 : 0x444444;
         activeMat.emissive.setHex(activeGlowColor);
@@ -803,10 +801,19 @@ export class EntityManager {
         instancedMissile.castShadow = true;
 
         const dummy = new THREE.Object3D();
+        const white = new THREE.Color(0xffffff);
+        const black = new THREE.Color(0x222222);
+
         voxels.forEach((pos, i) => {
             dummy.position.copy(pos);
             dummy.updateMatrix();
             instancedMissile.setMatrixAt(i, dummy.matrix);
+
+            // Create stripes along the Z-axis (projectile length)
+            // Voxel size is 0.05, so z/0.05 gives the voxel index along the axis
+            const zIndex = Math.round(pos.z / voxelSize);
+            const isBlackStripe = zIndex % 2 === 0;
+            instancedMissile.setColorAt(i, isBlackStripe ? black : white);
         });
 
         rocketModel.add(instancedMissile);
