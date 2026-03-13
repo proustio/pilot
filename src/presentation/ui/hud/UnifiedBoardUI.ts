@@ -1,6 +1,7 @@
 import { BaseUIComponent } from '../components/BaseUIComponent';
 import { GameLoop } from '../../../application/game-loop/GameLoop';
 import { CellState } from '../../../domain/board/Board';
+import { Config } from '../../../infrastructure/config/Config';
 
 export class UnifiedBoardUI extends BaseUIComponent {
     private gameLoop: GameLoop;
@@ -41,7 +42,8 @@ export class UnifiedBoardUI extends BaseUIComponent {
     private initGrids(): void {
         const createGrid = (container: HTMLElement) => {
             container.innerHTML = '';
-            for (let i = 0; i < 100; i++) {
+            const cellCount = this.gameLoop.match ? (this.gameLoop.match.playerBoard.width * this.gameLoop.match.playerBoard.height) : (Config.board.width * Config.board.height);
+            for (let i = 0; i < cellCount; i++) {
                 const cell = document.createElement('div');
                 cell.classList.add('mini-cell');
                 container.appendChild(cell);
@@ -62,7 +64,7 @@ export class UnifiedBoardUI extends BaseUIComponent {
         this.updateGrid(this.enemyGridContainer, enemyBoard.gridState, false);
     }
 
-    private updateGrid(container: HTMLElement, gridState: CellState[], isPlayer: boolean): void {
+    private updateGrid(container: HTMLElement, gridState: Uint8Array, isPlayer: boolean): void {
         const cells = container.querySelectorAll('.mini-cell');
         gridState.forEach((state, index) => {
             const cell = cells[index] as HTMLElement;

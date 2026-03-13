@@ -56,7 +56,7 @@ export class MainMenu extends BaseUIComponent {
                 matchMode = MatchMode.Classic;
             }
 
-            const match = new Match(matchMode);
+            const match = new Match(matchMode, Config.board.width, Config.board.height);
             this.gameLoop.startNewMatch(match);
         });
 
