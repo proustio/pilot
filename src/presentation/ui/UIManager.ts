@@ -89,10 +89,14 @@ export class UIManager {
         if (autoloadSlot) {
             sessionStorage.removeItem('battleships_autoload');
             const slotId = parseInt(autoloadSlot);
-            const match = Storage.loadGame(slotId);
-            if (match) {
+            const loaded = Storage.loadGame(slotId);
+            if (loaded) {
                 console.log(`Auto-loading game from slot ${slotId}`);
-                this.gameLoop.loadMatch(match);
+                this.gameLoop.loadMatch(loaded.match, loaded.viewState);
+                // Fire event so main.ts can restore camera and visual state
+                if (loaded.viewState) {
+                    document.dispatchEvent(new CustomEvent('RESTORE_VIEW_STATE', { detail: loaded.viewState }));
+                }
             }
         }
     }

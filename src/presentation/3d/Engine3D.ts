@@ -154,6 +154,19 @@ export class Engine3D {
     this.renderer.setSize(window.innerWidth, window.innerHeight);
   }
 
+  /**
+   * Restores the camera to a previously saved position and look-at target.
+   * Uses the existing lerp transition system for a smooth entry.
+   */
+  public restoreViewState(
+    camX: number, camY: number, camZ: number,
+    tgtX: number, tgtY: number, tgtZ: number
+  ) {
+    this.targetCameraPos.set(camX, camY, camZ);
+    this.targetLookAt.set(tgtX, tgtY, tgtZ);
+    this.isTransitioning = true;
+  }
+
 
   public render() {
     const cameraSpeed = Config.timing.cameraLerpSpeed * Config.timing.gameSpeedMultiplier;

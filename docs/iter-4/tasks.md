@@ -21,11 +21,14 @@ Removed 2D mode entirely instead of fixing its broken state.
 - [x] Simplified `render()` to always use orbit controls (no 2D branch)
 - [x] Removed 2D/3D toggle button and event listener from `HUD.ts`
 
-## 4. Enhanced Save/Load Persistence
+## 4. Enhanced Save/Load Persistence ✅
 Include all view-state in save data so loading a game restores the exact visual context.
-- Add to `SaveData`: camera position/rotation, zoom level, pan offset, board orientation, day/night mode.
-- Serialise & restore these fields in `Storage.ts`.
-- On load, apply restored view-state in `Engine3D.ts` and HUD.
+- [x] `ViewState` interface in `Storage.ts`: camera pos/target, board orientation, day/night, game speed
+- [x] `saveGame()` accepts optional `ViewState`; `loadGame()` returns `LoadedGame { match, viewState }`
+- [x] `Engine3D.restoreViewState()` triggers smooth lerp to saved camera position
+- [x] `main.ts` intercepts `SAVE_GAME` (capture phase) to inject current viewState before GameLoop processes it
+- [x] `main.ts` handles `RESTORE_VIEW_STATE` event to apply camera, board side, day/night, and speed
+- [x] `UIManager.checkAutoLoad()` fires `RESTORE_VIEW_STATE` after loading a match
 
 ## 5. HUD — Replace Text Labels with Emoji Buttons
 All HUD control buttons should use only emoji, no text labels.

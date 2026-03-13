@@ -9,6 +9,24 @@ export interface SaveMetadata {
     turnCount: number;
 }
 
+export interface ViewState {
+    cameraX: number;
+    cameraY: number;
+    cameraZ: number;
+    targetX: number;
+    targetY: number;
+    targetZ: number;
+    boardOrientation: 'player' | 'enemy';
+    isDayMode: boolean;
+    gameSpeedMultiplier: number;
+    gameState: string;
+}
+
+export interface LoadedGame {
+    match: Match;
+    viewState: ViewState | null;
+}
+
 interface ShipData {
     id: string;
     size: number;
@@ -33,6 +51,7 @@ interface SaveData {
     mode: string;
     playerBoard: BoardData;
     enemyBoard: BoardData;
+    viewState?: ViewState;
 }
 
 export class Storage {
@@ -75,12 +94,10 @@ export class Storage {
         board.shotsFired = data.shotsFired;
         board.hits = data.hits;
 
-        // Reconstruct ships and rebuild shipMap via placement
         for (const shipData of data.ships) {
             const ship = Storage.deserialiseShip(shipData);
             board.ships.push(ship);
 
-            // Rebuild the internal shipMap by iterating occupied coordinates
             if (ship.isPlaced) {
                 const coords = ship.getOccupiedCoordinates();
                 coords.forEach((coord, segmentIndex) => {
@@ -94,11 +111,9 @@ export class Storage {
     }
 
     /**
-     * Serializes the current Match state and saves it to localStorage.
-     * @param slotId 1, 2, or 3
-     * @param match Current Match instance
+     * Serializes the current Match state and optional view/camera state.
      */
-    public static saveGame(slotId: number, match: Match): boolean {
+    public static saveGame(slotId: number, match: Match, viewState?: ViewState): boolean {
         if (slotId < 1 || slotId > Config.storage.maxSlots) return false;
 
         const key = `${Config.storage.prefix}${slotId}`;
@@ -114,7 +129,8 @@ export class Storage {
                 },
                 mode: match.mode,
                 playerBoard: Storage.serialiseBoard(match.playerBoard),
-                enemyBoard: Storage.serialiseBoard(match.enemyBoard)
+                enemyBoard: Storage.serialiseBoard(match.enemyBoard),
+                viewState
             };
 
             localStorage.setItem(key, JSON.stringify(saveData));
@@ -126,10 +142,9 @@ export class Storage {
     }
 
     /**
-     * Loads a Match state from localStorage with fully reconstructed objects.
-     * @param slotId 1, 2, or 3
+     * Loads a Match + optional ViewState from localStorage.
      */
-    public static loadGame(slotId: number): Match | null {
+    public static loadGame(slotId: number): LoadedGame | null {
         const key = `${Config.storage.prefix}${slotId}`;
         const data = localStorage.getItem(key);
 
@@ -139,20 +154,16 @@ export class Storage {
             const parsed: SaveData = JSON.parse(data);
 
             const match = new Match(parsed.mode as MatchMode);
-            // Replace the default empty boards with deserialised ones
             (match as any).playerBoard = Storage.deserialiseBoard(parsed.playerBoard);
             (match as any).enemyBoard = Storage.deserialiseBoard(parsed.enemyBoard);
 
-            return match;
+            return { match, viewState: parsed.viewState ?? null };
         } catch (e) {
             console.error('Failed to load game', e);
             return null;
         }
     }
 
-    /**
-     * Returns metadata for a specific slot, or null if empty/corrupt.
-     */
     public static getSlotMetadata(slotId: number): SaveMetadata | null {
         const key = `${Config.storage.prefix}${slotId}`;
         const data = localStorage.getItem(key);

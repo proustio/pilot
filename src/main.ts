@@ -4,6 +4,7 @@ import { InteractionManager } from './presentation/3d/interaction/InteractionMan
 import { GameLoop } from './application/game-loop/GameLoop';
 import { UIManager } from './presentation/ui/UIManager';
 import { Config } from './infrastructure/config/Config';
+import { ViewState } from './infrastructure/storage/Storage';
 console.log('Battleships: Initialization Started');
 
 const init = () => {
@@ -29,10 +30,6 @@ const init = () => {
         
         // Pass gameLoop to InteractionManager for context-aware raycasting
         interactionManager.setGameLoop(gameLoop);
-        
-        // 5. Initialize UI Manager (Hooks UI into GameLoop)
-        const uiManager = new UIManager(gameLoop);
-        (window as any).uiManager = uiManager; // Expose to window for debugging and prevent unused warning
 
         // Connect 3D clicks to GameLoop logic
         interactionManager.onClick((hit: any) => {
@@ -41,7 +38,7 @@ const init = () => {
             gameLoop.onGridClick(gridX, gridZ);
         });
 
-        // Listen to Game Events to trigger visuals
+        // Register entity listeners BEFORE UIManager so checkAutoLoad's replayShips() can reach them
         gameLoop.onShipPlaced((ship, x, z, orientation, isPlayer) => {
             entityManager.addShip(ship, x, z, orientation, isPlayer);
         });
@@ -49,6 +46,12 @@ const init = () => {
         gameLoop.onAttackResult((x, z, result, isPlayer) => {
             entityManager.addAttackMarker(x, z, result, isPlayer);
         });
+
+        // 5. Initialize UI Manager (Hooks UI into GameLoop)
+        // NOTE: UIManager constructor calls checkAutoLoad which triggers replayShips — must come after listener setup above
+        const uiManager = new UIManager(gameLoop);
+        (window as any).uiManager = uiManager; // Expose to window for debugging and prevent unused warning
+
 
         // Define the main render loop with a 60 FPS cap
         const FPS_CAP = 60;
@@ -103,11 +106,64 @@ const init = () => {
                 engine.targetCameraPos.set(0, 10, 12);
             } else if (newState === 'ENEMY_TURN') {
                 entityManager.showPlayerBoard();
-                engine.targetCameraPos.set(0, 14, 18); // Pulled back slightly
+                engine.targetCameraPos.set(0, 14, 18);
             } else if (newState === 'PLAYER_TURN') {
                 entityManager.showEnemyBoard();
-                engine.targetCameraPos.set(0, 12, 12); // Closer for action
+                engine.targetCameraPos.set(0, 12, 12);
             }
+        });
+
+        // Intercept SAVE_GAME before it reaches GameLoop to inject current viewState
+        document.addEventListener('SAVE_GAME', (e: Event) => {
+            const ce = e as CustomEvent;
+            if (!ce.detail?.viewState && gameLoop.match) {
+                // Build viewState from live engine/entity state
+                const isEnemyBoardShowing = Math.abs(entityManager.masterBoardGroup.rotation.x - Math.PI) < 0.5;
+                const vs: ViewState = {
+                    cameraX: engine.camera.position.x,
+                    cameraY: engine.camera.position.y,
+                    cameraZ: engine.camera.position.z,
+                    targetX: engine.orbitControls.target.x,
+                    targetY: engine.orbitControls.target.y,
+                    targetZ: engine.orbitControls.target.z,
+                    boardOrientation: isEnemyBoardShowing ? 'enemy' : 'player',
+                    isDayMode: Config.visual.isDayMode,
+                    gameSpeedMultiplier: Config.timing.gameSpeedMultiplier,
+                    gameState: gameLoop.currentState
+                };
+                // Re-dispatch with viewState attached (GameLoop picks it up)
+                document.dispatchEvent(new CustomEvent('SAVE_GAME', {
+                    detail: { slotId: ce.detail?.slotId, viewState: vs }
+                }));
+            }
+        }, true); // capture phase so we intercept before GameLoop's bubble listener
+
+        // Restore view state on game load
+        document.addEventListener('RESTORE_VIEW_STATE', (e: Event) => {
+            const ce = e as CustomEvent;
+            const vs: ViewState = ce.detail;
+            if (!vs) return;
+
+            // Restore camera
+            engine.restoreViewState(vs.cameraX, vs.cameraY, vs.cameraZ, vs.targetX, vs.targetY, vs.targetZ);
+
+            // Restore board orientation
+            if (vs.boardOrientation === 'enemy') {
+                entityManager.showEnemyBoard();
+            } else {
+                entityManager.showPlayerBoard();
+            }
+
+            // Restore day/night
+            Config.visual.isDayMode = vs.isDayMode;
+            document.body.classList.remove('day-mode', 'night-mode');
+            document.body.classList.add(vs.isDayMode ? 'day-mode' : 'night-mode');
+            engine.setDayMode(vs.isDayMode);
+            document.dispatchEvent(new CustomEvent('TOGGLE_DAY_NIGHT', { detail: { isDay: vs.isDayMode } }));
+
+            // Restore game speed
+            Config.timing.gameSpeedMultiplier = vs.gameSpeedMultiplier;
+            document.dispatchEvent(new CustomEvent('SET_GAME_SPEED', { detail: { speed: vs.gameSpeedMultiplier.toFixed(1) } }));
         });
 
         // Peek at other side toggle

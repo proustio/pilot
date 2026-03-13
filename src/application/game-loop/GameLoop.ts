@@ -2,7 +2,7 @@ import { Match } from '../../domain/match/Match';
 import { Ship, Orientation } from '../../domain/fleet/Ship';
 import { AIEngine, AIDifficulty } from '../ai/AIEngine';
 import { Config } from '../../infrastructure/config/Config';
-import { Storage } from '../../infrastructure/storage/Storage';
+import { Storage, ViewState } from '../../infrastructure/storage/Storage';
 
 export enum GameState {
     MAIN_MENU = 'MAIN_MENU',
@@ -26,6 +26,7 @@ export class GameLoop {
     public isPaused: boolean = false;
     public aiEngine: AIEngine;
     public playerAIEngine: AIEngine;
+    public loadedViewState: ViewState | null = null;
 
     private listeners: StateChangeListener[] = [];
     private shipPlacedListeners: ShipPlacedListener[] = [];
@@ -85,8 +86,9 @@ export class GameLoop {
         document.addEventListener('SAVE_GAME', (e: Event) => {
             const ce = e as CustomEvent;
             const slotId = ce.detail?.slotId;
+            const viewState: ViewState | undefined = ce.detail?.viewState;
             if (slotId && this.match) {
-                const success = Storage.saveGame(slotId, this.match);
+                const success = Storage.saveGame(slotId, this.match, viewState);
                 console.log(success ? `Game saved to slot ${slotId}` : `Failed to save to slot ${slotId}`);
             }
         });
@@ -216,12 +218,35 @@ export class GameLoop {
     }
     
     /**
-     * Resumes an existing match
+     * Resumes an existing match, optionally restoring saved view state.
      */
-    public loadMatch(match: Match) {
+    public loadMatch(match: Match, viewState?: ViewState | null) {
         this.match = match;
-        // Determine state based on match logic, for now default to Player Turn
+        this.loadedViewState = viewState ?? null;
+
+        // Replay ship placement events so 3D entity meshes get spawned
+        this.replayShips(match);
+
         this.transitionTo(GameState.PLAYER_TURN);
+    }
+
+    /**
+     * Fires onShipPlaced for every already-placed ship in both boards.
+     * This makes EntityManager spawn the 3D meshes for a loaded game.
+     * Note: attack marker replay is handled separately via RESTORE_VIEW_STATE in main.ts
+     * to allow instant fog clearing without reanimating old projectiles.
+     */
+    private replayShips(match: Match) {
+        for (const ship of match.playerBoard.ships) {
+            if (ship.isPlaced) {
+                this.shipPlacedListeners.forEach(l => l(ship, ship.headX, ship.headZ, ship.orientation as Orientation, true));
+            }
+        }
+        for (const ship of match.enemyBoard.ships) {
+            if (ship.isPlaced) {
+                this.shipPlacedListeners.forEach(l => l(ship, ship.headX, ship.headZ, ship.orientation as Orientation, false));
+            }
+        }
     }
 
     private handleEnemyTurn() {

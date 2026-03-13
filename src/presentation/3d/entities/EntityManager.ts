@@ -201,6 +201,20 @@ export class EntityManager {
         }
     }
 
+    /**
+     * Immediately removes the fog mesh for the given enemy-board cell.
+     * Used when restoring game state from a save, so previously-revealed cells
+     * are visible instantly without waiting for projectile animations.
+     */
+    public clearFogCell(x: number, z: number) {
+        const fogIdx = z * 10 + x;
+        const fogMesh = this.fogMeshes[fogIdx];
+        if (fogMesh) {
+            this.enemyBoardGroup.remove(fogMesh);
+            this.fogMeshes[fogIdx] = null;
+        }
+    }
+
     public update() {
         // Smoothly lerp board rotation
         const actualFlipSpeed = Config.timing.boardFlipSpeed * Config.timing.gameSpeedMultiplier;
