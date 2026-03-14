@@ -101,7 +101,7 @@ export class InteractionManager {
     const interacts = this.entityManager.getInteractableObjects();
     const intersects = this.raycaster.intersectObjects(interacts);
     if (intersects.length > 0) {
-      const hit = intersects.find(i => i.object.userData.isGridTile);
+      const hit = intersects.find((i: THREE.Intersection) => i.object.userData.isGridTile);
       if (hit) {
         this.clickListeners.forEach(listener => listener(hit));
       }
@@ -126,7 +126,7 @@ export class InteractionManager {
     const intersects = this.raycaster.intersectObjects(interacts);
 
     if (intersects.length > 0) {
-      const hit = intersects.find(i => i.object.userData.isGridTile);
+      const hit = intersects.find((i: THREE.Intersection) => i.object.userData.isGridTile);
 
       if (hit) {
         if (this.gameLoop && this.gameLoop.currentState === GameState.SETUP_BOARD && this.gameLoop.playerShipsToPlace.length > 0) {
@@ -147,7 +147,7 @@ export class InteractionManager {
           const isValid = this.gameLoop.match.validatePlacement(this.gameLoop.match.playerBoard, ship, x, z, orientation);
           const color = isValid ? 0x00ff00 : 0xff0000;
 
-          this.ghostGroup.children.forEach((child, index) => {
+          this.ghostGroup.children.forEach((child: THREE.Object3D, index: number) => {
             const mesh = child as THREE.Mesh;
             const mat = mesh.material as THREE.MeshBasicMaterial;
             mat.color.setHex(color);

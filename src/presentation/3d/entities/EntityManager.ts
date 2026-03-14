@@ -222,9 +222,9 @@ export class EntityManager {
         // Math.PI rotation means enemy board is UP
         const isEnemyUp = Math.abs(this.masterBoardGroup.rotation.x - Math.PI) < 0.1;
         if (isEnemyUp) {
-            return this.enemyBoardGroup.children.filter(c => c.userData.isGridTile);
+            return this.enemyBoardGroup.children.filter((c: THREE.Object3D) => c.userData.isGridTile);
         }
-        return this.playerBoardGroup.children.filter(c => c.userData.isGridTile);
+        return this.playerBoardGroup.children.filter((c: THREE.Object3D) => c.userData.isGridTile);
     }
 
     public showPlayerBoard() {
@@ -391,7 +391,7 @@ export class EntityManager {
                     const impactPos = new THREE.Vector3(m.worldX, 0.4, m.worldZ);
                     let voxelsRemoved = 0;
 
-                    targetGroup.children.forEach(child => {
+                    targetGroup.children.forEach((child: THREE.Object3D) => {
                         if (child.userData.isShip && child.userData.instancedMesh && child.userData.coversCell(m.cellX, m.cellZ)) {
                             const im = child.userData.instancedMesh as THREE.InstancedMesh;
                             const dummy = new THREE.Object3D();
@@ -496,7 +496,7 @@ export class EntityManager {
         const descentRate = 0.005 * Config.timing.gameSpeedMultiplier;
         const sinkFloor = -1.1;
         [this.playerBoardGroup, this.enemyBoardGroup].forEach(group => {
-            group.children.forEach(child => {
+            group.children.forEach((child: THREE.Object3D) => {
                 if (child.userData.isShip && child.userData.isSinking) {
                     if (child.position.y > sinkFloor) {
                         child.position.y -= descentRate;
@@ -812,7 +812,7 @@ export class EntityManager {
         let startPos = new THREE.Vector3((Math.random() - 0.5) * 10, 5, (Math.random() - 0.5) * 10);
 
         const friendlyShips: THREE.Group[] = [];
-        sourceGroup.children.forEach(c => {
+        sourceGroup.children.forEach((c: THREE.Object3D) => {
             if (c.userData.isShip && c.visible && !c.userData.isSinking) friendlyShips.push(c as THREE.Group);
         });
 
