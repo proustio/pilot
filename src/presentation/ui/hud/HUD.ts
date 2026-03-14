@@ -14,7 +14,7 @@ export class HUD extends BaseUIComponent {
     constructor(gameLoop: GameLoop) {
         super('hud');
         this.gameLoop = gameLoop;
-        
+
         // Listen to game loop state changes
         this.gameLoop.onStateChange((newState, _oldState) => {
             this.update(newState);
@@ -24,15 +24,15 @@ export class HUD extends BaseUIComponent {
         this.gameLoop.onAttackResult((_x, _z, result, isPlayer, _isReplay) => {
             if (result === 'sunk') {
                 this.updateCounters();
-                
+
                 // If isPlayer is true, the player fired the shot, so the enemy board was hit
                 const targetElement = isPlayer ? this.enemyFleetIcons : this.playerFleetIcons;
-                
+
                 // Trigger CSS explosion animation
                 targetElement.classList.remove('hud-explosion-anim');
                 void targetElement.offsetWidth; // Trigger reflow
                 targetElement.classList.add('hud-explosion-anim');
-                
+
                 setTimeout(() => {
                     targetElement.classList.remove('hud-explosion-anim');
                 }, 500);
@@ -52,8 +52,8 @@ export class HUD extends BaseUIComponent {
 
     protected render(): void {
         this.container.innerHTML = `
-            <div class="hud-top-bar" style="transform: scale(1.4); transform-origin: top;">
-                <div class="hud-top-left" style="transform-origin: top left;">
+            <div class="hud-top-bar">
+                <div class="hud-top-left">
                     <div id="unified-board-anchor"></div>
                     <div id="game-stats" class="hud-game-stats">
                         <div class="stat-item">SHOTS: <span id="stat-shots">0</span></div>
@@ -77,17 +77,17 @@ export class HUD extends BaseUIComponent {
                 </div>
             </div>
             
-            <div style="position: absolute; bottom: 20px; right: 20px; display: flex; gap: 10px; transform: scale(1.4); transform-origin: bottom right;">
-                <button id="hud-btn-geek-stats" class="voxel-btn ui-interactive" style="width: auto; padding: 10px;" title="Toggle Geek Stats">📈</button>
-                <button id="hud-btn-auto-battler" class="voxel-btn ui-interactive" style="width: auto; padding: 10px;" title="Toggle Auto-Battler">🤖</button>
-                <button id="hud-btn-peek" class="voxel-btn ui-interactive" style="width: auto; padding: 10px; display: ${Config.visual.peekEnabled ? 'inline-block' : 'none'};" title="Peek at other side">👁️</button>
-                <button id="hud-btn-day-night" class="voxel-btn ui-interactive" style="width: auto; padding: 10px;" title="Toggle Day/Night">${Config.visual.isDayMode ? '🌞' : '🌚'}</button>
-                <button id="hud-btn-fps" class="voxel-btn ui-interactive" style="width: auto; padding: 10px;" title="Cycle FPS Cap">${Config.visual.fpsCap || 60} FPS</button>
-                <button id="hud-btn-speed" class="voxel-btn ui-interactive" style="width: auto; padding: 10px;" title="Cycle Speed">${this.getSpeedLabel(Config.timing.gameSpeedMultiplier)}</button>
-                <button id="hud-btn-settings" class="voxel-btn ui-interactive" style="width: auto; padding: 10px;" title="Pause Menu">⏸️</button>
+            <div class="hud-bottom-bar">
+                <button id="hud-btn-geek-stats" class="voxel-btn ui-interactive" title="Toggle Geek Stats">📈</button>
+                <button id="hud-btn-auto-battler" class="voxel-btn ui-interactive" title="Toggle Auto-Battler">🤖</button>
+                <button id="hud-btn-peek" class="voxel-btn ui-interactive" style="display: ${Config.visual.peekEnabled ? 'inline-block' : 'none'};" title="Peek at other side">👁️</button>
+                <button id="hud-btn-day-night" class="voxel-btn ui-interactive" title="Toggle Day/Night">${Config.visual.isDayMode ? '🌞' : '🌚'}</button>
+                <button id="hud-btn-fps" class="voxel-btn ui-interactive" title="Cycle FPS Cap">${Config.visual.fpsCap || 60} FPS</button>
+                <button id="hud-btn-speed" class="voxel-btn ui-interactive" title="Cycle Speed">${this.getSpeedLabel(Config.timing.gameSpeedMultiplier)}</button>
+                <button id="hud-btn-settings" class="voxel-btn ui-interactive" title="Pause Menu">⏸️</button>
             </div>
             
-            <div id="geek-stats" class="geek-stats-panel" style="display: ${Config.visual.showGeekStats ? 'block' : 'none'}; transform: scale(1.4); transform-origin: bottom left;">
+            <div id="geek-stats" class="geek-stats-panel" style="display: ${Config.visual.showGeekStats ? 'block' : 'none'};">
                 <div class="geek-stats-title">⚙ GEEK STATS</div>
                 <div class="geek-stats-row"><span class="gs-label">FPS</span><span class="gs-value" id="gs-fps">--</span></div>
                 <div class="geek-stats-row"><span class="gs-label">FRAME</span><span class="gs-value" id="gs-frame">-- ms</span></div>
@@ -103,9 +103,9 @@ export class HUD extends BaseUIComponent {
         this.playerFleetIcons = this.container.querySelector('#player-fleet-icons') as HTMLElement;
         this.enemyFleetIcons = this.container.querySelector('#enemy-fleet-icons') as HTMLElement;
         this.geekStats = this.container.querySelector('#geek-stats') as HTMLElement;
-        
+
         this.updateStats();
-        
+
         const settingsBtn = this.container.querySelector('#hud-btn-settings') as HTMLButtonElement;
         settingsBtn.addEventListener('click', () => {
             document.dispatchEvent(new CustomEvent('SHOW_PAUSE_MENU'));
@@ -161,16 +161,16 @@ export class HUD extends BaseUIComponent {
         speedBtn.addEventListener('click', () => {
             let currentIndex = speedCycle.indexOf(Config.timing.gameSpeedMultiplier);
             if (currentIndex === -1) currentIndex = 1;
-            
+
             const nextIndex = (currentIndex + 1) % speedCycle.length;
             const nextSpeed = speedCycle[nextIndex];
-            
+
             Config.timing.gameSpeedMultiplier = nextSpeed;
             Config.saveConfig();
             speedBtn.innerText = this.getSpeedLabel(nextSpeed);
             document.dispatchEvent(new CustomEvent('SET_GAME_SPEED', { detail: { speed: nextSpeed.toFixed(1) } }));
         });
-        
+
         const fpsBtn = this.container.querySelector('#hud-btn-fps') as HTMLButtonElement;
         const fpsCycle = [30, 60, 120];
         fpsBtn.addEventListener('click', () => {
@@ -210,7 +210,7 @@ export class HUD extends BaseUIComponent {
             document.body.classList.add(Config.visual.isDayMode ? 'day-mode' : 'night-mode');
             document.dispatchEvent(new CustomEvent('TOGGLE_DAY_NIGHT', { detail: { isDay: Config.visual.isDayMode } }));
         });
-        
+
 
         document.addEventListener('UPDATE_GEEK_STATS', (e: Event) => {
             const customEvent = e as CustomEvent;
@@ -240,7 +240,7 @@ export class HUD extends BaseUIComponent {
                 timeEl.textContent = `${mins}:${secs}`;
             }
         });
-        
+
         document.addEventListener('TOGGLE_GEEK_STATS', (e: Event) => {
             const customEvent = e as CustomEvent;
             if (customEvent.detail && customEvent.detail.show !== undefined) {
@@ -262,7 +262,7 @@ export class HUD extends BaseUIComponent {
             }
         });
     }
-    
+
     public update(state: GameState): void {
         if (state === GameState.PLAYER_TURN) {
             this.turnIndicator.innerText = "YOUR TURN";
@@ -277,21 +277,21 @@ export class HUD extends BaseUIComponent {
             const matchStatus = this.gameLoop.match?.checkGameEnd();
             this.turnIndicator.innerText = matchStatus === 'player_wins' ? "VICTORY!" : "DEFEAT!";
         }
-        
+
         this.updateCounters();
     }
-    
+
     private updateCounters(): void {
         if (this.gameLoop.match) {
             const renderIcons = (container: HTMLElement, ships: any[]) => {
                 container.innerHTML = '';
                 const sortedShips = [...ships].sort((a, b) => b.size - a.size);
-                
+
                 sortedShips.forEach(ship => {
                     const icon = document.createElement('div');
                     icon.classList.add('ship-icon');
                     if (ship.isSunk()) icon.classList.add('sunk');
-                    
+
                     for (let i = 0; i < ship.size; i++) {
                         const segment = document.createElement('div');
                         segment.classList.add('ship-segment');
@@ -300,7 +300,7 @@ export class HUD extends BaseUIComponent {
                     container.appendChild(icon);
                 });
             };
-            
+
             renderIcons(this.playerFleetIcons, this.gameLoop.match.playerBoard.ships);
             renderIcons(this.enemyFleetIcons, this.gameLoop.match.enemyBoard.ships);
         }
