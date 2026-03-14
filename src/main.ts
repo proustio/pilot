@@ -48,18 +48,24 @@ const init = () => {
         });
 
         let matchStartTime: number | null = null;
+        let isRestoringState = false;
 
         gameLoop.onStateChange((newState) => {
             if (newState === 'SETUP_BOARD') {
                 matchStartTime = performance.now();
+            }
+
+            if (isRestoringState) return;
+
+            if (newState === 'SETUP_BOARD') {
                 entityManager.showPlayerBoard();
-                engine.targetCameraPos.set(0, 10, 12);
+                engine.targetCameraPos.set(0, 6, 8);
             } else if (newState === 'ENEMY_TURN') {
                 entityManager.showPlayerBoard();
-                engine.targetCameraPos.set(0, 14, 18);
+                engine.targetCameraPos.set(0, 8, 12);
             } else if (newState === 'PLAYER_TURN') {
                 entityManager.showEnemyBoard();
-                engine.targetCameraPos.set(0, 12, 12);
+                engine.targetCameraPos.set(0, 6, 8);
             }
         });
 
@@ -142,13 +148,22 @@ const init = () => {
             const vs: ViewState = ce.detail;
             if (!vs) return;
 
+            isRestoringState = true;
+
             engine.restoreViewState(vs.cameraX, vs.cameraY, vs.cameraZ, vs.targetX, vs.targetY, vs.targetZ);
+
+            // Also directly jump the current camera to the saved position so it doesn't animate from default
+            engine.camera.position.set(vs.cameraX, vs.cameraY, vs.cameraZ);
+            engine.orbitControls.target.set(vs.targetX, vs.targetY, vs.targetZ);
 
             if (vs.boardOrientation === 'enemy') {
                 entityManager.showEnemyBoard();
             } else {
                 entityManager.showPlayerBoard();
             }
+
+            // Clear restoring state after next tick so that state changes don't override the restored view
+            setTimeout(() => { isRestoringState = false; }, 0);
 
             Config.visual.isDayMode = vs.isDayMode;
             document.body.classList.remove('day-mode', 'night-mode');

@@ -31,7 +31,7 @@ export class Engine3D {
 
     const aspect = window.innerWidth / window.innerHeight;
     this.camera = new THREE.PerspectiveCamera(50, aspect, 0.1, 1000);
-    this.camera.position.set(0, 12, 12);
+    this.camera.position.set(0, 6, 8);
     this.camera.lookAt(0, 0, 0);
 
     this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });

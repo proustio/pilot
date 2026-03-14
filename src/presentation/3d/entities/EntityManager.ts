@@ -4,6 +4,7 @@ import { WaterShader } from '../materials/WaterShader';
 import { ParticleSystem } from './ParticleSystem';
 import { Config } from '../../../infrastructure/config/Config';
 import { getIndex } from '../../../domain/board/BoardUtils';
+import { AudioEngine } from '../../../infrastructure/audio/AudioEngine';
 
 export class EntityManager {
     private scene: THREE.Scene;
@@ -18,7 +19,7 @@ export class EntityManager {
         return Math.abs(this.targetRotationX - Math.PI) < 0.1 ? 'enemy' : 'player';
     }
     private fogMeshes: (THREE.Mesh | null)[] = new Array(Config.board.width * Config.board.height).fill(null);
-    private fallingMarkers: { mesh: THREE.Object3D, curve: THREE.QuadraticBezierCurve3, progress: number, worldX: number, worldZ: number, result: string, isPlayer: boolean, cellX: number, cellZ: number }[] = [];
+    private fallingMarkers: { mesh: THREE.Object3D, curve: THREE.QuadraticBezierCurve3, progress: number, worldX: number, worldZ: number, result: string, isPlayer: boolean, cellX: number, cellZ: number, isReplayFlag: boolean }[] = [];
 
     private time: number = 0;
     private playerWaterUniforms: any = null;
@@ -175,7 +176,7 @@ export class EntityManager {
                 this.enemyBoardGroup.add(etile);
 
                 // Voxel Fog cloud per cell - increased voxel count for density
-                const numVoxels = 30;
+                const numVoxels = 100;
                 const fogCloud = new THREE.InstancedMesh(fogVoxelGeo, fogMat, numVoxels);
                 fogCloud.position.set(worldX, 0.3, worldZ);
 
@@ -183,12 +184,12 @@ export class EntityManager {
                 const voxelData = [];
                 for (let i = 0; i < numVoxels; i++) {
                     // Spread a bit wider and taller to completely obscure cell
-                    const vx = (Math.random() - 0.5) * 0.85;
-                    const vy = (Math.random() - 0.5) * 0.6;
-                    const vz = (Math.random() - 0.5) * 0.85;
+                    const vx = (Math.random() - 0.5) * 0.95;
+                    const vy = (Math.random() - 0.5) * 0.8;
+                    const vz = (Math.random() - 0.5) * 0.95;
                     dummy.position.set(vx, vy, vz);
                     dummy.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
-                    dummy.scale.setScalar(0.8 + Math.random() * 0.6);
+                    dummy.scale.setScalar(1.0 + Math.random() * 0.8);
                     dummy.updateMatrix();
                     fogCloud.setMatrixAt(i, dummy.matrix);
 
@@ -488,6 +489,17 @@ export class EntityManager {
                     m.mesh.rotation.x = (Math.random() - 0.5) * 0.5; // Slanted slightly
                     m.mesh.rotation.z = (Math.random() - 0.5) * 0.5;
                 }
+
+                if (!m.isReplayFlag) {
+                    if (m.result === 'miss') {
+                        AudioEngine.getInstance().playSplash();
+                    } else if (m.result === 'hit') {
+                        AudioEngine.getInstance().playHit();
+                    } else if (m.result === 'sunk') {
+                        AudioEngine.getInstance().playKill();
+                    }
+                }
+
                 this.fallingMarkers.splice(i, 1);
             } else {
                 m.mesh.position.copy(m.curve.getPoint(m.progress));
@@ -753,6 +765,10 @@ export class EntityManager {
     }
 
     public addAttackMarker(x: number, z: number, result: string, isPlayer: boolean, isReplay: boolean = false) {
+        if (!isReplay) {
+            AudioEngine.getInstance().playShoot();
+        }
+
         const targetGroup = isPlayer ? this.enemyBoardGroup : this.playerBoardGroup;
 
         // High-tech glowing projectile (Attack Marker)
@@ -861,7 +877,7 @@ export class EntityManager {
 
         const friendlyShips: THREE.Group[] = [];
         sourceGroup.children.forEach((c: THREE.Object3D) => {
-            if (c.userData.isShip && c.visible && !c.userData.isSinking) friendlyShips.push(c as THREE.Group);
+            if (c.userData.isShip && !c.userData.isSinking) friendlyShips.push(c as THREE.Group);
         });
 
         if (friendlyShips.length > 0) {
@@ -889,7 +905,8 @@ export class EntityManager {
             result,
             isPlayer,
             cellX: x,
-            cellZ: z
+            cellZ: z,
+            isReplayFlag: isReplay
         });
     }
 }
