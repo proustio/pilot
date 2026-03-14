@@ -4,11 +4,11 @@
 
 | File | Change |
 |------|--------|
-| [Config.ts](file:///Users/alx/code/repos/praust/2-battlehsips/src/infrastructure/config/Config.ts) | Renamed `showFpsCounter` → `showGeekStats` |
-| [main.ts](file:///Users/alx/code/repos/praust/2-battlehsips/src/main.ts) | Dispatches `UPDATE_GEEK_STATS` with `fps`, `frameTime`, `matchStartTime`; records match start timestamp |
-| [HUD.ts](file:///Users/alx/code/repos/praust/2-battlehsips/src/presentation/ui/hud/HUD.ts) | Replaced inline FPS div with structured Geek Stats panel (bottom-left); listens for new events |
-| [Settings.ts](file:///Users/alx/code/repos/praust/2-battlehsips/src/presentation/ui/settings/Settings.ts) | Toggle renamed to "Show Geek Stats", wired to `TOGGLE_GEEK_STATS` |
-| [style.css](file:///Users/alx/code/repos/praust/2-battlehsips/src/style.css) | Added `.geek-stats-panel` styles (monospace, dark translucent bg, two-column layout) |
+| [Config.ts](file:///Users/alx/code/repos/praust/2-battleships/src/infrastructure/config/Config.ts) | Renamed `showFpsCounter` → `showGeekStats` |
+| [main.ts](file:///Users/alx/code/repos/praust/2-battleships/src/main.ts) | Dispatches `UPDATE_GEEK_STATS` with `fps`, `frameTime`, `matchStartTime`; records match start timestamp |
+| [HUD.ts](file:///Users/alx/code/repos/praust/2-battleships/src/presentation/ui/hud/HUD.ts) | Replaced inline FPS div with structured Geek Stats panel (bottom-left); listens for new events |
+| [Settings.ts](file:///Users/alx/code/repos/praust/2-battleships/src/presentation/ui/settings/Settings.ts) | Toggle renamed to "Show Geek Stats", wired to `TOGGLE_GEEK_STATS` |
+| [style.css](file:///Users/alx/code/repos/praust/2-battleships/src/style.css) | Added `.geek-stats-panel` styles (monospace, dark translucent bg, two-column layout) |
 
 ## Verification
 

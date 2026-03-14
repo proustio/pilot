@@ -6,11 +6,11 @@ Replaced the inline FPS counter with a styled Geek Stats panel at bottom-left, s
 
 | File | Change |
 |------|--------|
-| [Config.ts](file:///Users/alx/code/repos/praust/2-battlehsips/src/infrastructure/config/Config.ts) | `showFpsCounter` → `showGeekStats` |
-| [main.ts](file:///Users/alx/code/repos/praust/2-battlehsips/src/main.ts) | `UPDATE_GEEK_STATS` with fps/frameTime/matchStartTime |
-| [HUD.ts](file:///Users/alx/code/repos/praust/2-battlehsips/src/presentation/ui/hud/HUD.ts) | New `#geek-stats` panel |
-| [Settings.ts](file:///Users/alx/code/repos/praust/2-battlehsips/src/presentation/ui/settings/Settings.ts) | Toggle renamed |
-| [style.css](file:///Users/alx/code/repos/praust/2-battlehsips/src/style.css) | `.geek-stats-panel` styles |
+| [Config.ts](file:///Users/alx/code/repos/praust/2-battleships/src/infrastructure/config/Config.ts) | `showFpsCounter` → `showGeekStats` |
+| [main.ts](file:///Users/alx/code/repos/praust/2-battleships/src/main.ts) | `UPDATE_GEEK_STATS` with fps/frameTime/matchStartTime |
+| [HUD.ts](file:///Users/alx/code/repos/praust/2-battleships/src/presentation/ui/hud/HUD.ts) | New `#geek-stats` panel |
+| [Settings.ts](file:///Users/alx/code/repos/praust/2-battleships/src/presentation/ui/settings/Settings.ts) | Toggle renamed |
+| [style.css](file:///Users/alx/code/repos/praust/2-battleships/src/style.css) | `.geek-stats-panel` styles |
 
 ![Geek Stats panel in bottom-left corner](/Users/alx/.gemini/antigravity/brain/c2b65a4a-6dcb-4efa-b124-d54b67701695/geek_stats_hud_visible_1773251563846.png)
 
@@ -22,13 +22,13 @@ Built a working 3-slot save/load system with proper Ship/Board serialisation, ac
 
 | File | Change |
 |------|--------|
-| [Storage.ts](file:///Users/alx/code/repos/praust/2-battlehsips/src/infrastructure/storage/Storage.ts) | Full rewrite — proper serialise/deserialise with metadata |
-| [SaveLoadDialog.ts](file:///Users/alx/code/repos/praust/2-battlehsips/src/presentation/ui/components/SaveLoadDialog.ts) | **[NEW]** Reusable modal with save/load modes, 3 slots, overwrite confirm |
-| [MainMenu.ts](file:///Users/alx/code/repos/praust/2-battlehsips/src/presentation/ui/menu/MainMenu.ts) | "Game Saves" button → load dialog |
-| [Settings.ts](file:///Users/alx/code/repos/praust/2-battlehsips/src/presentation/ui/settings/Settings.ts) | Save, Load, Exit to Main Menu buttons; unsaved-progress confirm |
-| [GameLoop.ts](file:///Users/alx/code/repos/praust/2-battlehsips/src/application/game-loop/GameLoop.ts) | [hasUnsavedProgress()](file:///Users/alx/code/repos/praust/2-battlehsips/src/application/game-loop/GameLoop.ts#112-121), `SAVE_GAME`/`LOAD_GAME` events, auto-load |
-| [UIManager.ts](file:///Users/alx/code/repos/praust/2-battlehsips/src/presentation/ui/UIManager.ts) | Dialog mounting, event wiring, sessionStorage auto-load |
-| [style.css](file:///Users/alx/code/repos/praust/2-battlehsips/src/style.css) | Save/load dialog + confirm overlay styles |
+| [Storage.ts](file:///Users/alx/code/repos/praust/2-battleships/src/infrastructure/storage/Storage.ts) | Full rewrite — proper serialise/deserialise with metadata |
+| [SaveLoadDialog.ts](file:///Users/alx/code/repos/praust/2-battleships/src/presentation/ui/components/SaveLoadDialog.ts) | **[NEW]** Reusable modal with save/load modes, 3 slots, overwrite confirm |
+| [MainMenu.ts](file:///Users/alx/code/repos/praust/2-battleships/src/presentation/ui/menu/MainMenu.ts) | "Game Saves" button → load dialog |
+| [Settings.ts](file:///Users/alx/code/repos/praust/2-battleships/src/presentation/ui/settings/Settings.ts) | Save, Load, Exit to Main Menu buttons; unsaved-progress confirm |
+| [GameLoop.ts](file:///Users/alx/code/repos/praust/2-battleships/src/application/game-loop/GameLoop.ts) | [hasUnsavedProgress()](file:///Users/alx/code/repos/praust/2-battleships/src/application/game-loop/GameLoop.ts#112-121), `SAVE_GAME`/`LOAD_GAME` events, auto-load |
+| [UIManager.ts](file:///Users/alx/code/repos/praust/2-battleships/src/presentation/ui/UIManager.ts) | Dialog mounting, event wiring, sessionStorage auto-load |
+| [style.css](file:///Users/alx/code/repos/praust/2-battleships/src/style.css) | Save/load dialog + confirm overlay styles |
 
 ````carousel
 ![Pause menu with Save/Load/Exit buttons](/Users/alx/.gemini/antigravity/brain/c2b65a4a-6dcb-4efa-b124-d54b67701695/pause_menu_save_load.png)

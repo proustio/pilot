@@ -1,6 +1,6 @@
 # Iteration 4 — Task List
 
-Derived from [summary.md](file:///Users/alx/code/repos/praust/2-battlehsips/docs/iter-4/summary.md).
+Derived from [summary.md](file:///Users/alx/code/repos/praust/2-battleships/docs/iter-4/summary.md).
 Each item is an independent, committable change.
 
 ---
