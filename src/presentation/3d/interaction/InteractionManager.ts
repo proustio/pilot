@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { GameState } from '../../../application/game-loop/GameLoop';
 import { Orientation } from '../../../domain/fleet/Ship';
+import { CellState } from '../../../domain/board/Board';
 
 export class InteractionManager {
   private raycaster: THREE.Raycaster;
@@ -136,10 +137,7 @@ export class InteractionManager {
           const index = z * targetBoard.width + x;
           const cellState = targetBoard.gridState[index];
 
-          // 0 is typically CellState.Empty, let's verify if cellState > 0 means it has been shot at
-          // We know CellState.Empty is likely 0, and Hit, Miss, Sunk are > 0
-          // Wait, I will need to import CellState to be safe, but let's check `targetBoard.gridState[index] !== 0`
-          if (cellState !== 0) {
+          if (cellState === CellState.Hit || cellState === CellState.Miss || cellState === CellState.Sunk) {
             this.playErrorSound();
             return; // Prevent click from propagating
           }
@@ -219,7 +217,8 @@ export class InteractionManager {
           if (this.gameLoop && this.gameLoop.match && this.gameLoop.currentState === GameState.PLAYER_TURN) {
             const targetBoard = isPlayerSide ? this.gameLoop.match.playerBoard : this.gameLoop.match.enemyBoard;
             const index = z * targetBoard.width + x;
-            if (targetBoard.gridState[index] !== 0) {
+            const st = targetBoard.gridState[index];
+            if (st === CellState.Hit || st === CellState.Miss || st === CellState.Sunk) {
               showHover = false;
             }
           }
