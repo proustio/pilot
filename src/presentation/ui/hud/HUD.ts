@@ -82,6 +82,7 @@ export class HUD extends BaseUIComponent {
                 <button id="hud-btn-auto-battler" class="voxel-btn ui-interactive" style="width: auto; padding: 10px;" title="Toggle Auto-Battler">🤖</button>
                 <button id="hud-btn-peek" class="voxel-btn ui-interactive" style="width: auto; padding: 10px; display: ${Config.visual.peekEnabled ? 'inline-block' : 'none'};" title="Peek at other side">👁️</button>
                 <button id="hud-btn-day-night" class="voxel-btn ui-interactive" style="width: auto; padding: 10px;" title="Toggle Day/Night">${Config.visual.isDayMode ? '🌞' : '🌚'}</button>
+                <button id="hud-btn-fps" class="voxel-btn ui-interactive" style="width: auto; padding: 10px;" title="Cycle FPS Cap">${Config.visual.fpsCap || 60} FPS</button>
                 <button id="hud-btn-speed" class="voxel-btn ui-interactive" style="width: auto; padding: 10px;" title="Cycle Speed">${this.getSpeedLabel(Config.timing.gameSpeedMultiplier)}</button>
                 <button id="hud-btn-settings" class="voxel-btn ui-interactive" style="width: auto; padding: 10px;" title="Pause Menu">⏸️</button>
             </div>
@@ -170,6 +171,28 @@ export class HUD extends BaseUIComponent {
             document.dispatchEvent(new CustomEvent('SET_GAME_SPEED', { detail: { speed: nextSpeed.toFixed(1) } }));
         });
         
+        const fpsBtn = this.container.querySelector('#hud-btn-fps') as HTMLButtonElement;
+        const fpsCycle = [30, 60, 120];
+        fpsBtn.addEventListener('click', () => {
+            let currentIndex = fpsCycle.indexOf(Config.visual.fpsCap);
+            if (currentIndex === -1) currentIndex = 1; // default to 60
+
+            const nextIndex = (currentIndex + 1) % fpsCycle.length;
+            const nextFps = fpsCycle[nextIndex];
+
+            Config.visual.fpsCap = nextFps;
+            Config.saveConfig();
+            fpsBtn.innerText = `${nextFps} FPS`;
+            document.dispatchEvent(new CustomEvent('SET_FPS_CAP', { detail: { fpsCap: nextFps } }));
+        });
+
+        document.addEventListener('SET_FPS_CAP', (e: Event) => {
+            const customEvent = e as CustomEvent;
+            if (customEvent.detail && customEvent.detail.fpsCap) {
+                fpsBtn.innerText = `${customEvent.detail.fpsCap} FPS`;
+            }
+        });
+
         document.addEventListener('SET_GAME_SPEED', (e: Event) => {
             const customEvent = e as CustomEvent;
             if (customEvent.detail && customEvent.detail.speed) {
