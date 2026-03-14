@@ -79,11 +79,9 @@ export class SaveLoadDialog extends BaseUIComponent {
             </div>
         `;
 
-        // Close button
         const closeBtn = this.container.querySelector('#btn-close-save-load') as HTMLButtonElement;
         closeBtn.addEventListener('click', () => this.hide());
 
-        // Slot clicks
         const slotButtons = this.container.querySelectorAll('.save-slot');
         slotButtons.forEach(btn => {
             btn.addEventListener('click', () => {
@@ -105,7 +103,6 @@ export class SaveLoadDialog extends BaseUIComponent {
             });
         });
 
-        // Delete clicks
         const deleteButtons = this.container.querySelectorAll('.slot-delete-btn');
         deleteButtons.forEach(btn => {
             btn.addEventListener('click', (e) => {
@@ -142,7 +139,6 @@ export class SaveLoadDialog extends BaseUIComponent {
 
     private doSave(slotId: number): void {
         document.dispatchEvent(new CustomEvent('SAVE_GAME', { detail: { slotId } }));
-        // Re-render to show updated slot info
         this.render();
     }
 

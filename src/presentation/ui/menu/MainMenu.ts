@@ -37,7 +37,6 @@ export class MainMenu extends BaseUIComponent {
             <button id="btn-settings" class="voxel-btn" style="margin-top: 10px;">Settings</button>
         `;
 
-        // Bind events
         const newGameBtn = this.container.querySelector('#btn-new-game') as HTMLButtonElement;
         const modeSelect = this.container.querySelector('#mode-select') as HTMLSelectElement;
         const autoBattlerToggle = this.container.querySelector('#auto-battler-toggle') as HTMLInputElement;
@@ -52,7 +51,6 @@ export class MainMenu extends BaseUIComponent {
             if (modeValue === 'russian') {
                 matchMode = MatchMode.Russian;
             } else if (modeValue === 'rogue') {
-                // Not supported yet, fallback to Classic
                 console.warn('Rogue mode placeholder selected. Defaulting to Classic.');
                 matchMode = MatchMode.Classic;
             }
@@ -71,7 +69,6 @@ export class MainMenu extends BaseUIComponent {
             document.dispatchEvent(new CustomEvent('SHOW_SETTINGS'));
         });
 
-        // Sync auto-battler from settings
         document.addEventListener('TOGGLE_AUTO_BATTLER', (e: Event) => {
             const ce = e as CustomEvent;
             if (ce.detail && ce.detail.enabled !== undefined) {

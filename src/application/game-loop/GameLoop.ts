@@ -152,8 +152,6 @@ export class GameLoop {
     public triggerAutoSave() {
         if (!this.match || !this.hasUnsavedProgress()) return;
 
-        // We emit a SAVE_GAME event with slotId='session' so that UIManager/main.ts
-        // intercepts it and populates viewState before Storage.saveGame is called.
         document.dispatchEvent(new CustomEvent('SAVE_GAME', {
             detail: { slotId: 'session' }
         }));
@@ -168,10 +166,8 @@ export class GameLoop {
         const oldState = this.currentState;
         this.currentState = newState;
 
-        // Broadcast
         this.listeners.forEach(listener => listener(newState, oldState));
 
-        // Auto-save the session when the turn changes or game ends
         this.triggerAutoSave();
 
         if (newState === GameState.GAME_OVER) {
@@ -190,7 +186,6 @@ export class GameLoop {
         this.aiEngine.reset();
         this.playerAIEngine.reset();
 
-        // Setup fleets
         this.playerShipsToPlace = match.getRequiredFleet();
 
         if (Config.autoBattler) {
@@ -247,10 +242,8 @@ export class GameLoop {
     public loadMatch(match: Match) {
         this.match = match;
 
-        // Replay ship placement events so 3D entity meshes get spawned
         this.replayShips(match);
 
-        // Replay attack results so 3D markers are placed instantly (isReplay=true)
         this.replayAttacks(match);
 
         this.transitionTo(GameState.PLAYER_TURN);
@@ -285,7 +278,6 @@ export class GameLoop {
             [CellState.Sunk]: 'sunk',
         };
 
-        // Attacks on player board were fired by the enemy → isPlayer=false
         match.playerBoard.gridState.forEach((cell, index) => {
             const result = resultMap[cell];
             if (result) {
@@ -294,7 +286,6 @@ export class GameLoop {
             }
         });
 
-        // Attacks on enemy board were fired by the player → isPlayer=true
         match.enemyBoard.gridState.forEach((cell, index) => {
             const result = resultMap[cell];
             if (result) {
@@ -319,7 +310,6 @@ export class GameLoop {
 
             this.isAnimating = true;
 
-            // Wait for board flip to settle, then add thinking delay
             const flipWait = Config.timing.boardFlipWaitMs / Config.timing.gameSpeedMultiplier;
             setTimeout(() => {
                 setTimeout(() => {
@@ -337,7 +327,6 @@ export class GameLoop {
 
                     this.aiEngine.reportResult(target.x, target.z, result.toString(), this.match.playerBoard);
 
-                    // Show the result maker
                     this.attackResultListeners.forEach(l => l(target.x, target.z, result.toString(), false, false));
 
                     const finalizeTurn = () => {
@@ -380,7 +369,6 @@ export class GameLoop {
 
             this.isAnimating = true;
 
-            // Wait for board flip to settle, then add thinking delay
             const flipWait = Config.timing.boardFlipWaitMs / Config.timing.gameSpeedMultiplier;
             setTimeout(() => {
                 setTimeout(() => {
@@ -398,7 +386,6 @@ export class GameLoop {
 
                     this.playerAIEngine.reportResult(target.x, target.z, result.toString(), this.match.enemyBoard);
 
-                    // Show the result maker
                     this.attackResultListeners.forEach(l => l(target.x, target.z, result.toString(), true, false));
 
                     const finalizeTurn = () => {
@@ -441,7 +428,7 @@ export class GameLoop {
             if (isValid) {
                 const placed = this.match.playerBoard.placeShip(nextShip, x, z, this.currentPlacementOrientation);
                 if (placed) {
-                    this.playerShipsToPlace.shift(); // Remove from queue
+                    this.playerShipsToPlace.shift();
                     this.shipPlacedListeners.forEach(l => l(nextShip, x, z, this.currentPlacementOrientation, true));
 
                     this.triggerAutoSave();

@@ -375,7 +375,6 @@ export class EntityManager {
                     }
                 }
 
-                // Reveal Fog
                 if (m.isPlayer) {
                     const fogIdx = getIndex(m.cellX, m.cellZ, Config.board.width);
                     const fogMesh = this.fogMeshes[fogIdx];
@@ -386,14 +385,9 @@ export class EntityManager {
                 }
 
                 if (m.result === 'hit' || m.result === 'sunk') {
-                    // Projectile voxel explosion already handled above
-
-                    // Spawn basic explosion
                     this.particleSystem.spawnExplosion(m.worldX, 0.4, m.worldZ, targetGroup);
-                    // Start emitter for smoke
                     this.particleSystem.addEmitter(m.worldX, 0.4, m.worldZ, m.result === 'sunk', targetGroup);
 
-                    // Handle Voxel Destruction
                     const impactPos = new THREE.Vector3(m.worldX, 0.4, m.worldZ);
                     let voxelsRemoved = 0;
 
@@ -403,23 +397,20 @@ export class EntityManager {
                             const dummy = new THREE.Object3D();
                             let updated = false;
 
-                            // Percentage of voxels within radius to destroy
                             const destroyRatio = m.result === 'sunk' ? 0.85 : 0.25;
-                            const blastRadius = 0.65; // Fixed radius to identify "part" voxels
+                            const blastRadius = 0.65;
 
                             for (let i = 0; i < im.count; i++) {
                                 im.getMatrixAt(i, dummy.matrix);
                                 dummy.matrix.decompose(dummy.position, dummy.quaternion, dummy.scale);
 
                                 if (dummy.scale.x > 0) {
-                                    // Transform dummy local position to world position
                                     const worldVoxelPos = dummy.position.clone();
                                     child.localToWorld(worldVoxelPos);
 
-                                    // If voxel is within radius and passes probability check
                                     if (worldVoxelPos.distanceTo(impactPos) < blastRadius) {
                                         if (Math.random() < destroyRatio) {
-                                            dummy.scale.set(0, 0, 0); // "Destroy" voxel
+                                            dummy.scale.set(0, 0, 0);
                                             dummy.updateMatrix();
                                             im.setMatrixAt(i, dummy.matrix);
                                             updated = true;
@@ -502,18 +493,16 @@ export class EntityManager {
             }
         }
 
-        // Animate Sinking Ships
         const descentRate = 0.005 * Config.timing.gameSpeedMultiplier;
-        const sinkFloor = -1.1; // Rest just above the sand bottom (world y ≈ 0.1)
+        const sinkFloor = -1.1;
         [this.playerBoardGroup, this.enemyBoardGroup].forEach(group => {
             group.children.forEach(child => {
                 if (child.userData.isShip && child.userData.isSinking) {
                     if (child.position.y > sinkFloor) {
                         child.position.y -= descentRate;
-                        // Add a gentle settling tilt as ship sinks
                         const sinkProgress = Math.min(1.0, -child.position.y / Math.abs(sinkFloor));
-                        child.rotation.z = sinkProgress * 0.15; // Subtle lean
-                        child.rotation.x = sinkProgress * 0.08; // Slight forward pitch
+                        child.rotation.z = sinkProgress * 0.15;
+                        child.rotation.x = sinkProgress * 0.08;
                     }
                 }
             });
@@ -523,7 +512,6 @@ export class EntityManager {
     public addShip(ship: Ship, x: number, z: number, orientation: Orientation, isPlayer: boolean) {
         const targetGroup = isPlayer ? this.playerBoardGroup : this.enemyBoardGroup;
 
-        // Create a parent group for the whole ship
         const shipGroup = new THREE.Group();
         shipGroup.userData = {
             isShip: true,
@@ -538,22 +526,18 @@ export class EntityManager {
             }
         };
 
-        // Position ship group at the ship's origin cell
         const boardOffset = Config.board.width / 2;
         const originWorldX = x - boardOffset + 0.5;
         const originWorldZ = z - boardOffset + 0.5;
         shipGroup.position.set(originWorldX, 0, originWorldZ);
-        shipGroup.visible = isPlayer; // Hide enemy ships initially
+        shipGroup.visible = isPlayer;
 
-        // --- Color palette ---
-        // Player: Metallic Grey with Navy Blue accents, Enemy: Navy Blue with Metallic Grey accents
         const hullColor = isPlayer ? new THREE.Color(0x757575) : new THREE.Color(0x001f3f);
         const deckColor = isPlayer ? new THREE.Color(0x9e9e9e) : new THREE.Color(0x003366);
         const accentColor = isPlayer ? new THREE.Color(0x001f3f) : new THREE.Color(0x757575);
         const bridgeColor = isPlayer ? new THREE.Color(0x616161) : new THREE.Color(0x002b55);
         const darkAccent = isPlayer ? new THREE.Color(0x001a33) : new THREE.Color(0x424242);
 
-        // Build the ship from tiny voxels using InstancedMesh
         const voxelSize = 0.1;
         const voxelGeo = new THREE.BoxGeometry(voxelSize, voxelSize, voxelSize);
 
@@ -565,7 +549,6 @@ export class EntityManager {
         const L = ship.size * 10;
         const centerX = L / 2 - 0.5;
 
-        // Custom designs based on ship size
         const isCarrier = ship.size === 5;
         const isBattleship = ship.size === 4;
         const isDestroyer = ship.size === 3;
@@ -573,19 +556,15 @@ export class EntityManager {
         const getHullWidth = (xNorm: number): number => {
             const absX = Math.abs(xNorm);
             if (isCarrier) {
-                // Wide flat deck, tapers sharply at ends
                 if (absX > 0.8) return 2.0 + 3.0 * (1.0 - (absX - 0.8) / 0.2);
                 return 5.0;
             } else if (isBattleship) {
-                // Thicker middle, steady taper
                 if (absX > 0.7) return 1.5 + 2.5 * (1.0 - (absX - 0.7) / 0.3);
                 return 4.0;
             } else if (isDestroyer) {
-                // Slimmer body
                 if (absX > 0.6) return 1.0 + 2.0 * (1.0 - (absX - 0.6) / 0.4);
                 return 3.0;
             } else {
-                // Patrol boat, tiny taper
                 if (absX > 0.5) return 1.0 + 1.0 * (1.0 - (absX - 0.5) / 0.5);
                 return 2.0;
             }
@@ -594,21 +573,17 @@ export class EntityManager {
         const getBridgeHeight = (xNorm: number, isEdge: boolean, shipWidthPos: number, maxW: number): number => {
             const absX = Math.abs(xNorm);
             if (isCarrier) {
-                // Island on one side
-                const isIslandSide = (maxW - shipWidthPos) <= 2.0; // right side
+                const isIslandSide = (maxW - shipWidthPos) <= 2.0;
                 if (absX < 0.2 && isIslandSide && !isEdge) return 4;
-                return 1; // Flat deck elsewhere
+                return 1;
             } else if (isBattleship) {
-                // Tall central tower
                 if (absX < 0.15 && !isEdge) return 5;
                 if (absX < 0.3 && !isEdge) return 3;
                 return 1;
             } else if (isDestroyer) {
-                // Medium bridge
                 if (xNorm > -0.2 && xNorm < 0.1 && !isEdge) return 3;
                 return 1;
             } else {
-                // Small cabin in back
                 if (xNorm > 0.0 && xNorm < 0.4 && !isEdge) return 2;
                 return 1;
             }
@@ -631,7 +606,6 @@ export class EntityManager {
 
                     let maxLy = getBridgeHeight(xNorm, isEdge, shipWidthPos, maxW);
 
-                    // Bow rise
                     if (isEdge || isBowStern) {
                         const bowRise = isCarrier ? 0 : Math.pow(Math.max(0, Math.abs(xNorm) - 0.7) / 0.3, 2) * 2;
                         maxLy = Math.max(maxLy, 2 + bowRise);
@@ -641,7 +615,6 @@ export class EntityManager {
                         let color = hullColor;
                         if (ly === maxLy && !isEdge) {
                             color = deckColor;
-                            // Add carrier deck lines
                             if (isCarrier && !isEdge && shipWidthPos === Math.floor(center)) {
                                 color = darkAccent;
                             }
@@ -649,7 +622,6 @@ export class EntityManager {
                             color = accentColor;
                         } else if (ly > 2 && !isEdge) {
                             color = bridgeColor;
-                            // Windows
                             if (ly === maxLy && (lx % 2 === 0)) color = darkAccent;
                         }
 
@@ -691,7 +663,6 @@ export class EntityManager {
         shipGroup.userData.instancedMesh = instancedMesh;
         shipGroup.add(instancedMesh);
 
-        // --- Cannon Turrets ---
         const turretCount = ship.size <= 2 ? 1 : ship.size <= 4 ? 2 : 3;
         const turretBaseMat = new THREE.MeshStandardMaterial({ color: 0x2a2a2a, roughness: 0.6 });
         const barrelMat = new THREE.MeshStandardMaterial({ color: 0x555555, roughness: 0.5 });
@@ -701,8 +672,6 @@ export class EntityManager {
         for (let i = 0; i < turretCount; i++) {
             const turretGroup = new THREE.Group();
 
-            // Distribute turrets evenly along the ship length
-            // Using (i + 1) / (turretCount + 1) ensures perfect spacing
             const tPos = ((i + 1) / (turretCount + 1)) * shipLen - 0.5;
 
             const baseGeo = new THREE.BoxGeometry(0.15, 0.08, 0.15);
@@ -731,7 +700,6 @@ export class EntityManager {
 
         targetGroup.add(shipGroup);
 
-        // Initial Ripple in center
         const cx = orientation === Orientation.Horizontal ? x + Math.floor(ship.size / 2) : x;
         const cz = orientation === Orientation.Vertical ? z + Math.floor(ship.size / 2) : z;
         const rippleWorldX = cx - boardOffset + 0.5;
@@ -740,39 +708,30 @@ export class EntityManager {
     }
 
     public addAttackMarker(x: number, z: number, result: string, isPlayer: boolean, isReplay: boolean = false) {
-        // If the player fired the shot, it lands on the enemy board. If the enemy fired, it lands on the player board.
         const targetGroup = isPlayer ? this.enemyBoardGroup : this.playerBoardGroup;
 
-        // Projectile now uses black and white stripes for high visibility.
-        // We set the base material to white, and then color individual voxels.
         const activeMat = new THREE.MeshStandardMaterial({
             color: 0xffffff,
             roughness: 0.5,
-            vertexColors: true // Enable vertex colors for InstancedMesh
+            vertexColors: true
         });
-        // Make the marker glow slightly while flying, then we'll remove emission on hit
         const activeGlowColor = result === 'hit' || result === 'sunk' ? 0x880000 : 0x444444;
         activeMat.emissive.setHex(activeGlowColor);
 
         const marker = new THREE.Group();
         marker.userData = { originalMat: activeMat, isAttackMarker: true };
 
-        // Create a inner group to handle the 25-degree pitch down offset
         const rocketModel = new THREE.Group();
-        rocketModel.rotation.x = 25 * Math.PI / 180; // Pitch down 25 degrees
+        rocketModel.rotation.x = 25 * Math.PI / 180;
         marker.add(rocketModel);
 
-        // Voxel Missile
         const voxelSize = 0.05;
         const voxelGeo = new THREE.BoxGeometry(voxelSize, voxelSize, voxelSize);
 
-        // Define voxel positions for a small missile shape pointing +z
         const voxels: THREE.Vector3[] = [];
 
-        // Body (3x3 grid, 8 blocks long)
         for (let x = -1; x <= 1; x++) {
             for (let y = -1; y <= 1; y++) {
-                // Remove corners for rounded shape
                 if (Math.abs(x) === 1 && Math.abs(y) === 1) continue;
 
                 for (let z = 0; z < 8; z++) {
@@ -781,15 +740,13 @@ export class EntityManager {
             }
         }
 
-        // Nose (tapered)
         voxels.push(new THREE.Vector3(0, voxelSize, 8 * voxelSize));
         voxels.push(new THREE.Vector3(0, -voxelSize, 8 * voxelSize));
         voxels.push(new THREE.Vector3(voxelSize, 0, 8 * voxelSize));
         voxels.push(new THREE.Vector3(-voxelSize, 0, 8 * voxelSize));
         voxels.push(new THREE.Vector3(0, 0, 8 * voxelSize));
-        voxels.push(new THREE.Vector3(0, 0, 9 * voxelSize)); // Tip
+        voxels.push(new THREE.Vector3(0, 0, 9 * voxelSize));
 
-        // Fins
         for (let z = 0; z < 3; z++) {
             voxels.push(new THREE.Vector3(2 * voxelSize, 0, z * voxelSize));
             voxels.push(new THREE.Vector3(-2 * voxelSize, 0, z * voxelSize));
@@ -809,8 +766,6 @@ export class EntityManager {
             dummy.updateMatrix();
             instancedMissile.setMatrixAt(i, dummy.matrix);
 
-            // Create stripes along the Z-axis (projectile length)
-            // Voxel size is 0.05, so z/0.05 gives the voxel index along the axis
             const zIndex = Math.round(pos.z / voxelSize);
             const isBlackStripe = zIndex % 2 === 0;
             instancedMissile.setColorAt(i, isBlackStripe ? black : white);
@@ -825,15 +780,13 @@ export class EntityManager {
 
         const targetLocalPos = new THREE.Vector3(worldX, 0.4, worldZ);
 
-        // Instant placement for replay — skip arc animation entirely
         if (isReplay) {
             if (marker.userData.instancedMesh) {
                 const im = marker.userData.instancedMesh as THREE.InstancedMesh;
                 const finalMat = marker.userData.originalMat.clone();
-                finalMat.emissive.setHex(0x000000); // kill the glow
+                finalMat.emissive.setHex(0x000000);
                 im.material = finalMat;
 
-                // Also apply partial destruction visually so replays don't look brand new
                 const destroyRatio = result === 'hit' || result === 'sunk' ? 0.60 : 0.30;
                 const dummy = new THREE.Object3D();
                 for (let j = 0; j < im.count; j++) {
@@ -848,7 +801,6 @@ export class EntityManager {
                 im.instanceMatrix.needsUpdate = true;
             }
             marker.position.set(worldX, 0.4, worldZ);
-            // Clear fog for replayed player attacks
             if (isPlayer) {
                 this.clearFogCell(x, z);
             }
@@ -856,7 +808,6 @@ export class EntityManager {
             return;
         }
 
-        // Find a random friendly ship block to start from
         const sourceGroup = isPlayer ? this.playerBoardGroup : this.enemyBoardGroup;
         let startPos = new THREE.Vector3((Math.random() - 0.5) * 10, 5, (Math.random() - 0.5) * 10);
 
@@ -868,22 +819,18 @@ export class EntityManager {
         if (friendlyShips.length > 0) {
             const randomShip = friendlyShips[Math.floor(Math.random() * friendlyShips.length)];
             randomShip.getWorldPosition(startPos);
-            targetGroup.worldToLocal(startPos); // Convert to targetGroup's local space
+            targetGroup.worldToLocal(startPos);
         } else {
-            // Fallback if no ships visible
             startPos.set(0, 10, 0);
         }
 
-        // Control point for parabolic arc
         const midPoint = new THREE.Vector3().addVectors(startPos, targetLocalPos).multiplyScalar(0.5);
-        midPoint.y += 5.0; // Arch up by 5 units
+        midPoint.y += 5.0;
 
         const curve = new THREE.QuadraticBezierCurve3(startPos, midPoint, targetLocalPos);
 
         marker.position.copy(startPos);
         targetGroup.add(marker);
-
-        // Note: ripple and turbulence now triggered on impact (in update loop), not here
 
         this.fallingMarkers.push({
             mesh: marker,

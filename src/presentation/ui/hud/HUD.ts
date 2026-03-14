@@ -142,12 +142,10 @@ export class HUD extends BaseUIComponent {
             document.dispatchEvent(new CustomEvent('TOGGLE_AUTO_BATTLER', { detail: { enabled: Config.autoBattler } }));
         });
 
-        // Listen for peek enabled/disabled from settings
         document.addEventListener('PEEK_ENABLED_CHANGED', (e: Event) => {
             const ce = e as CustomEvent;
             if (ce.detail && ce.detail.enabled !== undefined) {
                 peekBtn.style.display = ce.detail.enabled ? 'inline-block' : 'none';
-                // If peek was active and feature gets disabled, stop peeking
                 if (!ce.detail.enabled && isPeeking) {
                     isPeeking = false;
                     peekBtn.style.opacity = '1';
@@ -161,7 +159,7 @@ export class HUD extends BaseUIComponent {
         const speedCycle = [0.5, 1.0, 2.0, 4.0];
         speedBtn.addEventListener('click', () => {
             let currentIndex = speedCycle.indexOf(Config.timing.gameSpeedMultiplier);
-            if (currentIndex === -1) currentIndex = 1; // Default to 1.0x if somehow out of bounds
+            if (currentIndex === -1) currentIndex = 1;
             
             const nextIndex = (currentIndex + 1) % speedCycle.length;
             const nextSpeed = speedCycle[nextIndex];
@@ -172,7 +170,6 @@ export class HUD extends BaseUIComponent {
             document.dispatchEvent(new CustomEvent('SET_GAME_SPEED', { detail: { speed: nextSpeed.toFixed(1) } }));
         });
         
-        // Listen for internal speed changes triggered from Settings Modal
         document.addEventListener('SET_GAME_SPEED', (e: Event) => {
             const customEvent = e as CustomEvent;
             if (customEvent.detail && customEvent.detail.speed) {
@@ -205,7 +202,6 @@ export class HUD extends BaseUIComponent {
             if (fpsEl) fpsEl.textContent = `${d.fps}`;
             if (frameEl) frameEl.textContent = `${d.frameTime.toFixed(1)} ms`;
 
-            // RAM — Chrome-only API
             if (ramEl) {
                 const mem = (performance as any).memory;
                 if (mem) {
@@ -214,7 +210,6 @@ export class HUD extends BaseUIComponent {
                 }
             }
 
-            // Elapsed game time
             if (timeEl && d.matchStartTime) {
                 const elapsed = Math.floor((performance.now() - d.matchStartTime) / 1000);
                 const mins = String(Math.floor(elapsed / 60)).padStart(2, '0');
@@ -260,7 +255,6 @@ export class HUD extends BaseUIComponent {
             this.turnIndicator.innerText = matchStatus === 'player_wins' ? "VICTORY!" : "DEFEAT!";
         }
         
-        // Update Fleet remaining ships
         this.updateCounters();
     }
     
@@ -268,7 +262,6 @@ export class HUD extends BaseUIComponent {
         if (this.gameLoop.match) {
             const renderIcons = (container: HTMLElement, ships: any[]) => {
                 container.innerHTML = '';
-                // Sort ships by size descending
                 const sortedShips = [...ships].sort((a, b) => b.size - a.size);
                 
                 sortedShips.forEach(ship => {
@@ -294,9 +287,6 @@ export class HUD extends BaseUIComponent {
         if (this.gameLoop.match) {
             const enemyBoard = this.gameLoop.match.enemyBoard;
 
-            // Player attacks enemy board, so stats are on enemyBoard (shots fired at enemy)
-            // Or total shots fired by both? The prompt says "shots fired, hit/miss ratio"
-            // Usually this means the player's performance.
             const shots = enemyBoard.shotsFired;
             const hits = enemyBoard.hits;
             const ratio = shots > 0 ? Math.round((hits / shots) * 100) : 0;
