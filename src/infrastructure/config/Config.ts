@@ -20,7 +20,8 @@ export const Config = {
     visual: {
         isDayMode: new Date().getHours() >= 6 && new Date().getHours() < 18,
         showGeekStats: false,
-        peekEnabled: true
+        peekEnabled: true,
+        fpsCap: 60
     },
     autoBattler: false,
     aiDifficulty: 'normal',
@@ -43,6 +44,9 @@ export const Config = {
                 if (parsedConfig.visual?.peekEnabled !== undefined) {
                     this.visual.peekEnabled = parsedConfig.visual.peekEnabled;
                 }
+                if (parsedConfig.visual?.fpsCap !== undefined) {
+                    this.visual.fpsCap = parsedConfig.visual.fpsCap;
+                }
                 if (parsedConfig.autoBattler !== undefined) {
                     this.autoBattler = parsedConfig.autoBattler;
                 }
@@ -64,7 +68,8 @@ export const Config = {
                 visual: {
                     isDayMode: this.visual.isDayMode,
                     showGeekStats: this.visual.showGeekStats,
-                    peekEnabled: this.visual.peekEnabled
+                    peekEnabled: this.visual.peekEnabled,
+                    fpsCap: this.visual.fpsCap
                 },
                 autoBattler: this.autoBattler,
                 aiDifficulty: this.aiDifficulty

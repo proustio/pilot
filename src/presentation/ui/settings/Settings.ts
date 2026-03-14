@@ -47,6 +47,15 @@ export class Settings extends BaseUIComponent {
             </div>
 
             <div class="settings-row">
+                <label>FPS Cap:</label>
+                <select id="fps-cap" class="voxel-select" style="width: auto;">
+                    <option value="30" ${Config.visual.fpsCap === 30 ? 'selected' : ''}>30 FPS</option>
+                    <option value="60" ${Config.visual.fpsCap === 60 ? 'selected' : ''}>60 FPS</option>
+                    <option value="120" ${Config.visual.fpsCap === 120 ? 'selected' : ''}>120 FPS</option>
+                </select>
+            </div>
+
+            <div class="settings-row">
                 <label>Auto-Battler:</label>
                 <input type="checkbox" id="toggle-auto-battler" ${Config.autoBattler ? 'checked' : ''} style="transform: scale(2);">
             </div>
@@ -86,6 +95,21 @@ export class Settings extends BaseUIComponent {
             Config.visual.showGeekStats = isChecked;
             Config.saveConfig();
             document.dispatchEvent(new CustomEvent('TOGGLE_GEEK_STATS', { detail: { show: isChecked } }));
+        });
+
+        const fpsCapSelect = this.container.querySelector('#fps-cap') as HTMLSelectElement;
+        fpsCapSelect.addEventListener('change', (e) => {
+            const fpsCap = parseInt((e.target as HTMLSelectElement).value, 10);
+            Config.visual.fpsCap = fpsCap;
+            Config.saveConfig();
+            document.dispatchEvent(new CustomEvent('SET_FPS_CAP', { detail: { fpsCap } }));
+        });
+
+        document.addEventListener('SET_FPS_CAP', (e: Event) => {
+            const customEvent = e as CustomEvent;
+            if (customEvent.detail && customEvent.detail.fpsCap) {
+                fpsCapSelect.value = customEvent.detail.fpsCap.toString();
+            }
         });
 
         const gameSpeedSelect = this.container.querySelector('#game-speed') as HTMLSelectElement;

@@ -60,8 +60,17 @@ const init = () => {
         const uiManager = new UIManager(gameLoop);
         (window as any).uiManager = uiManager;
 
-        const FPS_CAP = 60;
-        const frameInterval = 1000 / FPS_CAP;
+        let currentFpsCap = Config.visual.fpsCap || 60;
+        let frameInterval = 1000 / currentFpsCap;
+
+        document.addEventListener('SET_FPS_CAP', (e: Event) => {
+            const ce = e as CustomEvent;
+            if (ce.detail && ce.detail.fpsCap) {
+                currentFpsCap = ce.detail.fpsCap;
+                frameInterval = 1000 / currentFpsCap;
+            }
+        });
+
         let lastFrameTime = performance.now();
 
         let framesRendered = 0;
