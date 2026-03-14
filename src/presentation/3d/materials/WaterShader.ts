@@ -8,17 +8,12 @@ export const WaterShader = {
     void main() {
       vec3 transformed = position;
       
-      // Calculate simple undulating waves
-      // PlaneGeometry has XY as its standard plane, Z is up (thickness).
-      // Since it's rotated -PI/2 in EntityManager, X and Y are our horizontal coordinates
       float elevation = sin(transformed.x * 2.0 + time * 1.5) * 0.05 
                       + sin(transformed.y * 1.5 + time * 1.2) * 0.05;
                       
-      // Add global turbulence
       elevation += sin(transformed.x * 5.0 + time * 4.0) * globalTurbulence;
       elevation += cos(transformed.y * 5.0 - time * 3.5) * globalTurbulence;
                       
-      // Calculate multiple ripple effects
       for (int i = 0; i < 5; i++) {
         if (rippleTimes[i] > 0.0) {
             float dist = distance(transformed.xy, rippleCenters[i]);
@@ -44,8 +39,7 @@ export const WaterShader = {
     varying float vElevation;
     
     void main() {
-      // Map elevation (roughly -0.1 to 0.1) to mix strength
-      float mixStrength = (vElevation + 0.1) * 5.0; // normalized roughly to [0, 1]
+      float mixStrength = (vElevation + 0.1) * 5.0;
       vec3 color = mix(baseColor, peakColor, clamp(mixStrength, 0.0, 1.0));
       
       gl_FragColor = vec4(color, opacity);

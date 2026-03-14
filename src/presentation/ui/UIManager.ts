@@ -21,14 +21,12 @@ export class UIManager {
     constructor(gameLoop: GameLoop) {
         this.gameLoop = gameLoop;
         
-        // Find the designated UI layer from index.html
         const layer = document.getElementById('ui-layer');
         if (!layer) {
             throw new Error("UI Layer (#ui-layer) not found in DOM");
         }
         this.uiLayer = layer;
 
-        // Instantiate components
         this.mainMenu = new MainMenu(this.gameLoop);
         this.hud = new HUD(this.gameLoop);
         this.pauseMenu = new PauseMenu(this.gameLoop);
@@ -36,7 +34,6 @@ export class UIManager {
         this.gameOver = new GameOver();
         this.saveLoadDialog = new SaveLoadDialog();
 
-        // Mount components to the UI wrapper
         this.mainMenu.mount(this.uiLayer);
         this.hud.mount(this.uiLayer);
         this.pauseMenu.mount(this.uiLayer);
@@ -44,12 +41,10 @@ export class UIManager {
         this.gameOver.mount(this.uiLayer);
         this.saveLoadDialog.mount(this.uiLayer);
 
-        // Listen for internal game state to show/hide menus
         this.gameLoop.onStateChange((newState: GameState) => {
             this.handleStateChange(newState);
         });
 
-        // Global Event listeners for UI interaction coming from other components
         document.addEventListener('SHOW_PAUSE_MENU', () => {
             this.pauseMenu.show();
         });
@@ -60,7 +55,6 @@ export class UIManager {
 
         document.addEventListener('TOGGLE_HUD', (e: any) => {
             if (e.detail?.show) {
-                // If game is active, show HUD. We shouldn't show it if in main menu.
                 if (this.gameLoop.currentState !== GameState.MAIN_MENU) {
                     this.hud.show();
                 }
@@ -77,10 +71,8 @@ export class UIManager {
             this.saveLoadDialog.openAs('load');
         });
 
-        // Initialize display based on current loop state
         this.handleStateChange(this.gameLoop.currentState);
 
-        // Check for auto-load from sessionStorage (set when user loads a game)
         this.checkAutoLoad();
     }
 
@@ -93,13 +85,11 @@ export class UIManager {
             if (loaded) {
                 console.log(`Auto-loading game from slot ${slotId}`);
                 this.gameLoop.loadMatch(loaded.match);
-                // Fire event so main.ts can restore camera and visual state
                 if (loaded.viewState) {
                     document.dispatchEvent(new CustomEvent('RESTORE_VIEW_STATE', { detail: loaded.viewState }));
                 }
             }
         } else {
-            // Check for an active session to resume
             const sessionLoaded = Storage.loadGame('session');
             if (sessionLoaded) {
                 console.log(`Resuming previous session`);
@@ -112,7 +102,6 @@ export class UIManager {
     }
     
     private handleStateChange(newState: GameState) {
-        // Reset all visibility
         this.mainMenu.hide();
         this.hud.hide();
         this.gameOver.hide();
@@ -127,7 +116,6 @@ export class UIManager {
             document.dispatchEvent(new CustomEvent('SET_INTERACTION_ENABLED', { detail: { enabled: false } }));
         } else {
             this.hud.show();
-            // Note: If coming from main menu to setup board, enable interaction. Settings handles its own toggle via onShow/onHide.
             if (!this.pauseMenu['isVisible'] && !this.settings['isVisible']) {
                 document.dispatchEvent(new CustomEvent('SET_INTERACTION_ENABLED', { detail: { enabled: true } }));
             }

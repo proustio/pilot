@@ -6,7 +6,7 @@ export abstract class BaseUIComponent {
         this.container = document.createElement('div');
         this.container.id = id;
         this.container.classList.add('ui-component');
-        this.container.style.display = 'none'; // Hidden by default
+        this.container.style.display = 'none';
     }
 
     /**

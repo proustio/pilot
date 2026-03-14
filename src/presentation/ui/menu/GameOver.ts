@@ -15,7 +15,6 @@ export class GameOver extends BaseUIComponent {
 
         const returnBtn = this.container.querySelector('#btn-return-menu') as HTMLButtonElement;
         returnBtn.addEventListener('click', () => {
-            // For MVP simplicity and to ensure total clean state of 3D entities, reload
             window.location.reload();
         });
     }

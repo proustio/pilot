@@ -9,13 +9,13 @@ export const Config = {
         prefix: 'battleships_save_'
     },
     timing: {
-        gameSpeedMultiplier: 1.0,     // 0.5x, 1x, 2x, 4x
-        aiThinkingTimeMs: 1000,       // Base AI thinking delay
-        turnDelayMs: 2000,            // Base post-turn observation delay
-        boardFlipSpeed: 0.05,         // Base lerp speed for board flip
-        projectileSpeed: 0.04,        // Base increment per frame for projectile progress
-        cameraLerpSpeed: 0.05,        // Base lerp speed for camera movement
-        boardFlipWaitMs: 100          // ms to wait after board flip before enemy/auto-battler fires
+        gameSpeedMultiplier: 1.0,
+        aiThinkingTimeMs: 1000,
+        turnDelayMs: 2000,
+        boardFlipSpeed: 0.05,
+        projectileSpeed: 0.04,
+        cameraLerpSpeed: 0.05,
+        boardFlipWaitMs: 100
     },
     visual: {
         isDayMode: new Date().getHours() >= 6 && new Date().getHours() < 18,
@@ -31,7 +31,6 @@ export const Config = {
             if (savedConfig) {
                 const parsedConfig = JSON.parse(savedConfig);
 
-                // Copy settings that should be persisted
                 if (parsedConfig.timing?.gameSpeedMultiplier !== undefined) {
                     this.timing.gameSpeedMultiplier = parsedConfig.timing.gameSpeedMultiplier;
                 }

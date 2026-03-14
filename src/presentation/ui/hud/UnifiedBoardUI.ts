@@ -12,7 +12,6 @@ export class UnifiedBoardUI extends BaseUIComponent {
         super('unified-board');
         this.gameLoop = gameLoop;
 
-        // Listen for board updates
         this.gameLoop.onShipPlaced(() => this.refresh());
         this.gameLoop.onAttackResult((_x, _z, _result, _isPlayer, _isReplay) => this.refresh());
         this.gameLoop.onStateChange(() => this.refresh());
@@ -89,7 +88,7 @@ export class UnifiedBoardUI extends BaseUIComponent {
         const cells = container.querySelectorAll('.mini-cell');
         gridState.forEach((state, index) => {
             const cell = cells[index] as HTMLElement;
-            cell.className = 'mini-cell'; // Reset classes
+            cell.className = 'mini-cell';
 
             switch (state) {
                 case CellState.Ship:
@@ -109,7 +108,6 @@ export class UnifiedBoardUI extends BaseUIComponent {
                     cell.classList.add('cell-miss');
                     break;
                 default:
-                    // Empty
                     if (!isPlayer) {
                         cell.classList.add('cell-fog');
                     }

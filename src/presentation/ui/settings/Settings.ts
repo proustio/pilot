@@ -9,14 +9,13 @@ export class Settings extends BaseUIComponent {
         super('settings-modal');
         this.gameLoop = gameLoop;
         this.container.classList.add('voxel-panel');
-        // Let's place it high z-index
         this.container.style.zIndex = '100';
     }
 
     protected onShow(): void {
         document.dispatchEvent(new CustomEvent('PAUSE_GAME'));
         document.dispatchEvent(new CustomEvent('SET_INTERACTION_ENABLED', { detail: { enabled: false } }));
-        this.render(); // Re-render to update difficulty eligibility
+        this.render();
     }
 
     protected onHide(): void {
@@ -70,7 +69,6 @@ export class Settings extends BaseUIComponent {
             <button id="btn-close-settings" class="voxel-btn primary" style="margin-top: 10px;">Back</button>
         `;
 
-        // Bind events
         const closeBtn = this.container.querySelector('#btn-close-settings') as HTMLButtonElement;
         closeBtn.addEventListener('click', () => {
             this.hide();
@@ -98,7 +96,6 @@ export class Settings extends BaseUIComponent {
             document.dispatchEvent(new CustomEvent('SET_GAME_SPEED', { detail: { speed } }));
         });
 
-        // Listen for internal speed changes triggered from HUD
         document.addEventListener('SET_GAME_SPEED', (e: Event) => {
             const customEvent = e as CustomEvent;
             if (customEvent.detail && customEvent.detail.speed) {
@@ -108,7 +105,6 @@ export class Settings extends BaseUIComponent {
 
         const aiSelect = this.container.querySelector('#ai-difficulty') as HTMLSelectElement;
 
-        // Disable difficulty if game is in progress
         const isGameStarted = this.gameLoop.currentState !== GameState.MAIN_MENU &&
             this.gameLoop.currentState !== GameState.SETUP_BOARD;
 
@@ -134,7 +130,6 @@ export class Settings extends BaseUIComponent {
             document.dispatchEvent(new CustomEvent('TOGGLE_AUTO_BATTLER', { detail: { enabled: isChecked } }));
         });
 
-        // Sync auto-battler if changed elsewhere
         document.addEventListener('TOGGLE_AUTO_BATTLER', (e: Event) => {
             const customEvent = e as CustomEvent;
             if (customEvent.detail && customEvent.detail.enabled !== undefined) {
@@ -142,7 +137,6 @@ export class Settings extends BaseUIComponent {
             }
         });
 
-        // Also sync AI difficulty if changed elsewhere
         document.addEventListener('SET_AI_DIFFICULTY', (e: Event) => {
             const ce = e as CustomEvent;
             if (ce.detail && ce.detail.difficulty) {
@@ -150,7 +144,6 @@ export class Settings extends BaseUIComponent {
             }
         });
 
-        // Peek toggle
         const peekToggle = this.container.querySelector('#toggle-peek-enabled') as HTMLInputElement;
         peekToggle.addEventListener('change', (e) => {
             const isChecked = (e.target as HTMLInputElement).checked;
