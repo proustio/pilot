@@ -199,7 +199,13 @@ export class ParticleSystem {
             
             if (p.life <= 0 || p.mesh.position.y < -1) {
                 p.group.remove(p.mesh);
-                this.particles.splice(i, 1);
+
+                // Swap-and-pop instead of splice for performance
+                const lastIndex = this.particles.length - 1;
+                if (i !== lastIndex) {
+                    this.particles[i] = this.particles[lastIndex];
+                }
+                this.particles.pop();
             }
         }
     }
