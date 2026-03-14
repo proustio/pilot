@@ -82,11 +82,13 @@ const init = () => {
 
             const deltaTime = time - lastFrameTime;
 
-            if (deltaTime < frameInterval) {
+            // allow a tiny epsilon for floating point inaccuracy in rAF
+            if (deltaTime < frameInterval - 0.1) {
                 return;
             }
 
-            lastFrameTime = time - (deltaTime % frameInterval);
+            // Simple update to last frame time without strict modulo to fix jitter
+            lastFrameTime = time;
             lastFrameTimeMs = deltaTime;
 
             framesRendered++;
