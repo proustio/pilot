@@ -4,6 +4,7 @@ import { WaterShader } from '../materials/WaterShader';
 import { ParticleSystem } from './ParticleSystem';
 import { Config } from '../../../infrastructure/config/Config';
 import { getIndex } from '../../../domain/board/BoardUtils';
+import { AudioEngine } from '../../../infrastructure/audio/AudioEngine';
 
 export class EntityManager {
     private scene: THREE.Scene;
@@ -18,7 +19,7 @@ export class EntityManager {
         return Math.abs(this.targetRotationX - Math.PI) < 0.1 ? 'enemy' : 'player';
     }
     private fogMeshes: (THREE.Mesh | null)[] = new Array(Config.board.width * Config.board.height).fill(null);
-    private fallingMarkers: { mesh: THREE.Object3D, curve: THREE.QuadraticBezierCurve3, progress: number, worldX: number, worldZ: number, result: string, isPlayer: boolean, cellX: number, cellZ: number }[] = [];
+    private fallingMarkers: { mesh: THREE.Object3D, curve: THREE.QuadraticBezierCurve3, progress: number, worldX: number, worldZ: number, result: string, isPlayer: boolean, cellX: number, cellZ: number, isReplayFlag: boolean }[] = [];
 
     private time: number = 0;
     private playerWaterUniforms: any = null;
@@ -488,6 +489,17 @@ export class EntityManager {
                     m.mesh.rotation.x = (Math.random() - 0.5) * 0.5; // Slanted slightly
                     m.mesh.rotation.z = (Math.random() - 0.5) * 0.5;
                 }
+
+                if (!m.isReplayFlag) {
+                    if (m.result === 'miss') {
+                        AudioEngine.getInstance().playSplash();
+                    } else if (m.result === 'hit') {
+                        AudioEngine.getInstance().playHit();
+                    } else if (m.result === 'sunk') {
+                        AudioEngine.getInstance().playKill();
+                    }
+                }
+
                 this.fallingMarkers.splice(i, 1);
             } else {
                 m.mesh.position.copy(m.curve.getPoint(m.progress));
@@ -753,6 +765,10 @@ export class EntityManager {
     }
 
     public addAttackMarker(x: number, z: number, result: string, isPlayer: boolean, isReplay: boolean = false) {
+        if (!isReplay) {
+            AudioEngine.getInstance().playShoot();
+        }
+
         const targetGroup = isPlayer ? this.enemyBoardGroup : this.playerBoardGroup;
 
         // High-tech glowing projectile (Attack Marker)
@@ -889,7 +905,8 @@ export class EntityManager {
             result,
             isPlayer,
             cellX: x,
-            cellZ: z
+            cellZ: z,
+            isReplayFlag: isReplay
         });
     }
 }
