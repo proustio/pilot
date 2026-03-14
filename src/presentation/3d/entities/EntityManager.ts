@@ -59,8 +59,8 @@ export class EntityManager {
 
         const createWaterUniforms = (isEnemy: boolean) => ({
             time: { value: 0 },
-            baseColor: { value: isEnemy ? new THREE.Color(0xd32f2f) : new THREE.Color(0x388e3c) }, // Red (Foe) vs Green (Friendly)
-            peakColor: { value: isEnemy ? new THREE.Color(0xf44336) : new THREE.Color(0x66bb6a) }, // Brighter peaks
+            baseColor: { value: isEnemy ? new THREE.Color(0x8B0000) : new THREE.Color(0x000080) }, // Dark Red vs Dark Navy
+            peakColor: { value: isEnemy ? new THREE.Color(0xDC143C) : new THREE.Color(0x4169E1) }, // Crimson vs Royal Blue
             opacity: { value: 0.85 },
             globalTurbulence: { value: 0.0 },
             rippleCenters: { value: [new THREE.Vector2(), new THREE.Vector2(), new THREE.Vector2(), new THREE.Vector2(), new THREE.Vector2()] },
@@ -69,9 +69,10 @@ export class EntityManager {
 
         // Create the "Master Metal Frame" (hollow inside)
         const frameMat = new THREE.MeshStandardMaterial({
-            color: 0x222222, // Dark Grey
-            metalness: 0.6,
-            roughness: 0.3
+            color: 0x050515, // Almost black/navy
+            metalness: 0.8,
+            roughness: 0.2,
+            emissive: 0x000022
         });
 
         const borderOffset = offset + 0.25;
@@ -139,18 +140,21 @@ export class EntityManager {
         enemyWaterPlane.receiveShadow = true;
         this.enemyBoardGroup.add(enemyWaterPlane);
 
-        // Create interactable grid tiles (invisible or somewhat transparent borders)
+        // Create interactable grid tiles (glowy sci-fi blocks)
         const tileGeometry = new THREE.BoxGeometry(0.95, 0.1, 0.95);
-        const tilePlayerMat = new THREE.MeshStandardMaterial({ color: 0x0000ff, transparent: true, opacity: 0.2, depthWrite: false });
-        const tileEnemyMat = new THREE.MeshStandardMaterial({ color: 0xff0000, transparent: true, opacity: 0.2, depthWrite: false });
+        const tilePlayerMat = new THREE.MeshStandardMaterial({ color: 0x000080, emissive: 0x228B22, emissiveIntensity: 0.2, transparent: true, opacity: 0.1, depthWrite: false }); // Forest green glow
+        const tileEnemyMat = new THREE.MeshStandardMaterial({ color: 0x8B0000, emissive: 0xDC143C, emissiveIntensity: 0.2, transparent: true, opacity: 0.1, depthWrite: false }); // Crimson glow
 
-        // Animated Voxel Fog
+        // Animated Voxel Fog (Holographic blocks)
         const fogVoxelGeo = new THREE.BoxGeometry(0.15, 0.15, 0.15);
         const fogMat = new THREE.MeshStandardMaterial({
-            color: 0x708238, // Darker grey to be denser
+            color: 0x000080, // Navy blue core
+            emissive: 0x4169E1, // Royal blue glow
+            emissiveIntensity: 0.6,
             transparent: true,
-            opacity: 0.75, // Higher opacity
-            roughness: 0.9
+            opacity: 0.6,
+            roughness: 0.2,
+            metalness: 0.8
         });
 
         for (let x = 0; x < boardSize; x++) {
@@ -201,15 +205,15 @@ export class EntityManager {
             }
         }
 
-        // GridHelpers for visual debug
-        const pGrid = new THREE.GridHelper(boardSize, boardSize, 0xffffff, 0xffffff);
+        // Holographic Grid Lines
+        const pGrid = new THREE.GridHelper(boardSize, boardSize, 0x4169E1, 0x228B22); // Royal Blue / Forest Green
         pGrid.position.y = 0.05;
-        pGrid.material.transparent = true; pGrid.material.opacity = 0.5;
+        pGrid.material.transparent = true; pGrid.material.opacity = 0.4;
         this.playerBoardGroup.add(pGrid);
 
-        const eGrid = new THREE.GridHelper(boardSize, boardSize, 0xffffff, 0xffffff);
+        const eGrid = new THREE.GridHelper(boardSize, boardSize, 0xDC143C, 0xFF2400); // Crimson / Scarlet
         eGrid.position.y = 0.05;
-        eGrid.material.transparent = true; eGrid.material.opacity = 0.5;
+        eGrid.material.transparent = true; eGrid.material.opacity = 0.4;
         this.enemyBoardGroup.add(eGrid);
     }
 
@@ -532,11 +536,14 @@ export class EntityManager {
         shipGroup.position.set(originWorldX, 0, originWorldZ);
         shipGroup.visible = isPlayer;
 
-        const hullColor = isPlayer ? new THREE.Color(0x757575) : new THREE.Color(0x001f3f);
-        const deckColor = isPlayer ? new THREE.Color(0x9e9e9e) : new THREE.Color(0x003366);
-        const accentColor = isPlayer ? new THREE.Color(0x001f3f) : new THREE.Color(0x757575);
-        const bridgeColor = isPlayer ? new THREE.Color(0x616161) : new THREE.Color(0x002b55);
-        const darkAccent = isPlayer ? new THREE.Color(0x001a33) : new THREE.Color(0x424242);
+        // Base dark metal colors
+        const hullColor = new THREE.Color(0x111111); // Black/Dark Grey
+        const deckColor = new THREE.Color(0x222222);
+        const bridgeColor = new THREE.Color(0x1a1a1a);
+        const darkAccent = new THREE.Color(0x050505);
+
+        // Neon Accents (Glow colors assigned to edges/accents)
+        const accentColor = isPlayer ? new THREE.Color(0xFFD700) : new THREE.Color(0xFF2400); // Gold vs Scarlet
 
         const voxelSize = 0.1;
         const voxelGeo = new THREE.BoxGeometry(voxelSize, voxelSize, voxelSize);
@@ -640,8 +647,8 @@ export class EntityManager {
 
         const shipMaterial = new THREE.MeshStandardMaterial({
             color: 0xffffff,
-            roughness: 0.4,
-            metalness: 0.5
+            roughness: 0.2,
+            metalness: 0.8
         });
 
         const instancedMesh = new THREE.InstancedMesh(voxelGeo, shipMaterial, voxelsData.length);
@@ -655,6 +662,43 @@ export class EntityManager {
             instancedMesh.setMatrixAt(index, dummy.matrix);
             instancedMesh.setColorAt(index, vd.color);
         });
+
+        // Add Emissive/Glow Effect if Color matches Neon Accent
+        // Using instanced mesh per-instance emissive coloring isn't natively supported easily,
+        // so we fake it by setting the global material emissive map or just relying on intense directional lighting.
+        // Instead, we create a wireframe outline overlay to enforce the "neon border" jarvis vibe.
+
+        const instancedLines = new THREE.InstancedMesh(
+            new THREE.BoxGeometry(voxelSize*1.01, voxelSize*1.01, voxelSize*1.01), // slightly larger box for line substitute
+            new THREE.MeshBasicMaterial({
+                color: isPlayer ? 0xFFD700 : 0xFF2400,
+                wireframe: true,
+                transparent: true,
+                opacity: 0.2
+            }),
+            voxelsData.length
+        );
+
+        voxelsData.forEach((vd, index) => {
+            dummy.position.copy(vd.pos);
+            dummy.updateMatrix();
+            instancedLines.setMatrixAt(index, dummy.matrix);
+            // Only show glow on the edges/accents
+            if (vd.color.equals(accentColor)) {
+               instancedLines.setColorAt(index, new THREE.Color(isPlayer ? 0xFFD700 : 0xFF2400));
+            } else {
+               instancedLines.setColorAt(index, new THREE.Color(0x000000));
+               // hide the others by zeroing scale
+               dummy.scale.set(0,0,0);
+               dummy.updateMatrix();
+               instancedLines.setMatrixAt(index, dummy.matrix);
+            }
+        });
+
+        instancedLines.instanceMatrix.needsUpdate = true;
+        if (instancedLines.instanceColor) instancedLines.instanceColor.needsUpdate = true;
+
+        shipGroup.add(instancedLines);
 
         if (instancedMesh.instanceColor) {
             instancedMesh.instanceColor.needsUpdate = true;
@@ -710,13 +754,16 @@ export class EntityManager {
     public addAttackMarker(x: number, z: number, result: string, isPlayer: boolean, isReplay: boolean = false) {
         const targetGroup = isPlayer ? this.enemyBoardGroup : this.playerBoardGroup;
 
+        // High-tech glowing projectile (Attack Marker)
         const activeMat = new THREE.MeshStandardMaterial({
             color: 0xffffff,
-            roughness: 0.5,
+            roughness: 0.2,
+            metalness: 0.8,
             vertexColors: true
         });
-        const activeGlowColor = result === 'hit' || result === 'sunk' ? 0x880000 : 0x444444;
+        const activeGlowColor = result === 'hit' || result === 'sunk' ? 0xFF2400 : 0x4169E1; // Scarlet (hit) vs Royal Blue (miss)
         activeMat.emissive.setHex(activeGlowColor);
+        activeMat.emissiveIntensity = 2.0; // intense glow
 
         const marker = new THREE.Group();
         marker.userData = { originalMat: activeMat, isAttackMarker: true };
