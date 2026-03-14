@@ -6,134 +6,146 @@
   --font-family: 'JetBrains Mono', Courier, monospace;
 }
 
-/* Base Palette:
-  Friendly Green: #2e7d32 (Base), #4caf50 (Accent), #81c784 (Light)
-  Foe Red: #c62828 (Base), #f44336 (Accent), #e57373 (Light)
-  Neutral: #222222, #333333
+/* Base Palette (English Civil War + Jarvis Vibe):
+  Gold: #FFD700
+  White: #FFFFFF
+  Scarlet: #FF2400
+  Crimson: #DC143C
+  Royal/Navy Blue: #000080 (Base), #4169E1 (Highlight)
+  Forest Green: #228B22
+  Black: #000000
 */
 
-/* --- LIGHT (Day) Theme --- */
+/* --- LIGHT (Day) Theme - Bright Tech --- */
 body.day-mode {
-  --color-bg: #f5f5f5;
-  --color-text: #222222;
-  --color-primary: #2e7d32;   /* Friendly Green */
-  --color-secondary: #4caf50;
-  --color-danger: #c62828;    /* Foe Red */
+  --color-bg: #f0f4f8; /* Very light slate blue/white */
+  --color-text: #000080; /* Navy Blue */
+  --color-primary: #FFD700;   /* Gold */
+  --color-secondary: #228B22; /* Forest Green */
+  --color-danger: #DC143C;    /* Crimson */
+  --color-highlight: #4169E1; /* Royal Blue */
+
+  --panel-border-glow: 0 0 10px rgba(65, 105, 225, 0.3), inset 0 0 5px rgba(65, 105, 225, 0.1);
+  --panel-danger-glow: 0 0 10px rgba(220, 20, 60, 0.4), inset 0 0 5px rgba(220, 20, 60, 0.1);
 
   /* Panels */
-  --panel-bg: rgba(255, 255, 255, 0.9);
-  --panel-border: #2e7d32;
-  --panel-shadow-light: rgba(255, 255, 255, 0.8);
-  --panel-shadow-dark: rgba(46, 125, 50, 0.3);
-  --panel-text: #222222;
+  --panel-bg: rgba(255, 255, 255, 0.85); /* Frost glass */
+  --panel-border: #4169E1; /* Royal Blue */
+  --panel-shadow-light: rgba(255, 255, 255, 0.9);
+  --panel-shadow-dark: rgba(0, 0, 128, 0.2);
+  --panel-text: #000080; /* Navy Blue */
 
   /* Buttons */
-  --btn-bg: linear-gradient(135deg, #4caf50, #2e7d32);
-  --btn-bg-hover: linear-gradient(135deg, #66bb6a, #388e3c);
-  --btn-border: #1b5e20;
-  --btn-shadow-light: rgba(255, 255, 255, 0.5);
-  --btn-shadow-dark: rgba(0, 0, 0, 0.2);
-  --btn-text: #330033;
+  --btn-bg: rgba(255, 255, 255, 0.9);
+  --btn-bg-hover: rgba(240, 248, 255, 1.0); /* Alice Blue */
+  --btn-border: #000080; /* Navy */
+  --btn-shadow-light: rgba(255, 215, 0, 0.5); /* Gold glow */
+  --btn-shadow-dark: rgba(0, 0, 128, 0.3);
+  --btn-text: #000080; /* Navy */
 
   /* Select */
-  --select-bg: #fff;
-  --select-text: #222222;
-  --select-border: #2e7d32;
+  --select-bg: rgba(255, 255, 255, 0.9);
+  --select-text: #000080; /* Navy */
+  --select-border: #000080; /* Navy */
 
   /* HUD */
-  --hud-fleet-bg: rgba(255, 255, 255, 0.9);
-  --hud-fleet-border: #2e7d32;
-  --hud-stats-bg: rgba(255, 255, 255, 0.9);
-  --hud-stats-border: #2e7d32;
-  --hud-stats-text: #c62828;
+  --hud-fleet-bg: rgba(255, 255, 255, 0.85);
+  --hud-fleet-border: #4169E1;
+  --hud-stats-bg: rgba(255, 255, 255, 0.85);
+  --hud-stats-border: #4169E1;
+  --hud-stats-text: #DC143C;
 
   /* Mini Board */
-  --mini-board-bg: rgba(255, 255, 255, 0.9);
-  --mini-board-border: #2e7d32;
-  --mini-board-title: #4caf50;
-  --mini-grid-bg: #e8f5e9;
-  --mini-cell-bg: #c8e6c9;
-  --mini-cell-fog: #e8f5e9;
-  --mini-cell-miss: #a5d6a7;
+  --mini-board-bg: rgba(255, 255, 255, 0.85);
+  --mini-board-border: #4169E1;
+  --mini-board-title: #000080; /* Navy */
+  --mini-grid-bg: rgba(65, 105, 225, 0.1);
+  --mini-cell-bg: #4169E1;
+  --mini-cell-fog: rgba(65, 105, 225, 0.2);
+  --mini-cell-miss: rgba(0, 0, 128, 0.2);
 
   /* Geek Stats */
-  --geek-bg: rgba(255, 255, 255, 0.9);
-  --geek-border: #2e7d32;
-  --geek-text: #222222;
-  --geek-title: #c62828;
-  --geek-label: #1b5e20;
-  --geek-value: #2e7d32;
-  --geek-online: #4caf50;
+  --geek-bg: rgba(255, 255, 255, 0.85);
+  --geek-border: #4169E1;
+  --geek-text: #000080;
+  --geek-title: #DC143C; /* Crimson */
+  --geek-label: #4169E1; /* Royal Blue */
+  --geek-value: #000080; /* Navy */
+  --geek-online: #228B22;
 
   /* Save Slots */
-  --slot-empty: #757575;
-  --slot-date: #c62828;
-  --slot-turns: #2e7d32;
+  --slot-empty: #4169E1;
+  --slot-date: #000080;
+  --slot-turns: #DC143C;
 
   /* Confirm Overlay */
-  --overlay-bg: rgba(255, 255, 255, 0.7);
+  --overlay-bg: rgba(240, 244, 248, 0.85);
 }
 
-/* --- DARK (Night) Theme --- */
+/* --- DARK (Night) Theme - Jarvis Hologram --- */
 body.night-mode {
-  --color-bg: #121212;
-  --color-text: #e0e0e0;
-  --color-primary: #66bb6a;
-  --color-secondary: #a5d6a7;
-  --color-danger: #ef5350;
+  --color-bg: #000000;
+  --color-text: #FFFFFF;
+  --color-primary: #FFD700;   /* Gold */
+  --color-secondary: #228B22; /* Forest Green */
+  --color-danger: #FF2400;    /* Scarlet */
+  --color-highlight: #4169E1; /* Royal Blue */
+
+  --panel-border-glow: 0 0 10px rgba(255, 215, 0, 0.6), inset 0 0 10px rgba(255, 215, 0, 0.2);
+  --panel-danger-glow: 0 0 10px rgba(255, 36, 0, 0.6), inset 0 0 10px rgba(255, 36, 0, 0.2);
 
   /* Panels */
-  --panel-bg: rgba(30, 30, 30, 0.9);
-  --panel-border: #1b5e20;
-  --panel-shadow-light: rgba(102, 187, 106, 0.2);
-  --panel-shadow-dark: rgba(0, 0, 0, 0.8);
-  --panel-text: #e0e0e0;
+  --panel-bg: rgba(0, 0, 10, 0.7); /* Deep dark navy base */
+  --panel-border: #FFD700;
+  --panel-shadow-light: rgba(65, 105, 225, 0.2);
+  --panel-shadow-dark: rgba(0, 0, 0, 0.9);
+  --panel-text: #FFFFFF;
 
   /* Buttons */
-  --btn-bg: linear-gradient(135deg, #1b5e20, #0d3b11);
-  --btn-bg-hover: linear-gradient(135deg, #2e7d32, #1b5e20);
-  --btn-border: #000;
-  --btn-shadow-light: rgba(102, 187, 106, 0.2);
-  --btn-shadow-dark: rgba(0, 0, 0, 0.6);
-  --btn-text: #e0e0e0;
+  --btn-bg: rgba(0, 0, 30, 0.8);
+  --btn-bg-hover: rgba(0, 0, 80, 0.9);
+  --btn-border: #FFD700;
+  --btn-shadow-light: rgba(255, 215, 0, 0.3);
+  --btn-shadow-dark: rgba(0, 0, 0, 0.8);
+  --btn-text: #FFD700;
 
   /* Select */
-  --select-bg: #1e1e1e;
-  --select-text: #e0e0e0;
-  --select-border: #1b5e20;
+  --select-bg: rgba(0, 0, 30, 0.8);
+  --select-text: #FFFFFF;
+  --select-border: #FFD700;
 
   /* HUD */
-  --hud-fleet-bg: rgba(30, 30, 30, 0.85);
-  --hud-fleet-border: #1b5e20;
-  --hud-stats-bg: rgba(30, 30, 30, 0.85);
-  --hud-stats-border: #1b5e20;
-  --hud-stats-text: #ef5350;
+  --hud-fleet-bg: rgba(0, 0, 10, 0.7);
+  --hud-fleet-border: #4169E1;
+  --hud-stats-bg: rgba(0, 0, 10, 0.7);
+  --hud-stats-border: #4169E1;
+  --hud-stats-text: #FFD700;
 
   /* Mini Board */
-  --mini-board-bg: rgba(30, 30, 30, 0.85);
-  --mini-board-border: #1b5e20;
-  --mini-board-title: #66bb6a;
-  --mini-grid-bg: #0d1b0d;
-  --mini-cell-bg: #1b5e20;
-  --mini-cell-fog: #0d1b0d;
-  --mini-cell-miss: #263238;
+  --mini-board-bg: rgba(0, 0, 10, 0.7);
+  --mini-board-border: #4169E1;
+  --mini-board-title: #FFD700;
+  --mini-grid-bg: rgba(0, 0, 50, 0.3);
+  --mini-cell-bg: #4169E1;
+  --mini-cell-fog: rgba(65, 105, 225, 0.2);
+  --mini-cell-miss: rgba(255, 255, 255, 0.3);
 
   /* Geek Stats */
-  --geek-bg: rgba(30, 30, 30, 0.9);
-  --geek-border: #1b5e20;
-  --geek-text: #66bb6a;
-  --geek-title: #ef5350;
-  --geek-label: #a5d6a7;
-  --geek-value: #66bb6a;
-  --geek-online: #66bb6a;
+  --geek-bg: rgba(0, 0, 10, 0.7);
+  --geek-border: #4169E1;
+  --geek-text: #FFFFFF;
+  --geek-title: #FFD700;
+  --geek-label: #4169E1;
+  --geek-value: #FFD700;
+  --geek-online: #228B22;
 
   /* Save Slots */
-  --slot-empty: #424242;
-  --slot-date: #66bb6a;
-  --slot-turns: #ef5350;
+  --slot-empty: #4169E1;
+  --slot-date: #FFD700;
+  --slot-turns: #FF2400;
 
   /* Confirm Overlay */
-  --overlay-bg: rgba(26, 0, 26, 0.8);
+  --overlay-bg: rgba(0, 0, 0, 0.85);
 }
 
 body, html {
@@ -184,33 +196,37 @@ canvas {
   pointer-events: auto;
 }
 
-/* Voxel / Minecraft UI Styling */
+/* Voxel / Sci-Fi UI Styling */
 .voxel-panel {
   background-color: var(--panel-bg);
   border: 2px solid var(--panel-border);
-  border-radius: 12px;
-  box-shadow: inset 0px 4px 10px var(--panel-shadow-light), inset 0px -4px 10px var(--panel-shadow-dark), 0 8px 16px rgba(0,0,0,0.4);
+  border-radius: 4px;
+  box-shadow: var(--panel-border-glow), 0 8px 16px rgba(0,0,0,0.6);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
   color: var(--panel-text);
   padding: 24px;
   pointer-events: auto;
+  text-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
 }
 
 .voxel-title {
   font-size: 3rem;
   text-align: center;
   margin-bottom: 2rem;
-  color: var(--color-primary);
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.6);
+  color: var(--color-text);
+  text-shadow: 0 0 10px rgba(255, 215, 0, 0.5), 0 0 20px rgba(255, 215, 0, 0.3);
   text-transform: uppercase;
   font-weight: 700;
+  letter-spacing: 2px;
 }
 
 .voxel-btn {
   background: var(--btn-bg);
   color: var(--btn-text);
-  border: 2px solid var(--btn-border);
-  border-radius: 8px;
-  box-shadow: inset 0px 2px 5px var(--btn-shadow-light), inset 0px -2px 5px var(--btn-shadow-dark), 0 4px 6px rgba(0,0,0,0.3);
+  border: 1px solid var(--btn-border);
+  border-radius: 4px;
+  box-shadow: inset 0px 0px 8px rgba(255, 215, 0, 0.2);
   padding: 12px 24px;
   margin: 10px 0;
   font-family: var(--font-family);
@@ -220,36 +236,55 @@ canvas {
   cursor: pointer;
   transition: transform 0.1s, box-shadow 0.1s, background 0.15s;
   width: 100%;
-  text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+  text-shadow: 0 0 5px rgba(255, 215, 0, 0.5);
+  letter-spacing: 1px;
 }
 
 .voxel-btn:hover {
   background: var(--btn-bg-hover);
+  box-shadow: inset 0px 0px 15px rgba(255, 215, 0, 0.6), 0 0 10px rgba(255, 215, 0, 0.4);
+  text-shadow: 0 0 8px rgba(255, 215, 0, 1);
 }
 
 .voxel-btn:active {
-  box-shadow: inset 0px 2px 5px var(--btn-shadow-dark), inset 0px -2px 5px var(--btn-shadow-light);
+  box-shadow: inset 0px 0px 20px rgba(255, 215, 0, 0.8);
   transform: translate(0px, 2px);
 }
 
 .voxel-btn.primary {
-  background: linear-gradient(135deg, var(--color-secondary), #ff3333);
-  box-shadow: inset 0px 2px 5px rgba(255,153,153,0.5), inset 0px -2px 5px rgba(128,0,0,0.4), 0 4px 6px rgba(0,0,0,0.3);
+  background: rgba(34, 139, 34, 0.3);
+  border-color: var(--color-secondary);
+  color: #FFF;
+  text-shadow: 0 0 5px var(--color-secondary);
+  box-shadow: inset 0px 0px 8px rgba(34, 139, 34, 0.3);
 }
 
 .voxel-btn.primary:hover {
-  background: linear-gradient(135deg, #ff8080, var(--color-secondary));
+  background: rgba(34, 139, 34, 0.6);
+  box-shadow: inset 0px 0px 15px rgba(34, 139, 34, 0.8), 0 0 10px rgba(34, 139, 34, 0.5);
+  text-shadow: 0 0 8px #FFF;
 }
 
 .voxel-btn.danger {
+  background: rgba(255, 36, 0, 0.2);
+  border-color: var(--color-danger);
   color: var(--color-danger);
+  text-shadow: 0 0 5px var(--color-danger);
+  box-shadow: inset 0px 0px 8px rgba(255, 36, 0, 0.2);
+}
+
+.voxel-btn.danger:hover {
+  background: rgba(255, 36, 0, 0.4);
+  box-shadow: inset 0px 0px 15px rgba(255, 36, 0, 0.6), 0 0 10px rgba(255, 36, 0, 0.4);
+  color: #FFF;
+  text-shadow: 0 0 8px #FFF;
 }
 
 .voxel-select {
   background-color: var(--select-bg);
   color: var(--select-text);
-  border: 2px solid var(--select-border);
-  border-radius: 8px;
+  border: 1px solid var(--select-border);
+  border-radius: 4px;
   padding: 10px;
   font-family: var(--font-family);
   font-size: 1rem;
@@ -257,7 +292,11 @@ canvas {
   width: 100%;
   margin-bottom: 15px;
   cursor: pointer;
-  box-shadow: inset 0px 2px 4px rgba(0,0,0,0.2);
+  box-shadow: inset 0px 0px 5px rgba(255, 215, 0, 0.2);
+}
+.voxel-select:focus {
+  outline: none;
+  box-shadow: inset 0px 0px 10px rgba(255, 215, 0, 0.6), 0 0 5px rgba(255, 215, 0, 0.4);
 }
 
 /* Specific UI Component Layouts */
@@ -293,8 +332,10 @@ canvas {
 .hud-turn-indicator {
   font-size: 2rem;
   font-weight: bold;
-  text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.6);
-  color: var(--color-primary);
+  text-shadow: 0 0 10px var(--color-primary), 0 0 20px var(--color-primary);
+  color: var(--color-text);
+  letter-spacing: 2px;
+  text-transform: uppercase;
 }
 
 .hud-fleet-status {
@@ -302,14 +343,17 @@ canvas {
   flex-direction: column;
   background-color: var(--hud-fleet-bg);
   padding: 5px 10px;
-  border: 2px solid var(--hud-fleet-border);
-  border-radius: 8px;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+  border: 1px solid var(--hud-fleet-border);
+  border-radius: 4px;
+  box-shadow: 0 0 8px rgba(65, 105, 225, 0.5), inset 0 0 5px rgba(65, 105, 225, 0.2);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
   pointer-events: auto;
   font-size: 0.9rem;
   font-weight: bold;
   margin-left: 5px;
   color: var(--panel-text);
+  text-shadow: 0 0 3px rgba(255, 255, 255, 0.5);
 }
 
 .hud-fleet-status span {
@@ -367,9 +411,11 @@ canvas {
   gap: 10px;
   background: var(--mini-board-bg);
   padding: 10px;
-  border: 2px solid var(--mini-board-border);
-  border-radius: 8px;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+  border: 1px solid var(--mini-board-border);
+  border-radius: 4px;
+  box-shadow: 0 0 10px rgba(65, 105, 225, 0.4), inset 0 0 5px rgba(65, 105, 225, 0.2);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
 }
 
 .mini-board-wrapper {
@@ -381,43 +427,52 @@ canvas {
 .mini-board-title {
   font-size: 0.75rem;
   font-weight: bold;
-  color: var(--mini-board-title);
+  color: var(--color-text);
+  text-shadow: 0 0 5px var(--mini-board-title);
   margin-bottom: 2px;
   text-transform: uppercase;
+  letter-spacing: 1px;
 }
 
 .mini-grid {
   display: grid;
-  grid-template-columns: repeat(10, 6px);
-  grid-template-rows: repeat(10, 6px);
+  grid-template-columns: repeat(10, 8px);
+  grid-template-rows: repeat(10, 8px);
   gap: 1px;
-  background: var(--mini-grid-bg);
+  background: transparent;
+  border: 1px solid rgba(65, 105, 225, 0.5);
   padding: 2px;
+  box-shadow: 0 0 5px rgba(65, 105, 225, 0.3);
 }
 
 .mini-cell {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
   background: var(--mini-cell-bg);
+  border: 1px solid rgba(0, 0, 0, 0.5);
+  box-sizing: border-box;
 }
 
-.mini-cell.cell-ship { background: var(--color-primary); }
-.mini-cell.cell-hit { background: var(--color-danger); }
-.mini-cell.cell-sunk { background: #555555; }
-.mini-cell.cell-miss { background: var(--mini-cell-miss); }
-.mini-cell.cell-fog { background: var(--mini-cell-fog); }
+.mini-cell.cell-ship { background: var(--color-primary); box-shadow: 0 0 3px var(--color-primary); }
+.mini-cell.cell-hit { background: var(--color-danger); box-shadow: 0 0 5px var(--color-danger); }
+.mini-cell.cell-sunk { background: #DC143C; opacity: 0.5; }
+.mini-cell.cell-miss { background: var(--mini-cell-miss); border: 1px solid rgba(255,255,255,0.1); }
+.mini-cell.cell-fog { background: var(--mini-cell-fog); border: 1px dashed rgba(65, 105, 225, 0.3); }
 
 .hud-game-stats {
   display: flex;
   gap: 15px;
   background: var(--hud-stats-bg);
   padding: 5px 10px;
-  border: 2px solid var(--hud-stats-border);
-  border-radius: 8px;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+  border: 1px solid var(--hud-stats-border);
+  border-radius: 4px;
+  box-shadow: 0 0 8px rgba(65, 105, 225, 0.4), inset 0 0 5px rgba(65, 105, 225, 0.2);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
   font-size: 0.9rem;
   font-weight: bold;
-  color: var(--hud-stats-text);
+  color: var(--color-text);
+  text-shadow: 0 0 5px var(--hud-stats-text);
 }
 
 .hud-fleet-status-group {
@@ -438,23 +493,29 @@ canvas {
 }
 
 .ship-segment {
-  width: 5px;
+  width: 6px;
   height: 8px;
-  background-color: var(--color-primary);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background-color: transparent;
+  border: 1px solid var(--color-primary);
+  box-shadow: inset 0 0 3px var(--color-primary);
 }
 
 .ship-icon.sunk .ship-segment {
-  background-color: var(--color-danger);
-  opacity: 0.7;
+  background-color: rgba(255, 36, 0, 0.3);
+  border-color: var(--color-danger);
+  box-shadow: inset 0 0 5px var(--color-danger);
+  opacity: 0.8;
 }
 
 #enemy-fleet-icons .ship-segment {
-  background-color: #f44336;
+  border-color: var(--color-danger);
+  box-shadow: inset 0 0 3px var(--color-danger);
 }
 
 #enemy-fleet-icons .ship-icon.sunk .ship-segment {
-  background-color: var(--color-danger);
+  background-color: rgba(220, 20, 60, 0.3);
+  border-color: #DC143C; /* Crimson */
+  box-shadow: inset 0 0 5px #DC143C;
 }
 
 /* Geek Stats Panel */
@@ -463,9 +524,11 @@ canvas {
   bottom: 20px;
   left: 20px;
   background: var(--geek-bg);
-  border: 2px solid var(--geek-border);
-  border-radius: 8px;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+  border: 1px solid var(--geek-border);
+  border-radius: 4px;
+  box-shadow: 0 0 10px rgba(65, 105, 225, 0.4), inset 0 0 5px rgba(65, 105, 225, 0.2);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
   padding: 8px 12px;
   font-family: var(--font-family);
   font-size: 0.75rem;
@@ -474,6 +537,7 @@ canvas {
   z-index: 1000;
   pointer-events: none;
   min-width: 140px;
+  text-shadow: 0 0 3px rgba(255,255,255,0.4);
 }
 
 .geek-stats-title {
@@ -525,13 +589,24 @@ canvas {
   display: flex;
   flex-direction: column;
   padding: 12px 16px;
+  border: 1px solid rgba(255, 215, 0, 0.3);
+  background: rgba(0, 0, 20, 0.4);
+  margin-bottom: 4px;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.save-slot:hover:not(.slot-disabled) {
+  border-color: var(--color-primary);
+  box-shadow: inset 0 0 10px rgba(255, 215, 0, 0.3);
 }
 
 .save-slot .slot-header {
   font-size: 1rem;
   font-weight: bold;
   margin-bottom: 4px;
-  color: var(--color-primary);
+  color: var(--color-text);
+  text-shadow: 0 0 5px var(--color-primary);
 }
 
 .save-slot .slot-info {
@@ -586,6 +661,8 @@ canvas {
   width: 100%;
   height: 100%;
   background: var(--overlay-bg);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
   display: flex;
   justify-content: center;
   align-items: center;
