@@ -133,7 +133,7 @@ export class AIEngine {
 
         const width = board.width;
         const height = board.height;
-        const heatMap = new Uint16Array(width * height);
+        const heatMap = new Uint32Array(width * height);
         
         const ITERATIONS = 1000;
 
