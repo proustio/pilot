@@ -680,6 +680,7 @@ export class EntityManager {
         );
 
         voxelsData.forEach((vd, index) => {
+            dummy.scale.setScalar(1);
             dummy.position.copy(vd.pos);
             dummy.updateMatrix();
             instancedLines.setMatrixAt(index, dummy.matrix);

@@ -27,6 +27,12 @@ const init = () => {
 
         interactionManager.setGameLoop(gameLoop);
 
+        // Bind TOGGLE_DAY_NIGHT to the 3D Engine
+        document.addEventListener('TOGGLE_DAY_NIGHT', (e: Event) => {
+            const ce = e as CustomEvent;
+            engine.setDayMode(ce.detail.isDay);
+        });
+
         interactionManager.onClick((hit: any) => {
             const gridX = hit.object.userData.cellX;
             const gridZ = hit.object.userData.cellZ;

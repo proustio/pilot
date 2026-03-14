@@ -112,17 +112,34 @@ export class Engine3D {
     this.scene.add(pointLight);
   }
 
-  public setDayMode(_isDay: boolean) {
-      // Overriding Day/Night mode to stick to the single cohesive Jarvis aesthetic.
-      // We keep the API intact so events don't break, but visually it stays consistent.
-      this.scene.background = new THREE.Color('#00000a');
-      this.ambientLight.color.setHex(0x4169E1);
-      this.ambientLight.intensity = 0.3;
+  public setDayMode(isDay: boolean) {
+      if (isDay) {
+          // Light Mode - Bright Tech Jarvis Vibe
+          this.scene.background = new THREE.Color('#f0f4f8');
+          if (this.scene.fog) {
+              (this.scene.fog as THREE.FogExp2).color.setHex(0xf0f4f8);
+          }
+          this.ambientLight.color.setHex(0xffffff);
+          this.ambientLight.intensity = 0.6;
 
-      this.dirLight.color.setHex(0xFFD700);
-      this.dirLight.intensity = 0.8;
+          this.dirLight.color.setHex(0xffffff);
+          this.dirLight.intensity = 1.0;
 
-      this.hemiLight.intensity = 0.4;
+          this.hemiLight.intensity = 0.6;
+      } else {
+          // Night Mode - Dark Hologram Jarvis Vibe
+          this.scene.background = new THREE.Color('#00000a');
+          if (this.scene.fog) {
+              (this.scene.fog as THREE.FogExp2).color.setHex(0x00000a);
+          }
+          this.ambientLight.color.setHex(0x4169E1);
+          this.ambientLight.intensity = 0.3;
+
+          this.dirLight.color.setHex(0xFFD700);
+          this.dirLight.intensity = 0.8;
+
+          this.hemiLight.intensity = 0.4;
+      }
   }
 
   private onWindowResize() {

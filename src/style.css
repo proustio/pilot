@@ -16,8 +16,74 @@
   Black: #000000
 */
 
-/* --- THEME --- */
-:root {
+/* --- LIGHT (Day) Theme - Bright Tech --- */
+body.day-mode {
+  --color-bg: #f0f4f8; /* Very light slate blue/white */
+  --color-text: #000080; /* Navy Blue */
+  --color-primary: #FFD700;   /* Gold */
+  --color-secondary: #228B22; /* Forest Green */
+  --color-danger: #DC143C;    /* Crimson */
+  --color-highlight: #4169E1; /* Royal Blue */
+
+  --panel-border-glow: 0 0 10px rgba(65, 105, 225, 0.3), inset 0 0 5px rgba(65, 105, 225, 0.1);
+  --panel-danger-glow: 0 0 10px rgba(220, 20, 60, 0.4), inset 0 0 5px rgba(220, 20, 60, 0.1);
+
+  /* Panels */
+  --panel-bg: rgba(255, 255, 255, 0.85); /* Frost glass */
+  --panel-border: #4169E1; /* Royal Blue */
+  --panel-shadow-light: rgba(255, 255, 255, 0.9);
+  --panel-shadow-dark: rgba(0, 0, 128, 0.2);
+  --panel-text: #000080; /* Navy Blue */
+
+  /* Buttons */
+  --btn-bg: rgba(255, 255, 255, 0.9);
+  --btn-bg-hover: rgba(240, 248, 255, 1.0); /* Alice Blue */
+  --btn-border: #000080; /* Navy */
+  --btn-shadow-light: rgba(255, 215, 0, 0.5); /* Gold glow */
+  --btn-shadow-dark: rgba(0, 0, 128, 0.3);
+  --btn-text: #000080; /* Navy */
+
+  /* Select */
+  --select-bg: rgba(255, 255, 255, 0.9);
+  --select-text: #000080; /* Navy */
+  --select-border: #000080; /* Navy */
+
+  /* HUD */
+  --hud-fleet-bg: rgba(255, 255, 255, 0.85);
+  --hud-fleet-border: #4169E1;
+  --hud-stats-bg: rgba(255, 255, 255, 0.85);
+  --hud-stats-border: #4169E1;
+  --hud-stats-text: #DC143C;
+
+  /* Mini Board */
+  --mini-board-bg: rgba(255, 255, 255, 0.85);
+  --mini-board-border: #4169E1;
+  --mini-board-title: #000080; /* Navy */
+  --mini-grid-bg: rgba(65, 105, 225, 0.1);
+  --mini-cell-bg: #4169E1;
+  --mini-cell-fog: rgba(65, 105, 225, 0.2);
+  --mini-cell-miss: rgba(0, 0, 128, 0.2);
+
+  /* Geek Stats */
+  --geek-bg: rgba(255, 255, 255, 0.85);
+  --geek-border: #4169E1;
+  --geek-text: #000080;
+  --geek-title: #DC143C; /* Crimson */
+  --geek-label: #4169E1; /* Royal Blue */
+  --geek-value: #000080; /* Navy */
+  --geek-online: #228B22;
+
+  /* Save Slots */
+  --slot-empty: #4169E1;
+  --slot-date: #000080;
+  --slot-turns: #DC143C;
+
+  /* Confirm Overlay */
+  --overlay-bg: rgba(240, 244, 248, 0.85);
+}
+
+/* --- DARK (Night) Theme - Jarvis Hologram --- */
+body.night-mode {
   --color-bg: #000000;
   --color-text: #FFFFFF;
   --color-primary: #FFD700;   /* Gold */
@@ -80,10 +146,6 @@
 
   /* Confirm Overlay */
   --overlay-bg: rgba(0, 0, 0, 0.85);
-}
-
-body.day-mode, body.night-mode {
-  /* Unified theme overrides everything to the new styling */
 }
 
 body, html {
@@ -153,7 +215,7 @@ canvas {
   text-align: center;
   margin-bottom: 2rem;
   color: var(--color-text);
-  text-shadow: 0 0 10px var(--color-primary), 0 0 20px var(--color-primary);
+  text-shadow: 0 0 10px rgba(255, 215, 0, 0.5), 0 0 20px rgba(255, 215, 0, 0.3);
   text-transform: uppercase;
   font-weight: 700;
   letter-spacing: 2px;
