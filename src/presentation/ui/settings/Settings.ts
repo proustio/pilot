@@ -19,8 +19,8 @@ export class Settings extends BaseUIComponent {
     }
 
     protected onHide(): void {
-        document.dispatchEvent(new CustomEvent('RESUME_GAME'));
-        document.dispatchEvent(new CustomEvent('SET_INTERACTION_ENABLED', { detail: { enabled: true } }));
+        // Return to pause menu instead of resuming
+        document.dispatchEvent(new CustomEvent('SHOW_PAUSE_MENU'));
     }
 
     protected render(): void {

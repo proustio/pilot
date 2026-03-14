@@ -175,7 +175,7 @@ export class EntityManager {
                 this.enemyBoardGroup.add(etile);
 
                 // Voxel Fog cloud per cell - increased voxel count for density
-                const numVoxels = 30;
+                const numVoxels = 100;
                 const fogCloud = new THREE.InstancedMesh(fogVoxelGeo, fogMat, numVoxels);
                 fogCloud.position.set(worldX, 0.3, worldZ);
 
@@ -183,12 +183,12 @@ export class EntityManager {
                 const voxelData = [];
                 for (let i = 0; i < numVoxels; i++) {
                     // Spread a bit wider and taller to completely obscure cell
-                    const vx = (Math.random() - 0.5) * 0.85;
-                    const vy = (Math.random() - 0.5) * 0.6;
-                    const vz = (Math.random() - 0.5) * 0.85;
+                    const vx = (Math.random() - 0.5) * 0.95;
+                    const vy = (Math.random() - 0.5) * 0.8;
+                    const vz = (Math.random() - 0.5) * 0.95;
                     dummy.position.set(vx, vy, vz);
                     dummy.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
-                    dummy.scale.setScalar(0.8 + Math.random() * 0.6);
+                    dummy.scale.setScalar(1.0 + Math.random() * 0.8);
                     dummy.updateMatrix();
                     fogCloud.setMatrixAt(i, dummy.matrix);
 
@@ -861,7 +861,7 @@ export class EntityManager {
 
         const friendlyShips: THREE.Group[] = [];
         sourceGroup.children.forEach((c: THREE.Object3D) => {
-            if (c.userData.isShip && c.visible && !c.userData.isSinking) friendlyShips.push(c as THREE.Group);
+            if (c.userData.isShip && !c.userData.isSinking) friendlyShips.push(c as THREE.Group);
         });
 
         if (friendlyShips.length > 0) {

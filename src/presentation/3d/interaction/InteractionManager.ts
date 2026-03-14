@@ -94,6 +94,29 @@ export class InteractionManager {
     this.clickListeners.push(listener);
   }
 
+  private playErrorSound() {
+    try {
+      const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const oscillator = audioCtx.createOscillator();
+      const gainNode = audioCtx.createGain();
+
+      oscillator.type = 'sawtooth';
+      oscillator.frequency.setValueAtTime(150, audioCtx.currentTime); // Low frequency
+      oscillator.frequency.exponentialRampToValueAtTime(50, audioCtx.currentTime + 0.1); // Quick drop
+
+      gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+
+      oscillator.connect(gainNode);
+      gainNode.connect(audioCtx.destination);
+
+      oscillator.start();
+      oscillator.stop(audioCtx.currentTime + 0.1);
+    } catch (e) {
+      console.warn('AudioContext not supported or blocked', e);
+    }
+  }
+
   private onMouseClick(_event: MouseEvent) {
     if (!this.interactionEnabled) return;
 
@@ -103,6 +126,25 @@ export class InteractionManager {
     if (intersects.length > 0) {
       const hit = intersects.find((i: THREE.Intersection) => i.object.userData.isGridTile);
       if (hit) {
+        const x = hit.object.userData.cellX;
+        const z = hit.object.userData.cellZ;
+        const isPlayerSide = hit.object.userData.isPlayerSide;
+
+        // Check if the cell has already been shot at
+        if (this.gameLoop && this.gameLoop.match && this.gameLoop.currentState === GameState.PLAYER_TURN) {
+          const targetBoard = isPlayerSide ? this.gameLoop.match.playerBoard : this.gameLoop.match.enemyBoard;
+          const index = z * targetBoard.width + x;
+          const cellState = targetBoard.gridState[index];
+
+          // 0 is typically CellState.Empty, let's verify if cellState > 0 means it has been shot at
+          // We know CellState.Empty is likely 0, and Hit, Miss, Sunk are > 0
+          // Wait, I will need to import CellState to be safe, but let's check `targetBoard.gridState[index] !== 0`
+          if (cellState !== 0) {
+            this.playErrorSound();
+            return; // Prevent click from propagating
+          }
+        }
+
         this.clickListeners.forEach(listener => listener(hit));
       }
     }
@@ -167,13 +209,32 @@ export class InteractionManager {
 
         } else {
           this.ghostGroup.visible = false;
-          const worldPos = new THREE.Vector3();
-          hit.object.getWorldPosition(worldPos);
-          this.hoverCursor.position.copy(worldPos);
-          this.hoverCursor.position.y += 1.25;
-          this.hoverCursor.visible = true;
 
-          this.hoverCursor.quaternion.identity();
+          let showHover = true;
+
+          const x = hit.object.userData.cellX;
+          const z = hit.object.userData.cellZ;
+          const isPlayerSide = hit.object.userData.isPlayerSide;
+
+          if (this.gameLoop && this.gameLoop.match && this.gameLoop.currentState === GameState.PLAYER_TURN) {
+            const targetBoard = isPlayerSide ? this.gameLoop.match.playerBoard : this.gameLoop.match.enemyBoard;
+            const index = z * targetBoard.width + x;
+            if (targetBoard.gridState[index] !== 0) {
+              showHover = false;
+            }
+          }
+
+          if (showHover) {
+            const worldPos = new THREE.Vector3();
+            hit.object.getWorldPosition(worldPos);
+            this.hoverCursor.position.copy(worldPos);
+            this.hoverCursor.position.y += 1.25;
+            this.hoverCursor.visible = true;
+
+            this.hoverCursor.quaternion.identity();
+          } else {
+            this.hoverCursor.visible = false;
+          }
         }
 
         this.hoveredCell = {

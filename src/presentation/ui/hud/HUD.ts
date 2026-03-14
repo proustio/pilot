@@ -52,8 +52,8 @@ export class HUD extends BaseUIComponent {
 
     protected render(): void {
         this.container.innerHTML = `
-            <div class="hud-top-bar">
-                <div class="hud-top-left">
+            <div class="hud-top-bar" style="transform: scale(1.4); transform-origin: top;">
+                <div class="hud-top-left" style="transform-origin: top left;">
                     <div id="unified-board-anchor"></div>
                     <div id="game-stats" class="hud-game-stats">
                         <div class="stat-item">SHOTS: <span id="stat-shots">0</span></div>
@@ -77,7 +77,7 @@ export class HUD extends BaseUIComponent {
                 </div>
             </div>
             
-            <div style="position: absolute; bottom: 20px; right: 20px; display: flex; gap: 10px;">
+            <div style="position: absolute; bottom: 20px; right: 20px; display: flex; gap: 10px; transform: scale(1.4); transform-origin: bottom right;">
                 <button id="hud-btn-geek-stats" class="voxel-btn ui-interactive" style="width: auto; padding: 10px;" title="Toggle Geek Stats">📈</button>
                 <button id="hud-btn-auto-battler" class="voxel-btn ui-interactive" style="width: auto; padding: 10px;" title="Toggle Auto-Battler">🤖</button>
                 <button id="hud-btn-peek" class="voxel-btn ui-interactive" style="width: auto; padding: 10px; display: ${Config.visual.peekEnabled ? 'inline-block' : 'none'};" title="Peek at other side">👁️</button>
@@ -87,7 +87,7 @@ export class HUD extends BaseUIComponent {
                 <button id="hud-btn-settings" class="voxel-btn ui-interactive" style="width: auto; padding: 10px;" title="Pause Menu">⏸️</button>
             </div>
             
-            <div id="geek-stats" class="geek-stats-panel" style="display: ${Config.visual.showGeekStats ? 'block' : 'none'};">
+            <div id="geek-stats" class="geek-stats-panel" style="display: ${Config.visual.showGeekStats ? 'block' : 'none'}; transform: scale(1.4); transform-origin: bottom left;">
                 <div class="geek-stats-title">⚙ GEEK STATS</div>
                 <div class="geek-stats-row"><span class="gs-label">FPS</span><span class="gs-value" id="gs-fps">--</span></div>
                 <div class="geek-stats-row"><span class="gs-label">FRAME</span><span class="gs-value" id="gs-frame">-- ms</span></div>
