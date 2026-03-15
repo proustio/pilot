@@ -15,6 +15,9 @@ export class EntityManager {
 
     private targetRotationX: number = 0;
 
+    private playerGridTiles: THREE.Object3D[] = [];
+    private enemyGridTiles: THREE.Object3D[] = [];
+
     public get boardOrientation(): 'player' | 'enemy' {
         return Math.abs(this.targetRotationX - Math.PI) < 0.1 ? 'enemy' : 'player';
     }
@@ -55,6 +58,9 @@ export class EntityManager {
     }
 
     private createBoardMeshes() {
+        this.playerGridTiles = [];
+        this.enemyGridTiles = [];
+
         const boardSize = Config.board.width;
         const offset = boardSize / 2;
 
@@ -168,12 +174,14 @@ export class EntityManager {
                 ptile.position.set(worldX, 0, worldZ);
                 ptile.userData = { isGridTile: true, cellX: x, cellZ: z, isPlayerSide: true };
                 this.playerBoardGroup.add(ptile);
+                this.playerGridTiles.push(ptile);
 
                 // Enemy Side tile
                 const etile = new THREE.Mesh(tileGeometry, tileEnemyMat);
                 etile.position.set(worldX, 0, worldZ);
                 etile.userData = { isGridTile: true, cellX: x, cellZ: z, isPlayerSide: false };
                 this.enemyBoardGroup.add(etile);
+                this.enemyGridTiles.push(etile);
 
                 // Voxel Fog cloud per cell - increased voxel count for density
                 const numVoxels = 100;
@@ -222,14 +230,14 @@ export class EntityManager {
      * Returns the list of objects that the Raycaster should test against.
      * Only returns the tiles that are currently facing UP.
      */
-    public getInteractableObjects(): THREE.Object3D[] {
+    public getInteractableObjects(): readonly THREE.Object3D[] {
         // Determine which side is facing up by looking at rotation
         // Math.PI rotation means enemy board is UP
         const isEnemyUp = Math.abs(this.masterBoardGroup.rotation.x - Math.PI) < 0.1;
         if (isEnemyUp) {
-            return this.enemyBoardGroup.children.filter((c: THREE.Object3D) => c.userData.isGridTile);
+            return this.enemyGridTiles;
         }
-        return this.playerBoardGroup.children.filter((c: THREE.Object3D) => c.userData.isGridTile);
+        return this.playerGridTiles;
     }
 
     public showPlayerBoard() {
