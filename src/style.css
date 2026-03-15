@@ -217,6 +217,18 @@ canvas {
   flex-direction: column;
 }
 
+#game-over {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) !important;
+  width: 350px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  z-index: 500;
+}
+
 .ui-interactive {
   pointer-events: auto;
 }
@@ -331,7 +343,7 @@ canvas {
   position: absolute;
   top: 50%;
   left: 50%;
-  transform: translate(-50%, -50%);
+  transform: translate(-50%, -50%) !important;
   display: flex;
   flex-direction: column;
   width: 300px;
@@ -391,7 +403,7 @@ canvas {
   position: absolute;
   top: 50%;
   left: 50%;
-  transform: translate(-50%, -50%);
+  transform: translate(-50%, -50%) !important;
   width: 300px;
   display: flex;
   flex-direction: column;
@@ -401,7 +413,7 @@ canvas {
   position: absolute;
   top: 50%;
   left: 50%;
-  transform: translate(-50%, -50%);
+  transform: translate(-50%, -50%) !important;
   width: 400px;
   display: flex;
   flex-direction: column;
@@ -517,6 +529,13 @@ canvas {
 .mini-cell.cell-fog {
   background: var(--mini-cell-fog);
   border: 1px dashed rgba(65, 105, 225, 0.3);
+}
+
+.mini-cell.cell-highlight {
+  border: 2px solid #FFD700;
+  box-shadow: 0 0 5px #FFD700, inset 0 0 5px #FFD700;
+  z-index: 2;
+  position: relative;
 }
 
 .hud-game-stats {
@@ -664,7 +683,7 @@ canvas {
   position: absolute;
   top: 50%;
   left: 50%;
-  transform: translate(-50%, -50%);
+  transform: translate(-50%, -50%) !important;
   width: 380px;
   display: flex;
   flex-direction: column;
