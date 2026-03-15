@@ -85,6 +85,32 @@ export class InteractionManager {
         }
       }
     });
+
+    document.addEventListener('MINIMAP_CELL_HOVER', (e: Event) => {
+        const ce = e as CustomEvent;
+        if (ce.detail) {
+            const { x, z, isPlayerGrid } = ce.detail;
+
+            // Fake a hit to position the cursor
+            // We just need the coordinates, the visual update will happen below
+            const boardOffset = 5; // Config.board.width / 2 is 5
+            const worldX = x - boardOffset + 0.5;
+            const worldZ = z - boardOffset + 0.5;
+
+            // Only show if the grid being hovered matches the current active state
+            const currentState = this.gameLoop ? this.gameLoop.currentState : null;
+            if ((isPlayerGrid && currentState === GameState.SETUP_BOARD) ||
+                (!isPlayerGrid && currentState === GameState.PLAYER_TURN)) {
+
+                this.hoverCursor.position.set(worldX, 1.25, worldZ);
+                this.hoverCursor.visible = true;
+            } else {
+                this.hoverCursor.visible = false;
+            }
+        } else {
+            this.hoverCursor.visible = false;
+        }
+    });
   }
 
   public setGameLoop(gameLoop: any) {
@@ -245,6 +271,7 @@ export class InteractionManager {
             detail: {
                 x: this.hoveredCell.x,
                 z: this.hoveredCell.z,
+                isPlayerSide: hit.object.userData.isPlayerSide,
                 clientX: this.lastMouseClientX,
                 clientY: this.lastMouseClientY
             }

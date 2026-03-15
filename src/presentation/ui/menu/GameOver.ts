@@ -8,8 +8,8 @@ export class GameOver extends BaseUIComponent {
 
     protected render(): void {
         this.container.innerHTML = `
-            <h1 id="game-over-title" class="voxel-title" style="font-size: 3rem; margin-bottom: 10px;">Game Over</h1>
-            <p id="game-over-message" style="margin-bottom: 30px; font-size: 1.5rem;"></p>
+            <h1 id="game-over-title" class="voxel-title" style="font-size: 3rem; margin-bottom: 10px; margin-top: 10px;">Game Over</h1>
+            <p id="game-over-message" style="margin-bottom: 30px; font-size: 1.2rem; text-align: center; color: var(--color-text);"></p>
             <button id="btn-return-menu" class="voxel-btn primary">Main Menu</button>
         `;
 

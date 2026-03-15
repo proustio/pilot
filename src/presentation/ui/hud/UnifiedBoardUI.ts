@@ -50,20 +50,26 @@ export class UnifiedBoardUI extends BaseUIComponent {
                 const x = i % boardWidth;
                 const z = Math.floor(i / boardWidth);
                 
-                const onHover = (e: MouseEvent) => {
-                    document.dispatchEvent(new CustomEvent('MOUSE_CELL_HOVER', {
-                        detail: {
-                            x, z,
-                            clientX: e.clientX,
-                            clientY: e.clientY
-                        }
+                const isPlayerGrid = container === this.playerGridContainer;
+
+                const onHover = (_e: MouseEvent) => {
+                    document.dispatchEvent(new CustomEvent('MINIMAP_CELL_HOVER', {
+                        detail: { x, z, isPlayerGrid }
                     }));
                 };
                 
                 cell.addEventListener('mouseenter', onHover);
                 cell.addEventListener('mousemove', onHover);
                 cell.addEventListener('mouseleave', () => {
-                    document.dispatchEvent(new CustomEvent('MOUSE_CELL_HOVER', { detail: null }));
+                    document.dispatchEvent(new CustomEvent('MINIMAP_CELL_HOVER', { detail: null }));
+                });
+
+                cell.addEventListener('click', () => {
+                    // Only allow clicking on the enemy grid in PLAYER_TURN, or player grid in SETUP_BOARD
+                    const currentState = this.gameLoop.currentState;
+                    if ((isPlayerGrid && currentState === 'SETUP_BOARD') || (!isPlayerGrid && currentState === 'PLAYER_TURN')) {
+                        this.gameLoop.onGridClick(x, z);
+                    }
                 });
 
                 container.appendChild(cell);
@@ -72,6 +78,31 @@ export class UnifiedBoardUI extends BaseUIComponent {
 
         createGrid(this.playerGridContainer);
         createGrid(this.enemyGridContainer);
+
+        document.addEventListener('MOUSE_CELL_HOVER', (e: Event) => {
+            const ce = e as CustomEvent;
+            this.clearHighlights();
+            if (ce.detail) {
+                this.highlightCell(ce.detail.x, ce.detail.z, ce.detail.isPlayerSide);
+            }
+        });
+    }
+
+    private clearHighlights(): void {
+        const pCells = this.playerGridContainer.querySelectorAll('.mini-cell');
+        const eCells = this.enemyGridContainer.querySelectorAll('.mini-cell');
+        pCells.forEach(c => c.classList.remove('cell-highlight'));
+        eCells.forEach(c => c.classList.remove('cell-highlight'));
+    }
+
+    private highlightCell(x: number, z: number, isPlayerSide: boolean): void {
+        const container = isPlayerSide ? this.playerGridContainer : this.enemyGridContainer;
+        const width = this.gameLoop.match ? this.gameLoop.match.playerBoard.width : Config.board.width;
+        const index = z * width + x;
+        const cells = container.querySelectorAll('.mini-cell');
+        if (cells[index]) {
+            cells[index].classList.add('cell-highlight');
+        }
     }
 
     public refresh(): void {
