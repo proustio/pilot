@@ -66,6 +66,11 @@ export class Settings extends BaseUIComponent {
             </div>
 
             <div class="settings-row">
+                <label>Ignore Updates:</label>
+                <input type="checkbox" id="toggle-ignore-updates" ${Config.ignoreUpdates ? 'checked' : ''} style="transform: scale(2);" title="Do not prompt for new updates">
+            </div>
+
+            <div class="settings-row">
                 <label>Game Speed:</label>
                 <select id="game-speed" class="voxel-select" style="width: auto;">
                     <option value="0.5" ${Config.timing.gameSpeedMultiplier === 0.5 ? 'selected' : ''}>0.5x (Slow)</option>
@@ -175,5 +180,14 @@ export class Settings extends BaseUIComponent {
             Config.saveConfig();
             document.dispatchEvent(new CustomEvent('PEEK_ENABLED_CHANGED', { detail: { enabled: isChecked } }));
         });
+
+        const ignoreUpdatesToggle = this.container.querySelector('#toggle-ignore-updates') as HTMLInputElement;
+        if (ignoreUpdatesToggle) {
+            ignoreUpdatesToggle.addEventListener('change', (e) => {
+                const isChecked = (e.target as HTMLInputElement).checked;
+                Config.ignoreUpdates = isChecked;
+                Config.saveConfig();
+            });
+        }
     }
 }

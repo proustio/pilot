@@ -203,6 +203,41 @@ const init = () => {
         animate(performance.now());
         console.log('App successfully initialized, loop running.');
 
+        // Register Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/serviceworker.js').then((registration) => {
+                    console.log('ServiceWorker registration successful with scope: ', registration.scope);
+
+                    registration.addEventListener('updatefound', () => {
+                        const newWorker = registration.installing;
+                        if (newWorker) {
+                            newWorker.addEventListener('statechange', () => {
+                                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                    if (!Config.ignoreUpdates) {
+                                        document.dispatchEvent(new CustomEvent('SERVICE_WORKER_UPDATE_AVAILABLE', {
+                                            detail: { worker: newWorker }
+                                        }));
+                                    }
+                                }
+                            });
+                        }
+                    });
+
+                }).catch((err) => {
+                    console.error('ServiceWorker registration failed: ', err);
+                });
+
+                let refreshing = false;
+                navigator.serviceWorker.addEventListener('controllerchange', () => {
+                    if (!refreshing) {
+                        refreshing = true;
+                        window.location.reload();
+                    }
+                });
+            });
+        }
+
     } catch (error) {
         console.error('Failed to initialize application:', error);
     }

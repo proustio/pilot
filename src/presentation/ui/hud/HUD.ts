@@ -86,6 +86,20 @@ export class HUD extends BaseUIComponent {
                 <button id="hud-btn-speed" class="voxel-btn ui-interactive" title="Cycle Speed">${this.getSpeedLabel(Config.timing.gameSpeedMultiplier)}</button>
                 <button id="hud-btn-settings" class="voxel-btn ui-interactive" title="Pause Menu">⏸️</button>
             </div>
+
+            <div id="network-status-badge" class="network-status-badge ui-interactive" style="display: flex; align-items: center; gap: 5px; position: absolute; top: 10px; right: 10px; padding: 5px 10px; border-radius: 4px; background: var(--panel-bg); border: 1px solid var(--panel-border); color: var(--panel-text); font-weight: bold; cursor: default; z-index: 1000;">
+                <span id="network-status-dot" style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background-color: ${navigator.onLine ? '#228B22' : '#DC143C'}; box-shadow: 0 0 5px ${navigator.onLine ? '#228B22' : '#DC143C'};"></span>
+                <span id="network-status-text">${navigator.onLine ? 'ONLINE' : 'OFFLINE'}</span>
+            </div>
+
+            <div id="update-notification" class="voxel-panel ui-interactive" style="display: none; position: absolute; bottom: 90px; right: 30px; z-index: 1000; flex-direction: column; gap: 10px; max-width: 300px;">
+                <div style="font-weight: bold; color: var(--color-primary);">Update Available!</div>
+                <div style="font-size: 0.9rem;">A new version of the game is ready.</div>
+                <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 5px;">
+                    <button id="btn-update-ignore" class="voxel-btn" style="font-size: 0.8rem; padding: 5px 10px; margin: 0;">Ignore</button>
+                    <button id="btn-update-now" class="voxel-btn primary" style="font-size: 0.8rem; padding: 5px 10px; margin: 0;">Update Now</button>
+                </div>
+            </div>
             
             <div id="geek-stats" class="geek-stats-panel" style="display: ${Config.visual.showGeekStats ? 'block' : 'none'};">
                 <div class="geek-stats-title">⚙ GEEK STATS</div>
@@ -245,6 +259,42 @@ export class HUD extends BaseUIComponent {
             const customEvent = e as CustomEvent;
             if (customEvent.detail && customEvent.detail.show !== undefined) {
                 this.geekStats.style.display = customEvent.detail.show ? 'block' : 'none';
+            }
+        });
+
+        const networkDot = this.container.querySelector('#network-status-dot') as HTMLElement;
+        const networkText = this.container.querySelector('#network-status-text') as HTMLElement;
+
+        const updateNetworkStatus = () => {
+            const isOnline = navigator.onLine;
+            networkText.textContent = isOnline ? 'ONLINE' : 'OFFLINE';
+            networkDot.style.backgroundColor = isOnline ? '#228B22' : '#DC143C';
+            networkDot.style.boxShadow = `0 0 5px ${isOnline ? '#228B22' : '#DC143C'}`;
+        };
+
+        window.addEventListener('online', updateNetworkStatus);
+        window.addEventListener('offline', updateNetworkStatus);
+
+        const updateNotification = this.container.querySelector('#update-notification') as HTMLElement;
+        const btnUpdateIgnore = this.container.querySelector('#btn-update-ignore') as HTMLButtonElement;
+        const btnUpdateNow = this.container.querySelector('#btn-update-now') as HTMLButtonElement;
+        let newWorker: ServiceWorker | null = null;
+
+        document.addEventListener('SERVICE_WORKER_UPDATE_AVAILABLE', (e: Event) => {
+            const ce = e as CustomEvent;
+            if (ce.detail && ce.detail.worker) {
+                newWorker = ce.detail.worker;
+                updateNotification.style.display = 'flex';
+            }
+        });
+
+        btnUpdateIgnore.addEventListener('click', () => {
+            updateNotification.style.display = 'none';
+        });
+
+        btnUpdateNow.addEventListener('click', () => {
+            if (newWorker) {
+                newWorker.postMessage({ type: 'SKIP_WAITING' });
             }
         });
 

@@ -25,6 +25,7 @@ export const Config = {
     },
     autoBattler: false,
     aiDifficulty: 'normal',
+    ignoreUpdates: false,
 
     loadConfig() {
         try {
@@ -53,6 +54,9 @@ export const Config = {
                 if (parsedConfig.aiDifficulty !== undefined) {
                     this.aiDifficulty = parsedConfig.aiDifficulty;
                 }
+                if (parsedConfig.ignoreUpdates !== undefined) {
+                    this.ignoreUpdates = parsedConfig.ignoreUpdates;
+                }
             }
         } catch (e) {
             console.error('Failed to load user config', e);
@@ -72,7 +76,8 @@ export const Config = {
                     fpsCap: this.visual.fpsCap
                 },
                 autoBattler: this.autoBattler,
-                aiDifficulty: this.aiDifficulty
+                aiDifficulty: this.aiDifficulty,
+                ignoreUpdates: this.ignoreUpdates
             };
             localStorage.setItem('battleships_config', JSON.stringify(configToSave));
         } catch (e) {
