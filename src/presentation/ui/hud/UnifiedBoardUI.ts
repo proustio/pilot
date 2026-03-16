@@ -1,5 +1,5 @@
 import { BaseUIComponent } from '../components/BaseUIComponent';
-import { GameLoop } from '../../../application/game-loop/GameLoop';
+import { GameLoop, GameState } from '../../../application/game-loop/GameLoop';
 import { CellState } from '../../../domain/board/Board';
 import { Config } from '../../../infrastructure/config/Config';
 
@@ -67,8 +67,10 @@ export class UnifiedBoardUI extends BaseUIComponent {
                 cell.addEventListener('click', () => {
                     // Only allow clicking on the enemy grid in PLAYER_TURN, or player grid in SETUP_BOARD
                     const currentState = this.gameLoop.currentState;
-                    if ((isPlayerGrid && currentState === 'SETUP_BOARD') || (!isPlayerGrid && currentState === 'PLAYER_TURN')) {
-                        this.gameLoop.onGridClick(x, z);
+                    if ((isPlayerGrid && currentState === GameState.SETUP_BOARD) || (!isPlayerGrid && currentState === GameState.PLAYER_TURN)) {
+                        document.dispatchEvent(new CustomEvent('GRID_CLICK', {
+                            detail: { x, z, isPlayerSide: isPlayerGrid }
+                        }));
                     }
                 });
 

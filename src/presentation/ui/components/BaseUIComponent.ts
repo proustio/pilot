@@ -16,6 +16,19 @@ export abstract class BaseUIComponent {
     public mount(parentElement: HTMLElement): void {
         parentElement.appendChild(this.container);
         this.render();
+        this.attachSoundListeners();
+    }
+
+    /**
+     * Attaches sound listeners to interactive elements within this component.
+     */
+    protected attachSoundListeners(): void {
+        const interactiveElements = this.container.querySelectorAll('button, .voxel-btn, .mini-cell, input, select');
+        interactiveElements.forEach(el => {
+            el.addEventListener('mouseenter', () => {
+                document.dispatchEvent(new CustomEvent('PLAY_SOUND', { detail: 'bubblePop' }));
+            });
+        });
     }
 
     /**
@@ -41,6 +54,7 @@ export abstract class BaseUIComponent {
             this.container.style.display = 'flex'; // Or appropriate display type
             this.isVisible = true;
             this.onShow();
+            this.attachSoundListeners(); // re-attach in case render changed things
         }
     }
 
