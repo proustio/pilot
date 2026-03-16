@@ -80,7 +80,7 @@ export class HUD extends BaseUIComponent {
             <div class="hud-bottom-bar">
                 <button id="hud-btn-geek-stats" class="voxel-btn ui-interactive" title="Toggle Geek Stats">📈</button>
                 <button id="hud-btn-auto-battler" class="voxel-btn ui-interactive" title="Toggle Auto-Battler">🤖</button>
-                <button id="hud-btn-peek" class="voxel-btn ui-interactive" style="display: ${Config.visual.peekEnabled ? 'inline-block' : 'none'};" title="Peek at other side">👁️</button>
+                <button id="hud-btn-peek" class="voxel-btn ui-interactive" style="display: inline-block;" title="Peek at other side">👁️</button>
                 <button id="hud-btn-day-night" class="voxel-btn ui-interactive" title="Toggle Day/Night">${Config.visual.isDayMode ? '🌞' : '🌚'}</button>
                 <button id="hud-btn-fps" class="voxel-btn ui-interactive" title="Cycle FPS Cap">${Config.visual.fpsCap || 60} FPS</button>
                 <button id="hud-btn-speed" class="voxel-btn ui-interactive" title="Cycle Speed">${this.getSpeedLabel(Config.timing.gameSpeedMultiplier)}</button>

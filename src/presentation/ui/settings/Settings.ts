@@ -61,11 +61,6 @@ export class Settings extends BaseUIComponent {
             </div>
 
             <div class="settings-row">
-                <label>Peek at Other Side:</label>
-                <input type="checkbox" id="toggle-peek-enabled" ${Config.visual.peekEnabled ? 'checked' : ''} style="transform: scale(2);">
-            </div>
-
-            <div class="settings-row">
                 <label>Game Speed:</label>
                 <select id="game-speed" class="voxel-select" style="width: auto;">
                     <option value="0.5" ${Config.timing.gameSpeedMultiplier === 0.5 ? 'selected' : ''}>0.5x (Slow)</option>
@@ -168,12 +163,5 @@ export class Settings extends BaseUIComponent {
             }
         });
 
-        const peekToggle = this.container.querySelector('#toggle-peek-enabled') as HTMLInputElement;
-        peekToggle.addEventListener('change', (e) => {
-            const isChecked = (e.target as HTMLInputElement).checked;
-            Config.visual.peekEnabled = isChecked;
-            Config.saveConfig();
-            document.dispatchEvent(new CustomEvent('PEEK_ENABLED_CHANGED', { detail: { enabled: isChecked } }));
-        });
     }
 }
