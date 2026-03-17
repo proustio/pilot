@@ -335,7 +335,16 @@ export class GameLoop {
                             return;
                         }
 
-                        const status = this.match!.checkGameEnd();
+                        let status: 'ongoing' | 'player_wins' | 'enemy_wins' = 'ongoing';
+                    try {
+                        status = this.match!.checkGameEnd();
+                    } catch (e: any) {
+                        if (e.message === 'Board has no ships') {
+                            document.dispatchEvent(new CustomEvent('EXIT_GAME'));
+                            return;
+                        }
+                        throw e;
+                    }
                         this.isAnimating = false;
 
                         if (status !== 'ongoing') {
@@ -394,7 +403,16 @@ export class GameLoop {
                             return;
                         }
 
-                        const status = this.match!.checkGameEnd();
+                        let status: 'ongoing' | 'player_wins' | 'enemy_wins' = 'ongoing';
+                    try {
+                        status = this.match!.checkGameEnd();
+                    } catch (e: any) {
+                        if (e.message === 'Board has no ships') {
+                            document.dispatchEvent(new CustomEvent('EXIT_GAME'));
+                            return;
+                        }
+                        throw e;
+                    }
                         this.isAnimating = false;
 
                         if (status !== 'ongoing') {
@@ -458,7 +476,16 @@ export class GameLoop {
                 this.isAnimating = true;
 
                 setTimeout(() => {
-                    const status = this.match!.checkGameEnd();
+                    let status: 'ongoing' | 'player_wins' | 'enemy_wins' = 'ongoing';
+                    try {
+                        status = this.match!.checkGameEnd();
+                    } catch (e: any) {
+                        if (e.message === 'Board has no ships') {
+                            document.dispatchEvent(new CustomEvent('EXIT_GAME'));
+                            return;
+                        }
+                        throw e;
+                    }
                     this.isAnimating = false;
 
                     if (status !== 'ongoing') {

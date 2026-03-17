@@ -27,6 +27,7 @@ export class Board {
     // Map of absolute coordinates "x,z" to a specific Ship and its local segment index
     private shipMap: Map<string, { ship: Ship, segmentIndex: number }>;
     public ships: Ship[] = [];
+    public aliveShipsCount: number = 0;
     
     public shotsFired: number = 0;
     public hits: number = 0;
@@ -65,12 +66,38 @@ export class Board {
 
         ship.placeCoordinate(headX, headZ, orientation);
         this.ships.push(ship);
+        if (!ship.isSunk()) {
+            this.aliveShipsCount++;
+        }
 
         const coords = ship.getOccupiedCoordinates();
         coords.forEach((coord, segmentIndex) => {
             const mapKey = `${coord.x},${coord.z}`;
             this.gridState[getIndex(coord.x, coord.z, this.width)] = CellState.Ship;
             this.shipMap.set(mapKey, { ship, segmentIndex });
+        });
+
+        return true;
+    }
+
+    public removeShip(ship: Ship): boolean {
+        const index = this.ships.indexOf(ship);
+        if (index === -1) return false;
+
+        // Use swap and pop for O(1) removal
+        const last = this.ships[this.ships.length - 1];
+        this.ships[index] = last;
+        this.ships.pop();
+
+        if (!ship.isSunk()) {
+            this.aliveShipsCount--;
+        }
+
+        const coords = ship.getOccupiedCoordinates();
+        coords.forEach(coord => {
+            const mapKey = `${coord.x},${coord.z}`;
+            this.gridState[getIndex(coord.x, coord.z, this.width)] = CellState.Empty;
+            this.shipMap.delete(mapKey);
         });
 
         return true;
@@ -100,8 +127,13 @@ export class Board {
             const target = this.shipMap.get(mapKey);
             if (!target) return AttackResult.Miss;
 
+            const wasSunk = target.ship.isSunk();
             target.ship.hitSegment(target.segmentIndex);
             
+            if (!wasSunk && target.ship.isSunk()) {
+                this.aliveShipsCount--;
+            }
+
             if (target.ship.isSunk()) {
                 const coords = target.ship.getOccupiedCoordinates();
                 for (const coord of coords) {
@@ -121,7 +153,9 @@ export class Board {
      * Checks if all ships placed on this board are sunk.
      */
     public allShipsSunk(): boolean {
-        if (this.ships.length === 0) return false;
-        return this.ships.every(ship => ship.isSunk());
+        if (this.ships.length === 0) {
+            throw new Error('Board has no ships');
+        }
+        return this.aliveShipsCount === 0;
     }
 }
