@@ -1,11 +1,9 @@
 please refer to the docs at 
-tech.md
-structure.md
-product.md
+@beautifulMention
+@beautifulMention
+@beautifulMention
 as well as 
-tech-breakdown.md
+@beautifulMention
 and 
-game-concept.md
-go ahead and enhance geek stats as described here
-summary.md#L10
- additionally, create a panel to organize all of controls of bottom-right
+@beautifulMention
+go ahead and redesign all of HUD elements to the retro-tech similar to bottom-right switch box - with bolts and stuff

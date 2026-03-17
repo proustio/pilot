@@ -26,7 +26,7 @@ export class UnifiedBoardUI extends BaseUIComponent {
         // Clear all highlights first
         this.container.querySelectorAll('.mini-cell.highlight').forEach(el => el.classList.remove('highlight'));
         
-        if (!detail || detail.source === '2d') return;
+        if (!detail) return;
 
         const { x, z, isPlayerSide } = detail;
         const targetContainer = isPlayerSide ? this.playerGridContainer : this.enemyGridContainer;

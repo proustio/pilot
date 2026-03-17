@@ -171,136 +171,130 @@ export class InteractionManager {
   }
 
   public update() {
-    if (!this.interactionEnabled) return;
+    let pickedTile: THREE.Object3D | null = null;
 
-    this.raycaster.setFromCamera(this.mouse, this.camera);
+    if (this.interactionEnabled) {
+      this.raycaster.setFromCamera(this.mouse, this.camera);
+      const interacts = this.entityManager.getInteractableObjects();
+      const intersects = this.raycaster.intersectObjects(interacts);
 
-    const interacts = this.entityManager.getInteractableObjects();
-    const intersects = this.raycaster.intersectObjects(interacts);
+      if (intersects.length > 0) {
+        const hit = intersects.find((i: THREE.Intersection) => i.object.userData.isGridTile);
+        if (hit) pickedTile = hit.object;
+      }
+    }
 
-    if (intersects.length > 0) {
-      const hit = intersects.find((i: THREE.Intersection) => i.object.userData.isGridTile);
+    if (pickedTile) {
+      if (this.gameLoop && this.gameLoop.currentState === GameState.SETUP_BOARD && this.gameLoop.playerShipsToPlace.length > 0) {
+        this.hoverCursor.visible = false;
 
-      if (hit) {
-        if (this.gameLoop && this.gameLoop.currentState === GameState.SETUP_BOARD && this.gameLoop.playerShipsToPlace.length > 0) {
-          this.hoverCursor.visible = false;
+        const ship = this.gameLoop.playerShipsToPlace[0];
+        const size = ship.size;
+        const orientation = this.gameLoop.currentPlacementOrientation;
 
-          const ship = this.gameLoop.playerShipsToPlace[0];
-          const size = ship.size;
-          const orientation = this.gameLoop.currentPlacementOrientation;
-
-          if (this.currentGhostSize !== size) {
-            this.buildGhost(size);
-            this.currentGhostSize = size;
-          }
-
-          const x = hit.object.userData.cellX;
-          const z = hit.object.userData.cellZ;
-
-          const isValid = this.gameLoop.match.validatePlacement(this.gameLoop.match.playerBoard, ship, x, z, orientation);
-          const color = isValid ? 0x00ff00 : 0xff0000;
-
-          this.ghostGroup.children.forEach((child: THREE.Object3D, index: number) => {
-            const mesh = child as THREE.Mesh;
-            const mat = mesh.material as THREE.MeshBasicMaterial;
-            mat.color.setHex(color);
-
-            const cx = orientation === Orientation.Horizontal ? index : 0;
-            const cz = orientation === Orientation.Vertical ? index : 0;
-
-            mesh.position.set(cx, 0, cz);
-          });
-
-          const ghostWorldPos = new THREE.Vector3();
-          hit.object.getWorldPosition(ghostWorldPos);
-          this.ghostGroup.position.copy(ghostWorldPos);
-          this.ghostGroup.position.y += 0.45;
-          this.ghostGroup.quaternion.copy(hit.object.parent!.quaternion);
-          this.ghostGroup.visible = true;
-
-        } else {
-          this.ghostGroup.visible = false;
-
-          let showHover = true;
-
-          const x = hit.object.userData.cellX;
-          const z = hit.object.userData.cellZ;
-          const isPlayerSide = hit.object.userData.isPlayerSide;
-
-          if (this.gameLoop && this.gameLoop.match && this.gameLoop.currentState === GameState.PLAYER_TURN) {
-            const targetBoard = isPlayerSide ? this.gameLoop.match.playerBoard : this.gameLoop.match.enemyBoard;
-            const index = z * targetBoard.width + x;
-            const st = targetBoard.gridState[index];
-            if (st === CellState.Hit || st === CellState.Miss || st === CellState.Sunk) {
-              showHover = false;
-            }
-          }
-
-          if (showHover) {
-            const worldPos = new THREE.Vector3();
-            hit.object.getWorldPosition(worldPos);
-            this.hoverCursor.position.copy(worldPos);
-            this.hoverCursor.position.y += 1.25;
-            this.hoverCursor.visible = true;
-
-            this.hoverCursor.quaternion.identity();
-          } else {
-            this.hoverCursor.visible = false;
-          }
-          this.uiHoveredCell = null; // 3D hover takes priority
+        if (this.currentGhostSize !== size) {
+          this.buildGhost(size);
+          this.currentGhostSize = size;
         }
 
-        this.hoveredCell = {
-          x: hit.object.userData.cellX,
-          z: hit.object.userData.cellZ
-        };
+        const x = pickedTile.userData.cellX;
+        const z = pickedTile.userData.cellZ;
 
-        document.dispatchEvent(new CustomEvent('MOUSE_CELL_HOVER', {
-            detail: {
-                x: this.hoveredCell.x,
-                z: this.hoveredCell.z,
-                isPlayerSide: hit.object.userData.isPlayerSide,
-                source: '3d',
-                clientX: this.lastMouseClientX,
-                clientY: this.lastMouseClientY
-            }
-        }));
+        const isValid = this.gameLoop.match.validatePlacement(this.gameLoop.match.playerBoard, ship, x, z, orientation);
+        const color = isValid ? 0x00ff00 : 0xff0000;
+
+        this.ghostGroup.children.forEach((child: THREE.Object3D, index: number) => {
+          const mesh = child as THREE.Mesh;
+          const mat = mesh.material as THREE.MeshBasicMaterial;
+          mat.color.setHex(color);
+
+          const cx = orientation === Orientation.Horizontal ? index : 0;
+          const cz = orientation === Orientation.Vertical ? index : 0;
+
+          mesh.position.set(cx, 0, cz);
+        });
+
+        const ghostWorldPos = new THREE.Vector3();
+        pickedTile.getWorldPosition(ghostWorldPos);
+        this.ghostGroup.position.copy(ghostWorldPos);
+        this.ghostGroup.position.y += 0.45;
+        this.ghostGroup.quaternion.copy(pickedTile.parent!.quaternion);
+        this.ghostGroup.visible = true;
 
       } else {
-        this.hoverCursor.visible = false;
         this.ghostGroup.visible = false;
-        if (this.hoveredCell !== null) {
-            this.hoveredCell = null;
-            document.dispatchEvent(new CustomEvent('MOUSE_CELL_HOVER', { detail: null }));
+
+        let showHover = true;
+        const x = pickedTile.userData.cellX;
+        const z = pickedTile.userData.cellZ;
+        const isPlayerSide = pickedTile.userData.isPlayerSide;
+
+        if (this.gameLoop && this.gameLoop.match && this.gameLoop.currentState === GameState.PLAYER_TURN) {
+          const targetBoard = isPlayerSide ? this.gameLoop.match.playerBoard : this.gameLoop.match.enemyBoard;
+          const index = z * targetBoard.width + x;
+          const st = targetBoard.gridState[index];
+          if (st === CellState.Hit || st === CellState.Miss || st === CellState.Sunk) {
+            showHover = false;
+          }
         }
+
+        if (showHover) {
+          const worldPos = new THREE.Vector3();
+          pickedTile.getWorldPosition(worldPos);
+          this.hoverCursor.position.copy(worldPos);
+          this.hoverCursor.position.y += 1.25;
+          this.hoverCursor.visible = true;
+          this.hoverCursor.quaternion.identity();
+        } else {
+          this.hoverCursor.visible = false;
+        }
+        this.uiHoveredCell = null; // 3D hover takes priority
       }
+
+      this.hoveredCell = {
+        x: pickedTile.userData.cellX,
+        z: pickedTile.userData.cellZ
+      };
+
+      document.dispatchEvent(new CustomEvent('MOUSE_CELL_HOVER', {
+          detail: {
+              x: this.hoveredCell.x,
+              z: this.hoveredCell.z,
+              isPlayerSide: pickedTile.userData.isPlayerSide,
+              source: '3d',
+              clientX: this.lastMouseClientX,
+              clientY: this.lastMouseClientY
+          }
+      }));
+
     } else {
-      this.hoverCursor.visible = false;
-      this.ghostGroup.visible = false;
-      if (this.hoveredCell !== null) {
+      // No 3D interaction or pick. Clear 3D hover state if it was active.
+      if (this.interactionEnabled && this.hoveredCell !== null) {
           this.hoveredCell = null;
           document.dispatchEvent(new CustomEvent('MOUSE_CELL_HOVER', { detail: null }));
       }
+      
+      this.ghostGroup.visible = false;
 
-      // If no 3D hover, check if there's a UI hover to display
+      // Check if there's a UI hover to display instead
       if (this.uiHoveredCell) {
         const { x, z, isPlayerSide } = this.uiHoveredCell;
-        const showOnCurrentBoard = isPlayerSide ? (this.entityManager.boardOrientation === 'player') : (this.entityManager.boardOrientation === 'enemy');
+        const tiles = isPlayerSide ? this.entityManager.playerGridTiles : this.entityManager.enemyGridTiles;
+        const boardWidth = Config.board.width;
+        const tileIndex = z * boardWidth + x;
+        const tile = tiles[tileIndex];
 
-        if (showOnCurrentBoard) {
-          const tiles = isPlayerSide ? this.entityManager.playerGridTiles : this.entityManager.enemyGridTiles;
-          const boardWidth = Config.board.width;
-          const tileIndex = z * boardWidth + x;
-          const tile = tiles[tileIndex];
-
-          if (tile) {
-            const worldPos = new THREE.Vector3();
-            tile.getWorldPosition(worldPos);
-            this.hoverCursor.position.copy(worldPos);
-            this.hoverCursor.position.y += 1.25;
-            this.hoverCursor.visible = true;
-            this.hoverCursor.quaternion.identity();
-          }
+        if (tile) {
+          const localOffset = new THREE.Vector3(0, 1.25, 0);
+          const worldPos = tile.localToWorld(localOffset);
+          this.hoverCursor.position.copy(worldPos);
+          
+          // Align cursor with the board's orientation (upright or flipped)
+          const boardQuat = new THREE.Quaternion();
+          tile.getWorldQuaternion(boardQuat);
+          this.hoverCursor.quaternion.copy(boardQuat);
+          
+          this.hoverCursor.visible = true;
         } else {
           this.hoverCursor.visible = false;
         }

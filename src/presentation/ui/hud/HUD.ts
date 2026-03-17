@@ -54,25 +54,46 @@ export class HUD extends BaseUIComponent {
         this.container.innerHTML = `
             <div class="hud-top-bar">
                 <div class="hud-top-left">
-                    <div id="unified-board-anchor"></div>
-                    <div id="game-stats" class="hud-game-stats">
+                    <div id="unified-board-anchor" class="retro-panel">
+                        <div class="sw-screw tl"></div>
+                        <div class="sw-screw tr"></div>
+                        <div class="sw-screw bl"></div>
+                        <div class="sw-screw br"></div>
+                    </div>
+                    <div id="game-stats" class="hud-game-stats retro-panel">
+                        <div class="sw-screw tl"></div>
+                        <div class="sw-screw tr"></div>
+                        <div class="sw-screw bl"></div>
+                        <div class="sw-screw br"></div>
                         <div class="stat-item">SHOTS: <span id="stat-shots">0</span></div>
                         <div class="stat-item">RATIO: <span id="stat-ratio">0%</span></div>
+                        <div class="stat-item win-prob-item">PROB: <span id="stat-prob">50%</span></div>
                     </div>
                 </div>
                 
                 <div id="turn-indicator" class="hud-turn-indicator">
+                    <div class="sw-screw tl" style="transform: scale(0.7); top: 4px; left: 4px;"></div>
+                    <div class="sw-screw tr" style="transform: scale(0.7); top: 4px; right: 4px;"></div>
+                    <div class="sw-screw bl" style="transform: scale(0.7); bottom: 4px; left: 4px;"></div>
+                    <div class="sw-screw br" style="transform: scale(0.7); bottom: 4px; right: 4px;"></div>
                     WAITING...
                 </div>
 
-                <div id="fleet-status-group" class="hud-fleet-status-group">
-                    <div id="player-status" class="hud-fleet-status">
-                        <span class="fleet-label">YOU</span>
-                        <div id="player-fleet-icons" class="fleet-icons"></div>
-                    </div>
-                    <div id="enemy-status" class="hud-fleet-status">
-                        <span class="fleet-label">ENEMY</span>
-                        <div id="enemy-fleet-icons" class="fleet-icons"></div>
+                <div id="fleet-status-group" class="hud-fleet-status-group retro-panel">
+                    <div class="sw-screw tl" style="transform: scale(0.6); top: 6px; left: 6px;"></div>
+                    <div class="sw-screw tr" style="transform: scale(0.6); top: 6px; right: 6px;"></div>
+                    <div class="sw-screw bl" style="transform: scale(0.6); bottom: 6px; left: 6px;"></div>
+                    <div class="sw-screw br" style="transform: scale(0.6); bottom: 6px; right: 6px;"></div>
+                    
+                    <div class="fleet-status-display retro-display">
+                        <div id="player-status" class="fleet-side">
+                            <span class="fleet-label">YOU</span>
+                            <div id="player-fleet-icons" class="fleet-icons"></div>
+                        </div>
+                        <div class="fleet-side">
+                            <span class="fleet-label">ENEMY</span>
+                            <div id="enemy-fleet-icons" class="fleet-icons"></div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -131,15 +152,21 @@ export class HUD extends BaseUIComponent {
             </div>
             
             <div id="geek-stats" class="geek-stats-panel" style="display: ${Config.visual.showGeekStats ? 'block' : 'none'};">
+                <div class="sw-screw tl" style="transform: scale(0.6); top: 6px; left: 6px;"></div>
+                <div class="sw-screw tr" style="transform: scale(0.6); top: 6px; right: 6px;"></div>
+                <div class="sw-screw bl" style="transform: scale(0.6); bottom: 6px; left: 6px;"></div>
+                <div class="sw-screw br" style="transform: scale(0.6); bottom: 6px; right: 6px;"></div>
                 <div class="geek-stats-title">⚙ GEEK STATS</div>
-                <div class="geek-stats-row"><span class="gs-label">FPS</span><span class="gs-value" id="gs-fps">--</span></div>
-                <div class="geek-stats-row"><span class="gs-label">FRAME</span><span class="gs-value" id="gs-frame">-- ms</span></div>
-                <div class="geek-stats-row"><span class="gs-label">RAM</span><span class="gs-value" id="gs-ram">-- MB</span></div>
-                <div class="geek-stats-row" title="Distance from camera target"><span class="gs-label">DIST</span><span class="gs-value" id="gs-zoom">--</span></div>
-                <div class="geek-stats-row" title="Camera World Position"><span class="gs-label">POS</span><span class="gs-value" id="gs-pos">--</span></div>
-                <div class="geek-stats-row" title="Camera Target Position"><span class="gs-label">TGT</span><span class="gs-value" id="gs-tgt">--</span></div>
-                <div class="geek-stats-row"><span class="gs-label">STATUS</span><span class="gs-value gs-online" id="gs-status">● LOCAL</span></div>
-                <div class="geek-stats-row"><span class="gs-label">TIME</span><span class="gs-value" id="gs-time">00:00</span></div>
+                <div class="retro-display">
+                    <div class="geek-stats-row"><span class="gs-label">FPS</span><span class="gs-value" id="gs-fps">--</span></div>
+                    <div class="geek-stats-row"><span class="gs-label">FRAME</span><span class="gs-value" id="gs-frame">-- ms</span></div>
+                    <div class="geek-stats-row"><span class="gs-label">RAM</span><span class="gs-value" id="gs-ram">-- MB</span></div>
+                    <div class="geek-stats-row" title="Distance from camera target"><span class="gs-label">DIST</span><span class="gs-value" id="gs-zoom">--</span></div>
+                    <div class="geek-stats-row" title="Camera World Position"><span class="gs-label">POS</span><span class="gs-value" id="gs-pos">--</span></div>
+                    <div class="geek-stats-row" title="Camera Target Position"><span class="gs-label">TGT</span><span class="gs-value" id="gs-tgt">--</span></div>
+                    <div class="geek-stats-row"><span class="gs-label">STATUS</span><span class="gs-value gs-online" id="gs-status">● LOCAL</span></div>
+                    <div class="geek-stats-row"><span class="gs-label">TIME</span><span class="gs-value" id="gs-time">00:00</span></div>
+                </div>
             </div>
 
             <div id="mouse-coords" class="mouse-coords" style="display: none;">(0,0)</div>
@@ -289,11 +316,11 @@ export class HUD extends BaseUIComponent {
             }
 
             if (posEl && d.cameraPos) {
-                posEl.textContent = `${d.cameraPos.x.toFixed(1)},${d.cameraPos.y.toFixed(1)},${d.cameraPos.z.toFixed(1)}`;
+                posEl.textContent = `${d.cameraPos.x.toFixed(1)} ${d.cameraPos.y.toFixed(1)} ${d.cameraPos.z.toFixed(1)}`;
             }
 
             if (tgtEl && d.targetPos) {
-                tgtEl.textContent = `${d.targetPos.x.toFixed(1)},${d.targetPos.y.toFixed(1)},${d.targetPos.z.toFixed(1)}`;
+                tgtEl.textContent = `${d.targetPos.x.toFixed(1)} ${d.targetPos.y.toFixed(1)} ${d.targetPos.z.toFixed(1)}`;
             }
 
             if (timeEl && d.matchStartTime) {
@@ -327,18 +354,23 @@ export class HUD extends BaseUIComponent {
     }
 
     public update(state: GameState): void {
+        const indicator = this.turnIndicator;
         if (state === GameState.PLAYER_TURN) {
-            this.turnIndicator.innerText = "YOUR TURN";
-            this.turnIndicator.style.color = "var(--color-secondary)";
+            indicator.innerText = "YOUR TURN";
+            indicator.style.color = "#0f0"; // Monochrome Green
         } else if (state === GameState.ENEMY_TURN) {
-            this.turnIndicator.innerText = "ENEMY TURN";
-            this.turnIndicator.style.color = "var(--color-danger)";
+            indicator.innerText = "ENEMY TURN";
+            indicator.style.color = "#0c0"; // Duller green
         } else if (state === GameState.SETUP_BOARD) {
-            this.turnIndicator.innerHTML = "PLACE YOUR SHIPS<br><span style='font-size:1.2rem;color:#bbb;'>Press 'R' to Rotate</span>";
-            this.turnIndicator.style.color = "var(--color-primary)";
+            indicator.innerHTML = `
+                <div style="font-size: 1.6rem;">PLACE YOUR SHIPS</div>
+                <div style="font-size: 0.9rem; margin-top: 8px; color: #0a0; opacity: 0.8;">PRESS 'R' TO ROTATE</div>
+            `;
+            indicator.style.color = "#0f0";
         } else if (state === GameState.GAME_OVER) {
             const matchStatus = this.gameLoop.match?.checkGameEnd();
-            this.turnIndicator.innerText = matchStatus === 'player_wins' ? "VICTORY!" : "DEFEAT!";
+            indicator.innerText = matchStatus === 'player_wins' ? "VICTORY!" : "DEFEAT!";
+            indicator.style.color = matchStatus === 'player_wins' ? "#0f0" : "#080";
         }
 
         this.updateCounters();
@@ -377,6 +409,7 @@ export class HUD extends BaseUIComponent {
 
     private updateStats(): void {
         if (this.gameLoop.match) {
+            const playerBoard = this.gameLoop.match.playerBoard;
             const enemyBoard = this.gameLoop.match.enemyBoard;
 
             const shots = enemyBoard.shotsFired;
@@ -385,9 +418,32 @@ export class HUD extends BaseUIComponent {
 
             const shotsEl = this.container.querySelector('#stat-shots');
             const ratioEl = this.container.querySelector('#stat-ratio');
+            const probEl = this.container.querySelector('#stat-prob');
 
             if (shotsEl) shotsEl.textContent = shots.toString();
             if (ratioEl) ratioEl.textContent = `${ratio}%`;
+
+            // Calculate Win Probability
+            // Based on remaining "HP" (unhit segments)
+            const getRemainingHP = (board: any) => {
+                let unhit = 0;
+                board.ships.forEach((ship: any) => {
+                    unhit += ship.segments.filter((s: boolean) => s === true).length;
+                });
+                return unhit;
+            };
+
+            const playerHP = getRemainingHP(playerBoard);
+            const enemyHP = getRemainingHP(enemyBoard);
+            const totalHP = playerHP + enemyHP;
+            
+            let prob = 50;
+            if (totalHP > 0) {
+                // Simple linear probability for now: myHP / totalHP
+                prob = Math.round((playerHP / totalHP) * 100);
+            }
+
+            if (probEl) probEl.textContent = `${prob}%`;
         }
     }
 
