@@ -47,8 +47,8 @@ export class SaveLoadDialog extends BaseUIComponent {
             const disabledClass = isDisabled ? 'slot-disabled' : '';
 
             slotsHtml += `
-                <div class="slot-wrapper">
-                    <button class="save-slot voxel-btn ${disabledClass}" data-slot="${i}" ${isDisabled ? 'disabled' : ''}>
+                <div class="slot-wrapper" style="display: flex; justify-content: center; width: 100%;">
+                    <button class="save-slot voxel-btn ${disabledClass}" data-slot="${i}" ${isDisabled ? 'disabled' : ''} style="flex-grow: 1; max-width: 300px;">
                         <div class="slot-header">Slot ${i}</div>
                         <div class="slot-info">${slotContent}</div>
                     </button>

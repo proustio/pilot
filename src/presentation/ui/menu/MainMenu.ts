@@ -16,21 +16,21 @@ export class MainMenu extends BaseUIComponent {
         this.container.innerHTML = `
             <h1 class="voxel-title">Battleships</h1>
             
-            <div id="new-game-section" style="width: 100%;">
+            <div id="new-game-section" style="width: 100%; display: flex; flex-direction: column; align-items: center;">
                 <label for="mode-select">Select Mode:</label>
                 <select id="mode-select" class="voxel-select">
                     <option value="classic">Classic (US Fleet)</option>
                     <option value="russian">Russian (No Touching)</option>
                     <option disabled="true" value="rogue">Rogue (Coming Soon?)</option>
                 </select>
-                <div style="margin-top: 10px; display: flex; align-items: center; gap: 10px;">
+                <div style="margin-top: 10px; display: flex; align-items: center; gap: 10px; justify-content: center;">
                     <label for="auto-battler-toggle">Auto-Battler:</label>
                     <input type="checkbox" id="auto-battler-toggle" ${Config.autoBattler ? 'checked' : ''} style="transform: scale(1.5);">
                 </div>
                 <button id="btn-new-game" class="voxel-btn primary" style="margin-top: 15px;">New Game</button>
             </div>
 
-            <div style="margin-top: 20px; width: 100%; border-top: 2px dashed #555; padding-top: 20px;">
+            <div style="margin-top: 20px; width: 100%; border-top: 2px dashed #555; padding-top: 20px; display: flex; flex-direction: column; align-items: center;">
                 <button id="btn-game-saves" class="voxel-btn">Game Saves</button>
             </div>
             
