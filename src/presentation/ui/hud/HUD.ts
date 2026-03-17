@@ -295,6 +295,12 @@ export class HUD extends BaseUIComponent {
                     for (let i = 0; i < ship.size; i++) {
                         const segment = document.createElement('div');
                         segment.classList.add('ship-segment');
+                        
+                        // Reflect individual segment hits
+                        if (ship.segments[i] === false) {
+                            segment.classList.add('hit');
+                        }
+                        
                         icon.appendChild(segment);
                     }
                     container.appendChild(icon);
