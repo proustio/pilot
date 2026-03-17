@@ -1,4 +1,4 @@
-import { describe, it, expect, bench } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { AIEngine } from './AIEngine';
 import { Board, AttackResult } from '../../domain/board/Board';
 
@@ -18,8 +18,6 @@ describe('AIEngine Performance', () => {
         const startTime = performance.now();
 
         const NUM_HITS = 2000;
-        let x = 50;
-        let z = 50;
 
         // Let's simulate hits around a central area.
         for (let i = 0; i < NUM_HITS; i++) {
