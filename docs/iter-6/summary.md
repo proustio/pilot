@@ -4,9 +4,6 @@ Please take a look at @game-concepts.md, @tech-breakdown.md and @tasks.md. We wa
 2. **Camera Interactivity Guard:** To prevent accidental shots or UI misclicks, all interactive clicking on the battlefield should be strictly ignored while the player is actively rotating or zooming the camera.
 3. **Restoration of Visual State:** After loading a saved game, the engine should replay all relevant shot and "sunk ship" animations. This ensures that environmental effects like smoke, fire, and destroyed ship voxels are correctly synchronized with the game's logical state.
 4. **Procedural UI Sound Effects:** Add a unique "bubble popping" sound effect for every button on the UI. These should be procedurally generated at runtime, following the same logic used for shot/hit/miss sounds to maintain audio consistency.
-5. **Responsive Menu Refinement:** Several menus (Main Menu, Load Game, and Save Game) have alignment issues. These need to be fixed to ensure a professional, centered, and responsive layout across different screen sizes.
-   ![load-menu-crooked](./load-menu-crooked.png)
-   ![main-menu-crooked](./main-menu-crooked.png)
 6. **Victory Screen Modal:** The current victory banner is crooked and visually inconsistent. It should be redesigned as a proper, centralized pop-up screen (modal) with clear win/loss feedback.
    ![victory-banner-crooked](./victory-banner-crooked.png)
 7. **Bidirectional Grid Highlighting:** Hovering over a cell on the 3D battlefield should highlight its corresponding cell on the 2D minimap, and vice-versa. Both surfaces should be fully clickable for targeting.
