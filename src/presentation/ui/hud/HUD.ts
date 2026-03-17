@@ -78,14 +78,55 @@ export class HUD extends BaseUIComponent {
             </div>
             
             <div class="hud-bottom-bar">
-                <div class="hud-controls-panel voxel-panel ui-interactive">
-                    <button id="hud-btn-geek-stats" class="voxel-btn" title="Toggle Geek Stats">📈</button>
-                    <button id="hud-btn-auto-battler" class="voxel-btn" title="Toggle Auto-Battler">🤖</button>
-                    <button id="hud-btn-peek" class="voxel-btn" style="display: inline-block;" title="Peek at other side">👁️</button>
-                    <button id="hud-btn-day-night" class="voxel-btn" title="Toggle Day/Night">${Config.visual.isDayMode ? '🌞' : '🌚'}</button>
-                    <button id="hud-btn-fps" class="voxel-btn" title="Cycle FPS Cap">${Config.visual.fpsCap || 60} FPS</button>
-                    <button id="hud-btn-speed" class="voxel-btn" title="Cycle Speed">${this.getSpeedLabel(Config.timing.gameSpeedMultiplier)}</button>
-                    <button id="hud-btn-settings" class="voxel-btn" title="Pause Menu">⏸️</button>
+                <div class="hud-controls-panel ui-interactive">
+                    <div class="sw-screw tl"></div>
+                    <div class="sw-screw tr"></div>
+                    <div class="sw-screw bl"></div>
+                    <div class="sw-screw br"></div>
+
+                    <!-- Row 1: Primary Controls -->
+                    <div class="sw-mount">
+                        <div class="sw-label">STATS</div>
+                        <div id="led-geek-stats" class="sw-led ${Config.visual.showGeekStats ? 'on-gold' : ''}"></div>
+                        <div id="hud-btn-geek-stats" class="sw-toggle ${Config.visual.showGeekStats ? 'active' : ''}" title="Toggle Geek Stats"></div>
+                    </div>
+
+                    <div class="sw-mount">
+                        <div class="sw-label">AUTO</div>
+                        <div id="led-auto-battler" class="sw-led ${Config.autoBattler ? 'on-red' : ''}"></div>
+                        <div id="hud-btn-auto-battler" class="sw-rocker ${Config.autoBattler ? 'active' : ''}" title="Toggle Auto-Battler"></div>
+                    </div>
+
+                    <div class="sw-mount">
+                        <div class="sw-label">PEEK</div>
+                        <div id="led-peek" class="sw-led"></div>
+                        <div id="hud-btn-peek" class="sw-toggle" title="Peek at other side"></div>
+                    </div>
+
+                    <div class="sw-mount">
+                        <div class="sw-label">MODE</div>
+                        <div id="led-day-night" class="sw-led ${Config.visual.isDayMode ? 'on-gold' : 'on-blue'}"></div>
+                        <button id="hud-btn-day-night" class="sw-push" title="Toggle Day/Night" style="font-size: 1.2rem;">${Config.visual.isDayMode ? '🌞' : '🌚'}</button>
+                    </div>
+
+                    <!-- Row 2: Settings & System -->
+                    <div class="sw-mount">
+                        <div class="sw-label">FPS</div>
+                        <div class="sw-led on-green"></div>
+                        <button id="hud-btn-fps" class="sw-push" title="Cycle FPS Cap" style="font-size: 0.7rem;">${Config.visual.fpsCap || 60}<br>FPS</button>
+                    </div>
+
+                    <div class="sw-mount">
+                        <div class="sw-label">SPEED</div>
+                        <div class="sw-led on-green"></div>
+                        <button id="hud-btn-speed" class="sw-push" title="Cycle Speed" style="font-size: 0.8rem;">${Config.timing.gameSpeedMultiplier}X</button>
+                    </div>
+
+                    <div class="sw-mount" style="grid-column: span 2;">
+                        <div class="sw-label">SYSTEM PAUSE</div>
+                        <div class="sw-led on-red"></div>
+                        <button id="hud-btn-settings" class="sw-push red" title="Pause Menu" style="width: 100px; border-radius: 4px;">PAUSE</button>
+                    </div>
                 </div>
             </div>
             
@@ -117,34 +158,33 @@ export class HUD extends BaseUIComponent {
         });
 
         // Peek toggle button
-        const peekBtn = this.container.querySelector('#hud-btn-peek') as HTMLButtonElement;
+        const peekBtn = this.container.querySelector('#hud-btn-peek') as HTMLElement;
+        const peekLed = this.container.querySelector('#led-peek') as HTMLElement;
         let isPeeking = false;
         peekBtn.addEventListener('click', () => {
             isPeeking = !isPeeking;
-            peekBtn.style.opacity = isPeeking ? '0.6' : '1';
-            peekBtn.style.boxShadow = isPeeking ? 'inset 0 0 10px rgba(255,255,0,0.4)' : '';
+            peekBtn.classList.toggle('active', isPeeking);
+            peekLed.classList.toggle('on-blue', isPeeking);
             document.dispatchEvent(new CustomEvent('TOGGLE_PEEK', { detail: { peeking: isPeeking } }));
         });
 
         // Geek Stats button
-        const geekStatsBtn = this.container.querySelector('#hud-btn-geek-stats') as HTMLButtonElement;
-        geekStatsBtn.style.opacity = Config.visual.showGeekStats ? '1' : '0.6';
-        geekStatsBtn.style.boxShadow = Config.visual.showGeekStats ? 'inset 0 0 10px rgba(255,255,255,0.8)' : '';
+        const geekStatsBtn = this.container.querySelector('#hud-btn-geek-stats') as HTMLElement;
+        const geekStatsLed = this.container.querySelector('#led-geek-stats') as HTMLElement;
         geekStatsBtn.addEventListener('click', () => {
             Config.visual.showGeekStats = !Config.visual.showGeekStats;
-            geekStatsBtn.style.opacity = Config.visual.showGeekStats ? '1' : '0.6';
-            geekStatsBtn.style.boxShadow = Config.visual.showGeekStats ? 'inset 0 0 10px rgba(255,255,255,0.8)' : '';
+            geekStatsBtn.classList.toggle('active', Config.visual.showGeekStats);
+            geekStatsLed.classList.toggle('on-gold', Config.visual.showGeekStats);
             document.dispatchEvent(new CustomEvent('TOGGLE_GEEK_STATS', { detail: { show: Config.visual.showGeekStats } }));
         });
 
         // Auto-Battler button
-        const autoBattlerBtn = this.container.querySelector('#hud-btn-auto-battler') as HTMLButtonElement;
-        autoBattlerBtn.style.opacity = Config.autoBattler ? '1' : '0.6';
-        autoBattlerBtn.style.boxShadow = Config.autoBattler ? 'inset 0 0 10px rgba(255,102,102,0.8)' : '';
+        const autoBattlerBtn = this.container.querySelector('#hud-btn-auto-battler') as HTMLElement;
+        const autoBattlerLed = this.container.querySelector('#led-auto-battler') as HTMLElement;
         autoBattlerBtn.addEventListener('click', () => {
             Config.autoBattler = !Config.autoBattler;
-            autoBattlerBtn.style.opacity = Config.autoBattler ? '1' : '0.6';
-            autoBattlerBtn.style.boxShadow = Config.autoBattler ? 'inset 0 0 10px rgba(255,102,102,0.8)' : '';
+            autoBattlerBtn.classList.toggle('active', Config.autoBattler);
+            autoBattlerLed.classList.toggle('on-red', Config.autoBattler);
             document.dispatchEvent(new CustomEvent('TOGGLE_AUTO_BATTLER', { detail: { enabled: Config.autoBattler } }));
         });
 
@@ -154,8 +194,8 @@ export class HUD extends BaseUIComponent {
                 peekBtn.style.display = ce.detail.enabled ? 'inline-block' : 'none';
                 if (!ce.detail.enabled && isPeeking) {
                     isPeeking = false;
-                    peekBtn.style.opacity = '1';
-                    peekBtn.style.boxShadow = '';
+                    peekBtn.classList.remove('active');
+                    peekLed.classList.remove('on-blue');
                     document.dispatchEvent(new CustomEvent('TOGGLE_PEEK', { detail: { peeking: false } }));
                 }
             }
@@ -172,7 +212,7 @@ export class HUD extends BaseUIComponent {
 
             Config.timing.gameSpeedMultiplier = nextSpeed;
             Config.saveConfig();
-            speedBtn.innerText = this.getSpeedLabel(nextSpeed);
+            speedBtn.innerText = this.getSpeedLabel(nextSpeed).split(' ')[0]; // Just the number
             document.dispatchEvent(new CustomEvent('SET_GAME_SPEED', { detail: { speed: nextSpeed.toFixed(1) } }));
         });
 
@@ -187,14 +227,14 @@ export class HUD extends BaseUIComponent {
 
             Config.visual.fpsCap = nextFps;
             Config.saveConfig();
-            fpsBtn.innerText = `${nextFps} FPS`;
+            fpsBtn.innerHTML = `${nextFps}<br>FPS`;
             document.dispatchEvent(new CustomEvent('SET_FPS_CAP', { detail: { fpsCap: nextFps } }));
         });
 
         document.addEventListener('SET_FPS_CAP', (e: Event) => {
             const customEvent = e as CustomEvent;
             if (customEvent.detail && customEvent.detail.fpsCap) {
-                fpsBtn.innerText = `${customEvent.detail.fpsCap} FPS`;
+                fpsBtn.innerHTML = `${customEvent.detail.fpsCap}<br>FPS`;
             }
         });
 
@@ -202,15 +242,18 @@ export class HUD extends BaseUIComponent {
             const customEvent = e as CustomEvent;
             if (customEvent.detail && customEvent.detail.speed) {
                 const speed = parseFloat(customEvent.detail.speed);
-                speedBtn.innerText = this.getSpeedLabel(speed);
+                speedBtn.innerText = `${speed}X`;
             }
         });
 
         const dayNightBtn = this.container.querySelector('#hud-btn-day-night') as HTMLButtonElement;
+        const dayNightLed = this.container.querySelector('#led-day-night') as HTMLElement;
         dayNightBtn.addEventListener('click', () => {
             Config.visual.isDayMode = !Config.visual.isDayMode;
             Config.saveConfig();
             dayNightBtn.innerText = Config.visual.isDayMode ? '🌞' : '🌚';
+            dayNightLed.classList.remove('on-gold', 'on-blue');
+            dayNightLed.classList.add(Config.visual.isDayMode ? 'on-gold' : 'on-blue');
             document.body.classList.remove('day-mode', 'night-mode');
             document.body.classList.add(Config.visual.isDayMode ? 'day-mode' : 'night-mode');
             document.dispatchEvent(new CustomEvent('TOGGLE_DAY_NIGHT', { detail: { isDay: Config.visual.isDayMode } }));

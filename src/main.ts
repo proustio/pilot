@@ -209,8 +209,13 @@ const init = () => {
             }
         });
 
+        let isQuitting = false;
+        document.addEventListener('EXIT_GAME', () => {
+            isQuitting = true;
+        });
+
         window.addEventListener('beforeunload', () => {
-            if (gameLoop.match && gameLoop.hasUnsavedProgress()) {
+            if (!isQuitting && gameLoop.match && gameLoop.hasUnsavedProgress()) {
                 const isEnemyBoardShowing = entityManager.boardOrientation === 'enemy';
                 const vs: ViewState = {
                     cameraX: engine.camera.position.x,

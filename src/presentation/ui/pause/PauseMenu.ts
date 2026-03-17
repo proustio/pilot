@@ -79,6 +79,7 @@ export class PauseMenu extends BaseUIComponent {
                 const noBtn = this.container.querySelector('#exit-confirm-no') as HTMLButtonElement;
 
                 yesBtn.addEventListener('click', () => {
+                    document.dispatchEvent(new CustomEvent('EXIT_GAME'));
                     Storage.clearSession();
                     window.location.reload();
                 }, { once: true });
@@ -87,6 +88,7 @@ export class PauseMenu extends BaseUIComponent {
                     overlay.style.display = 'none';
                 }, { once: true });
             } else {
+                document.dispatchEvent(new CustomEvent('EXIT_GAME'));
                 Storage.clearSession();
                 window.location.reload();
             }

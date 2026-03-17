@@ -73,6 +73,20 @@ export class UIManager {
 
         this.handleStateChange(this.gameLoop.currentState);
 
+        document.addEventListener('keydown', (e: KeyboardEvent) => {
+            if (e.key === 'Escape') {
+                if (this.gameLoop.currentState !== GameState.MAIN_MENU && this.gameLoop.currentState !== GameState.GAME_OVER) {
+                    if (this.pauseMenu['isVisible']) {
+                        this.pauseMenu.hide();
+                    } else if (this.settings['isVisible']) {
+                        this.settings.hide();
+                    } else {
+                        this.pauseMenu.show();
+                    }
+                }
+            }
+        });
+
         this.checkAutoLoad();
     }
 
