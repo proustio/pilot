@@ -9,6 +9,7 @@ export class AIEngine {
     public difficulty: AIDifficulty = 'easy';
     
     private huntStack: {x: number, z: number}[] = [];
+    private huntSet: Set<number> = new Set<number>();
     
     constructor() {}
 
@@ -21,6 +22,7 @@ export class AIEngine {
      */
     public reset() {
         this.huntStack = [];
+        this.huntSet.clear();
     }
 
     /**
@@ -57,14 +59,16 @@ export class AIEngine {
                         const idx = getIndex(pos.x, pos.z, playerBoard.width);
                         const state = playerBoard.gridState[idx];
                         if (state === CellState.Empty || state === CellState.Ship) {
-                            if (!this.huntStack.some(p => p.x === pos.x && p.z === pos.z)) {
+                            if (!this.huntSet.has(idx)) {
                                 this.huntStack.push(pos);
+                                this.huntSet.add(idx);
                             }
                         }
                     }
                 }
             } else if (result === AttackResult.Sunk) {
                 this.huntStack = [];
+                this.huntSet.clear();
             }
         }
     }
@@ -95,6 +99,8 @@ export class AIEngine {
             const target = this.huntStack.pop()!;
             
             const idx = getIndex(target.x, target.z, board.width);
+            this.huntSet.delete(idx);
+
             const state = board.gridState[idx];
             
             if (state === CellState.Empty || state === CellState.Ship) {
