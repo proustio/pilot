@@ -4,7 +4,7 @@ import { InteractionManager } from './presentation/3d/interaction/InteractionMan
 import { GameLoop } from './application/game-loop/GameLoop';
 import { UIManager } from './presentation/ui/UIManager';
 import { Config } from './infrastructure/config/Config';
-import { ViewState } from './infrastructure/storage/Storage';
+import { Storage, ViewState } from './infrastructure/storage/Storage';
 console.log('Battleships: Initialization Started');
 
 const init = () => {
@@ -108,7 +108,14 @@ const init = () => {
             if (time - lastFpsUpdateTime >= 1000) {
                 const fps = Math.round((framesRendered * 1000) / (time - lastFpsUpdateTime));
                 document.dispatchEvent(new CustomEvent('UPDATE_GEEK_STATS', {
-                    detail: { fps, frameTime: lastFrameTimeMs, matchStartTime, zoom: engine.orbitControls.getDistance() }
+                    detail: {
+                        fps,
+                        frameTime: lastFrameTimeMs,
+                        matchStartTime,
+                        zoom: engine.orbitControls.getDistance(),
+                        cameraPos: engine.camera.position,
+                        targetPos: engine.orbitControls.target
+                    }
                 }));
                 framesRendered = 0;
                 lastFpsUpdateTime = time;
@@ -156,6 +163,7 @@ const init = () => {
             // Also directly jump the current camera to the saved position so it doesn't animate from default
             engine.camera.position.set(vs.cameraX, vs.cameraY, vs.cameraZ);
             engine.orbitControls.target.set(vs.targetX, vs.targetY, vs.targetZ);
+            engine.orbitControls.update();
 
             if (vs.boardOrientation === 'enemy') {
                 entityManager.showEnemyBoard();
@@ -198,6 +206,25 @@ const init = () => {
                     entityManager.showPlayerBoard();
                 }
                 document.dispatchEvent(new CustomEvent('SET_INTERACTION_ENABLED', { detail: { enabled: true } }));
+            }
+        });
+
+        window.addEventListener('beforeunload', () => {
+            if (gameLoop.match && gameLoop.hasUnsavedProgress()) {
+                const isEnemyBoardShowing = entityManager.boardOrientation === 'enemy';
+                const vs: ViewState = {
+                    cameraX: engine.camera.position.x,
+                    cameraY: engine.camera.position.y,
+                    cameraZ: engine.camera.position.z,
+                    targetX: engine.orbitControls.target.x,
+                    targetY: engine.orbitControls.target.y,
+                    targetZ: engine.orbitControls.target.z,
+                    boardOrientation: isEnemyBoardShowing ? 'enemy' : 'player',
+                    isDayMode: Config.visual.isDayMode,
+                    gameSpeedMultiplier: Config.timing.gameSpeedMultiplier,
+                    gameState: gameLoop.currentState
+                };
+                Storage.saveGame('session', gameLoop.match, vs);
             }
         });
 

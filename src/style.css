@@ -631,7 +631,7 @@ body.night-mode .ship-segment.hit {
   color: var(--geek-text);
   z-index: 1000;
   pointer-events: none;
-  min-width: 160px;
+  min-width: 180px;
   text-shadow: 1px 2px 3px rgba(255, 255, 255, 0.4);
 }
 
@@ -644,14 +644,25 @@ body.night-mode .ship-segment.hit {
 
 .hud-bottom-bar {
   position: absolute;
-  bottom: 30px;
-  right: 30px;
+  bottom: 0;
+  right: 0;
+  padding: 30px;
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-end;
-  gap: 12px;
-  max-width: calc(100% - 240px);
   pointer-events: none;
+}
+
+.hud-controls-panel {
+  display: flex;
+  gap: 12px;
+  padding: 10px 16px;
+  background: var(--panel-bg);
+  border: 2px solid var(--panel-border);
+  border-radius: 8px;
+  box-shadow: var(--panel-border-glow);
+  pointer-events: auto;
+  align-items: center;
 }
 
 .hud-bottom-bar .voxel-btn {
@@ -661,15 +672,22 @@ body.night-mode .ship-segment.hit {
 
 @media (max-width: 800px) {
   .hud-bottom-bar {
-    max-width: calc(100% - 60px);
-    bottom: 20px;
-    right: 20px;
-    left: 20px;
+    width: 100%;
+    padding: 20px;
+    bottom: 0;
+    right: 0;
+    left: 0;
+    justify-content: center;
+    box-sizing: border-box;
+  }
+
+  .hud-controls-panel {
+    flex-wrap: wrap;
     justify-content: center;
   }
 
   .geek-stats-panel {
-    bottom: 120px;
+    bottom: 140px;
     left: 20px;
   }
 }

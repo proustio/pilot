@@ -78,21 +78,25 @@ export class HUD extends BaseUIComponent {
             </div>
             
             <div class="hud-bottom-bar">
-                <button id="hud-btn-geek-stats" class="voxel-btn ui-interactive" title="Toggle Geek Stats">📈</button>
-                <button id="hud-btn-auto-battler" class="voxel-btn ui-interactive" title="Toggle Auto-Battler">🤖</button>
-                <button id="hud-btn-peek" class="voxel-btn ui-interactive" style="display: inline-block;" title="Peek at other side">👁️</button>
-                <button id="hud-btn-day-night" class="voxel-btn ui-interactive" title="Toggle Day/Night">${Config.visual.isDayMode ? '🌞' : '🌚'}</button>
-                <button id="hud-btn-fps" class="voxel-btn ui-interactive" title="Cycle FPS Cap">${Config.visual.fpsCap || 60} FPS</button>
-                <button id="hud-btn-speed" class="voxel-btn ui-interactive" title="Cycle Speed">${this.getSpeedLabel(Config.timing.gameSpeedMultiplier)}</button>
-                <button id="hud-btn-settings" class="voxel-btn ui-interactive" title="Pause Menu">⏸️</button>
+                <div class="hud-controls-panel voxel-panel ui-interactive">
+                    <button id="hud-btn-geek-stats" class="voxel-btn" title="Toggle Geek Stats">📈</button>
+                    <button id="hud-btn-auto-battler" class="voxel-btn" title="Toggle Auto-Battler">🤖</button>
+                    <button id="hud-btn-peek" class="voxel-btn" style="display: inline-block;" title="Peek at other side">👁️</button>
+                    <button id="hud-btn-day-night" class="voxel-btn" title="Toggle Day/Night">${Config.visual.isDayMode ? '🌞' : '🌚'}</button>
+                    <button id="hud-btn-fps" class="voxel-btn" title="Cycle FPS Cap">${Config.visual.fpsCap || 60} FPS</button>
+                    <button id="hud-btn-speed" class="voxel-btn" title="Cycle Speed">${this.getSpeedLabel(Config.timing.gameSpeedMultiplier)}</button>
+                    <button id="hud-btn-settings" class="voxel-btn" title="Pause Menu">⏸️</button>
+                </div>
             </div>
             
             <div id="geek-stats" class="geek-stats-panel" style="display: ${Config.visual.showGeekStats ? 'block' : 'none'};">
                 <div class="geek-stats-title">⚙ GEEK STATS</div>
                 <div class="geek-stats-row"><span class="gs-label">FPS</span><span class="gs-value" id="gs-fps">--</span></div>
                 <div class="geek-stats-row"><span class="gs-label">FRAME</span><span class="gs-value" id="gs-frame">-- ms</span></div>
-                <div class="geek-stats-row"><span class="gs-label">RAM</span><span class="gs-value" id="gs-ram">N/A</span></div>
-                <div class="geek-stats-row"><span class="gs-label">ZOOM</span><span class="gs-value" id="gs-zoom">--</span></div>
+                <div class="geek-stats-row"><span class="gs-label">RAM</span><span class="gs-value" id="gs-ram">-- MB</span></div>
+                <div class="geek-stats-row" title="Distance from camera target"><span class="gs-label">DIST</span><span class="gs-value" id="gs-zoom">--</span></div>
+                <div class="geek-stats-row" title="Camera World Position"><span class="gs-label">POS</span><span class="gs-value" id="gs-pos">--</span></div>
+                <div class="geek-stats-row" title="Camera Target Position"><span class="gs-label">TGT</span><span class="gs-value" id="gs-tgt">--</span></div>
                 <div class="geek-stats-row"><span class="gs-label">STATUS</span><span class="gs-value gs-online" id="gs-status">● LOCAL</span></div>
                 <div class="geek-stats-row"><span class="gs-label">TIME</span><span class="gs-value" id="gs-time">00:00</span></div>
             </div>
@@ -222,10 +226,12 @@ export class HUD extends BaseUIComponent {
             const frameEl = this.container.querySelector('#gs-frame');
             const ramEl = this.container.querySelector('#gs-ram');
             const zoomEl = this.container.querySelector('#gs-zoom');
+            const posEl = this.container.querySelector('#gs-pos');
+            const tgtEl = this.container.querySelector('#gs-tgt');
             const timeEl = this.container.querySelector('#gs-time');
 
             if (fpsEl) fpsEl.textContent = `${d.fps}`;
-            if (frameEl) frameEl.textContent = `${d.frameTime.toFixed(1)} ms`;
+            if (frameEl) frameEl.textContent = `${d.frameTime.toFixed(1)}ms`;
 
             if (ramEl) {
                 const mem = (performance as any).memory;
@@ -236,7 +242,15 @@ export class HUD extends BaseUIComponent {
             }
 
             if (zoomEl && d.zoom !== undefined) {
-                zoomEl.textContent = `${d.zoom.toFixed(1)}x`;
+                zoomEl.textContent = `${d.zoom.toFixed(1)}`;
+            }
+
+            if (posEl && d.cameraPos) {
+                posEl.textContent = `${d.cameraPos.x.toFixed(1)},${d.cameraPos.y.toFixed(1)},${d.cameraPos.z.toFixed(1)}`;
+            }
+
+            if (tgtEl && d.targetPos) {
+                tgtEl.textContent = `${d.targetPos.x.toFixed(1)},${d.targetPos.y.toFixed(1)},${d.targetPos.z.toFixed(1)}`;
             }
 
             if (timeEl && d.matchStartTime) {
