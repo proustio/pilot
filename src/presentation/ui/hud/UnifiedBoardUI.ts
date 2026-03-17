@@ -15,6 +15,30 @@ export class UnifiedBoardUI extends BaseUIComponent {
         this.gameLoop.onShipPlaced(() => this.refresh());
         this.gameLoop.onAttackResult((_x, _z, _result, _isPlayer, _isReplay) => this.refresh());
         this.gameLoop.onStateChange(() => this.refresh());
+
+        document.addEventListener('MOUSE_CELL_HOVER', (e: Event) => {
+            const ce = e as CustomEvent;
+            this.handle3DHover(ce.detail);
+        });
+    }
+
+    private handle3DHover(detail: any): void {
+        // Clear all highlights first
+        this.container.querySelectorAll('.mini-cell.highlight').forEach(el => el.classList.remove('highlight'));
+        
+        if (!detail || detail.source === '2d') return;
+
+        const { x, z, isPlayerSide } = detail;
+        const targetContainer = isPlayerSide ? this.playerGridContainer : this.enemyGridContainer;
+        if (targetContainer) {
+            const cells = targetContainer.querySelectorAll('.mini-cell');
+            const boardWidth = this.gameLoop.match ? this.gameLoop.match.playerBoard.width : Config.board.width;
+            const index = z * boardWidth + x;
+            const cell = cells[index] as HTMLElement;
+            if (cell) {
+                cell.classList.add('highlight');
+            }
+        }
     }
 
     protected render(): void {
@@ -39,7 +63,7 @@ export class UnifiedBoardUI extends BaseUIComponent {
     }
 
     private initGrids(): void {
-        const createGrid = (container: HTMLElement) => {
+        const createGrid = (container: HTMLElement, isPlayer: boolean) => {
             container.innerHTML = '';
             const boardWidth = this.gameLoop.match ? this.gameLoop.match.playerBoard.width : Config.board.width;
             const cellCount = this.gameLoop.match ? (this.gameLoop.match.playerBoard.width * this.gameLoop.match.playerBoard.height) : (Config.board.width * Config.board.height);
@@ -54,6 +78,8 @@ export class UnifiedBoardUI extends BaseUIComponent {
                     document.dispatchEvent(new CustomEvent('MOUSE_CELL_HOVER', {
                         detail: {
                             x, z,
+                            isPlayerSide: isPlayer,
+                            source: '2d',
                             clientX: e.clientX,
                             clientY: e.clientY
                         }
@@ -66,12 +92,16 @@ export class UnifiedBoardUI extends BaseUIComponent {
                     document.dispatchEvent(new CustomEvent('MOUSE_CELL_HOVER', { detail: null }));
                 });
 
+                cell.addEventListener('click', () => {
+                    this.gameLoop.onGridClick(x, z, isPlayer);
+                });
+
                 container.appendChild(cell);
             }
         };
 
-        createGrid(this.playerGridContainer);
-        createGrid(this.enemyGridContainer);
+        createGrid(this.playerGridContainer, true);
+        createGrid(this.enemyGridContainer, false);
     }
 
     public refresh(): void {

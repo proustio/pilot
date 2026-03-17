@@ -414,12 +414,14 @@ export class GameLoop {
     }
 
     /**
-     * External input hook (from 3D interactions)
+     * External input hook (from 3D interactions and UI)
      */
-    public onGridClick(x: number, z: number) {
+    public onGridClick(x: number, z: number, isPlayerSide?: boolean) {
         if (!this.match || this.isPaused) return;
 
         if (this.currentState === GameState.SETUP_BOARD) {
+            // Only allow placement on player board during setup
+            if (isPlayerSide === false) return;
             if (this.playerShipsToPlace.length === 0) return;
 
             const nextShip = this.playerShipsToPlace[0];
@@ -443,6 +445,9 @@ export class GameLoop {
 
         } else if (this.currentState === GameState.PLAYER_TURN) {
             if (this.isAnimating || Config.autoBattler) return;
+            
+            // Only allow attacks on enemy board during player turn
+            if (isPlayerSide === true) return;
 
             console.log(`Player attacking enemy grid at ${x},${z}`);
             const result = this.match.enemyBoard.receiveAttack(x, z);

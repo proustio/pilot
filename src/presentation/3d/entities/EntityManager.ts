@@ -164,8 +164,8 @@ export class EntityManager {
             metalness: 0.8
         });
 
-        for (let x = 0; x < boardSize; x++) {
-            for (let z = 0; z < boardSize; z++) {
+        for (let z = 0; z < boardSize; z++) {
+            for (let x = 0; x < boardSize; x++) {
                 const worldX = x - offset + 0.5;
                 const worldZ = z - offset + 0.5;
 

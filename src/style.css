@@ -523,6 +523,13 @@ canvas {
   border: 1px dashed rgba(65, 105, 225, 0.3);
 }
 
+.mini-cell.highlight {
+  box-shadow: 0 0 8px #FFD700, inset 0 0 4px #FFD700;
+  border-color: #FFD700;
+  z-index: 5;
+  transform: scale(1.2);
+}
+
 .hud-game-stats {
   display: flex;
   gap: 15px;

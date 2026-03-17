@@ -36,7 +36,8 @@ const init = () => {
         interactionManager.onClick((hit: any) => {
             const gridX = hit.object.userData.cellX;
             const gridZ = hit.object.userData.cellZ;
-            gameLoop.onGridClick(gridX, gridZ);
+            const isPlayerSide = hit.object.userData.isPlayerSide;
+            gameLoop.onGridClick(gridX, gridZ, isPlayerSide);
         });
 
         gameLoop.onShipPlaced((ship, x, z, orientation, isPlayer) => {

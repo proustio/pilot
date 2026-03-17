@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { GameState } from '../../../application/game-loop/GameLoop';
 import { Orientation } from '../../../domain/fleet/Ship';
 import { CellState } from '../../../domain/board/Board';
+import { Config } from '../../../infrastructure/config/Config';
 
 export class InteractionManager {
   private raycaster: THREE.Raycaster;
@@ -21,6 +22,7 @@ export class InteractionManager {
   private gameLoop: any = null;
   private ghostGroup: THREE.Group;
   private currentGhostSize: number = 0;
+  private uiHoveredCell: { x: number, z: number, isPlayerSide: boolean } | null = null;
 
   constructor(scene: THREE.Scene, camera: THREE.PerspectiveCamera, entityManager: any) {
     this.camera = camera;
@@ -84,6 +86,17 @@ export class InteractionManager {
           this.hoveredCell = null;
         }
       }
+    });
+
+    document.addEventListener('MOUSE_CELL_HOVER', (e: Event) => {
+      const ce = e as CustomEvent;
+      if (!ce.detail || ce.detail.source === '3d') {
+        if (ce.detail === null) {
+            this.uiHoveredCell = null;
+        }
+        return;
+      }
+      this.uiHoveredCell = { x: ce.detail.x, z: ce.detail.z, isPlayerSide: ce.detail.isPlayerSide };
     });
   }
 
@@ -234,6 +247,7 @@ export class InteractionManager {
           } else {
             this.hoverCursor.visible = false;
           }
+          this.uiHoveredCell = null; // 3D hover takes priority
         }
 
         this.hoveredCell = {
@@ -245,6 +259,8 @@ export class InteractionManager {
             detail: {
                 x: this.hoveredCell.x,
                 z: this.hoveredCell.z,
+                isPlayerSide: hit.object.userData.isPlayerSide,
+                source: '3d',
                 clientX: this.lastMouseClientX,
                 clientY: this.lastMouseClientY
             }
@@ -264,6 +280,32 @@ export class InteractionManager {
       if (this.hoveredCell !== null) {
           this.hoveredCell = null;
           document.dispatchEvent(new CustomEvent('MOUSE_CELL_HOVER', { detail: null }));
+      }
+
+      // If no 3D hover, check if there's a UI hover to display
+      if (this.uiHoveredCell) {
+        const { x, z, isPlayerSide } = this.uiHoveredCell;
+        const showOnCurrentBoard = isPlayerSide ? (this.entityManager.boardOrientation === 'player') : (this.entityManager.boardOrientation === 'enemy');
+
+        if (showOnCurrentBoard) {
+          const tiles = isPlayerSide ? this.entityManager.playerGridTiles : this.entityManager.enemyGridTiles;
+          const boardWidth = Config.board.width;
+          const tileIndex = z * boardWidth + x;
+          const tile = tiles[tileIndex];
+
+          if (tile) {
+            const worldPos = new THREE.Vector3();
+            tile.getWorldPosition(worldPos);
+            this.hoverCursor.position.copy(worldPos);
+            this.hoverCursor.position.y += 1.25;
+            this.hoverCursor.visible = true;
+            this.hoverCursor.quaternion.identity();
+          }
+        } else {
+          this.hoverCursor.visible = false;
+        }
+      } else {
+        this.hoverCursor.visible = false;
       }
     }
   }
