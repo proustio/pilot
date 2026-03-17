@@ -8,4 +8,3 @@ Please take a look at @game-concepts.md, @tech-breakdown.md and @tasks.md. We wa
    ![victory-banner-crooked](./victory-banner-crooked.png)
 8. **Universal UI Readability:** The color scheme needs a comprehensive adjustment to ensure that the HUD and all text elements remain highly legible in both light and dark (Day/Night) modes.
 10. **Enhanced Geek Stats:** Incorporate the current camera zoom level into the "Geek Stats" overlay on the HUD to provide more technical detail during play.
-11. **Standardized Default View:** The initial game view should be set to a top-down perspective, zoomed out sufficiently to see the entire board without any HUD elements overlapping the tactical grid.

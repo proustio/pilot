@@ -92,6 +92,7 @@ export class HUD extends BaseUIComponent {
                 <div class="geek-stats-row"><span class="gs-label">FPS</span><span class="gs-value" id="gs-fps">--</span></div>
                 <div class="geek-stats-row"><span class="gs-label">FRAME</span><span class="gs-value" id="gs-frame">-- ms</span></div>
                 <div class="geek-stats-row"><span class="gs-label">RAM</span><span class="gs-value" id="gs-ram">N/A</span></div>
+                <div class="geek-stats-row"><span class="gs-label">ZOOM</span><span class="gs-value" id="gs-zoom">--</span></div>
                 <div class="geek-stats-row"><span class="gs-label">STATUS</span><span class="gs-value gs-online" id="gs-status">● LOCAL</span></div>
                 <div class="geek-stats-row"><span class="gs-label">TIME</span><span class="gs-value" id="gs-time">00:00</span></div>
             </div>
@@ -220,6 +221,7 @@ export class HUD extends BaseUIComponent {
             const fpsEl = this.container.querySelector('#gs-fps');
             const frameEl = this.container.querySelector('#gs-frame');
             const ramEl = this.container.querySelector('#gs-ram');
+            const zoomEl = this.container.querySelector('#gs-zoom');
             const timeEl = this.container.querySelector('#gs-time');
 
             if (fpsEl) fpsEl.textContent = `${d.fps}`;
@@ -231,6 +233,10 @@ export class HUD extends BaseUIComponent {
                     const usedMB = (mem.usedJSHeapSize / (1024 * 1024)).toFixed(1);
                     ramEl.textContent = `${usedMB} MB`;
                 }
+            }
+
+            if (zoomEl && d.zoom !== undefined) {
+                zoomEl.textContent = `${d.zoom.toFixed(1)}x`;
             }
 
             if (timeEl && d.matchStartTime) {

@@ -60,7 +60,7 @@ const init = () => {
 
             if (newState === 'SETUP_BOARD') {
                 entityManager.showPlayerBoard();
-                engine.targetCameraPos.set(0, 6, 8);
+                engine.targetCameraPos.set(0, 12, 0.1);
             } else if (newState === 'ENEMY_TURN') {
                 entityManager.showPlayerBoard();
                 engine.targetCameraPos.set(0, 8, 12);
@@ -108,7 +108,7 @@ const init = () => {
             if (time - lastFpsUpdateTime >= 1000) {
                 const fps = Math.round((framesRendered * 1000) / (time - lastFpsUpdateTime));
                 document.dispatchEvent(new CustomEvent('UPDATE_GEEK_STATS', {
-                    detail: { fps, frameTime: lastFrameTimeMs, matchStartTime }
+                    detail: { fps, frameTime: lastFrameTimeMs, matchStartTime, zoom: engine.orbitControls.getDistance() }
                 }));
                 framesRendered = 0;
                 lastFpsUpdateTime = time;
