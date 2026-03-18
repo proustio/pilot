@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { InteractivityGuard } from '../InteractivityGuard';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { Config } from '../../infrastructure/config/Config';
 export class Engine3D {
@@ -54,7 +55,32 @@ export class Engine3D {
     this.orbitControls.maxDistance = 30;
     this.orbitControls.target.copy(this.targetLookAt);
 
+    this.orbitControls.addEventListener('start', () => {
+      InteractivityGuard.setCameraInteracting(true);
+    });
+    this.orbitControls.addEventListener('end', () => {
+      InteractivityGuard.setCameraInteracting(false);
+    });
+
     this.renderer.domElement.addEventListener('pointerdown', (event: PointerEvent) => {
+      // Camera Rotation Guard: 
+      // Camera orbit rotation should only work if we initially click on empty space around the board.
+      // Disable rotation if cursor is over the Battlefield or HUD.
+
+      const isBattlefieldHovered = (window as any).isHoveringBattlefield;
+      
+      // Check for HUD (HTML elements with pointer-events: auto)
+      const hitElement = document.elementFromPoint(event.clientX, event.clientY);
+      const isHUDHovered = hitElement && hitElement.closest('.ui-interactive');
+
+      if (isBattlefieldHovered || isHUDHovered) {
+        this.orbitControls.enabled = false;
+        // Re-enable after a short delay so normal events aren't permanently blocked
+        setTimeout(() => { if (!this.isTransitioning) this.orbitControls.enabled = true; }, 100);
+      } else {
+        this.orbitControls.enabled = true;
+      }
+
       if (event.button === 0 && (event.ctrlKey || event.metaKey)) {
         this.orbitControls.mouseButtons.LEFT = THREE.MOUSE.PAN;
         this.orbitControls.mouseButtons.RIGHT = THREE.MOUSE.ROTATE;

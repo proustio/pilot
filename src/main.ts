@@ -124,6 +124,7 @@ const init = () => {
             if (!gameLoop.isPaused) {
                 interactionManager.update();
                 entityManager.update();
+                uiManager.update();
             }
 
             engine.render();

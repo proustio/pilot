@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { GameState } from '../../../application/game-loop/GameLoop';
+import { InteractivityGuard } from '../../InteractivityGuard';
 import { Orientation } from '../../../domain/fleet/Ship';
 import { CellState } from '../../../domain/board/Board';
 import { Config } from '../../../infrastructure/config/Config';
@@ -132,7 +133,7 @@ export class InteractionManager {
   }
 
   private onMouseClick(_event: MouseEvent) {
-    if (!this.interactionEnabled || (this.gameLoop && (this.gameLoop.isAnimating || this.gameLoop.currentState === GameState.GAME_OVER))) return;
+    if (InteractivityGuard.isBlocked() || !this.interactionEnabled || (this.gameLoop && (this.gameLoop.isAnimating || this.gameLoop.currentState === GameState.GAME_OVER))) return;
 
     this.raycaster.setFromCamera(this.mouse, this.camera);
     const interacts = this.entityManager.getInteractableObjects();
@@ -173,20 +174,18 @@ export class InteractionManager {
   public update() {
     let pickedTile: THREE.Object3D | null = null;
 
-    const isInteractionBlocked = !this.interactionEnabled || (this.gameLoop && (this.gameLoop.isAnimating || this.gameLoop.currentState === GameState.GAME_OVER));
+    this.raycaster.setFromCamera(this.mouse, this.camera);
+    const interacts = this.entityManager.getInteractableObjects();
+    const intersects = this.raycaster.intersectObjects(interacts);
 
-    if (!isInteractionBlocked) {
-      this.raycaster.setFromCamera(this.mouse, this.camera);
-      const interacts = this.entityManager.getInteractableObjects();
-      const intersects = this.raycaster.intersectObjects(interacts);
-
-      if (intersects.length > 0) {
-        const hit = intersects.find((i: THREE.Intersection) => i.object.userData.isGridTile);
-        if (hit) pickedTile = hit.object;
-      }
+    if (intersects.length > 0) {
+      const hit = intersects.find((i: THREE.Intersection) => i.object.userData.isGridTile);
+      if (hit) pickedTile = hit.object;
     }
 
-    if (pickedTile) {
+    const isInteractionBlocked = InteractivityGuard.isBlocked() || !this.interactionEnabled || (this.gameLoop && (this.gameLoop.isAnimating || this.gameLoop.currentState === GameState.GAME_OVER));
+
+    if (pickedTile && !isInteractionBlocked) {
       if (this.gameLoop && this.gameLoop.currentState === GameState.SETUP_BOARD && this.gameLoop.playerShipsToPlace.length > 0) {
         this.hoverCursor.visible = false;
 
@@ -304,6 +303,13 @@ export class InteractionManager {
         this.hoverCursor.visible = false;
       }
     }
+
+    this.updateHoverState();
+  }
+
+  private updateHoverState() {
+    // We want to report it even if blocked for clicking, because the camera guard needs it.
+    (window as any).isHoveringBattlefield = this.hoveredCell !== null;
   }
 
   private buildGhost(size: number) {

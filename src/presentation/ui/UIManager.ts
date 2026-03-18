@@ -1,4 +1,5 @@
 import { GameLoop, GameState } from '../../application/game-loop/GameLoop';
+import { InteractivityGuard } from '../InteractivityGuard';
 import { MainMenu } from './menu/MainMenu';
 import { HUD } from './hud/HUD';
 import { PauseMenu } from './pause/PauseMenu';
@@ -51,6 +52,7 @@ export class UIManager {
 
         document.addEventListener('SHOW_SETTINGS', () => {
             this.settings.show();
+            InteractivityGuard.setMenuOpen(true);
         });
 
         document.addEventListener('TOGGLE_HUD', (e: any) => {
@@ -69,6 +71,7 @@ export class UIManager {
 
         document.addEventListener('SHOW_LOAD_DIALOG', () => {
             this.saveLoadDialog.openAs('load');
+            InteractivityGuard.setMenuOpen(true);
         });
 
         this.handleStateChange(this.gameLoop.currentState);
@@ -132,7 +135,22 @@ export class UIManager {
             this.hud.show();
             if (!this.pauseMenu['isVisible'] && !this.settings['isVisible']) {
                 document.dispatchEvent(new CustomEvent('SET_INTERACTION_ENABLED', { detail: { enabled: true } }));
+                InteractivityGuard.setMenuOpen(false);
             }
         }
+    }
+
+    public update() {
+        // Sync animation state from GameLoop
+        InteractivityGuard.setGameAnimating(this.gameLoop.isAnimating);
+        
+        // Sync menu state if any sub-menu is visible
+        const isAnyMenuOpen = this.mainMenu['isVisible'] || 
+                             this.pauseMenu['isVisible'] || 
+                             this.settings['isVisible'] || 
+                             this.gameOver['isVisible'] ||
+                             this.saveLoadDialog['isVisible'];
+        
+        InteractivityGuard.setMenuOpen(isAnyMenuOpen);
     }
 }
