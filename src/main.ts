@@ -5,7 +5,6 @@ import { GameLoop } from './application/game-loop/GameLoop';
 import { UIManager } from './presentation/ui/UIManager';
 import { Config } from './infrastructure/config/Config';
 import { Storage, ViewState } from './infrastructure/storage/Storage';
-console.log('Battleships: Initialization Started');
 
 const init = () => {
     try {
@@ -60,13 +59,13 @@ const init = () => {
 
             if (newState === 'SETUP_BOARD') {
                 entityManager.showPlayerBoard();
-                engine.targetCameraPos.set(0, 12, 0.1);
+                document.dispatchEvent(new CustomEvent('SET_CAMERA_TARGET', { detail: { x: 0, y: 12, z: 0.1 } }));
             } else if (newState === 'ENEMY_TURN') {
                 entityManager.showPlayerBoard();
-                engine.targetCameraPos.set(0, 8, 12);
+                document.dispatchEvent(new CustomEvent('SET_CAMERA_TARGET', { detail: { x: 0, y: 8, z: 12 } }));
             } else if (newState === 'PLAYER_TURN') {
                 entityManager.showEnemyBoard();
-                engine.targetCameraPos.set(0, 6, 8);
+                document.dispatchEvent(new CustomEvent('SET_CAMERA_TARGET', { detail: { x: 0, y: 6, z: 8 } }));
             }
         });
 

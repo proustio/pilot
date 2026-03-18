@@ -102,6 +102,7 @@ export class Engine3D {
       if (ce.detail && !this.isTransitioning) {
         this.targetCameraPos.set(ce.detail.x, ce.detail.y, ce.detail.z);
         this.isTransitioning = true;
+        InteractivityGuard.setCameraTransitioning(true);
       }
     });
 
@@ -181,6 +182,7 @@ export class Engine3D {
     this.targetCameraPos.set(camX, camY, camZ);
     this.targetLookAt.set(tgtX, tgtY, tgtZ);
     this.isTransitioning = true;
+    InteractivityGuard.setCameraTransitioning(true);
   }
 
 
@@ -198,6 +200,7 @@ export class Engine3D {
       if (this.camera.position.distanceTo(this.targetCameraPos) < 0.1 &&
         this.currentLookAt.distanceTo(this.targetLookAt) < 0.1) {
         this.isTransitioning = false;
+        InteractivityGuard.setCameraTransitioning(false);
         this.orbitControls.enabled = true;
         this.orbitControls.enableRotate = true;
       }
