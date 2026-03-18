@@ -74,12 +74,57 @@ export class EntityManager {
             rippleTimes: { value: [0.0, 0.0, 0.0, 0.0, 0.0] }
         });
 
+        // Create Retro Industrial Texture (Procedural)
+        const createIndustrialTexture = () => {
+            const size = 256;
+            const canvas = document.createElement('canvas');
+            canvas.width = size;
+            canvas.height = size;
+            const ctx = canvas.getContext('2d')!;
+            
+            // Base metal color
+            ctx.fillStyle = '#050515';
+            ctx.fillRect(0, 0, size, size);
+            
+            // Technical grid lines
+            ctx.strokeStyle = 'rgba(65, 105, 225, 0.15)';
+            ctx.lineWidth = 1;
+            for(let i=0; i<size; i+=16) {
+                ctx.beginPath();
+                ctx.moveTo(i, 0); ctx.lineTo(i, size);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(0, i); ctx.lineTo(size, i);
+                ctx.stroke();
+            }
+
+            // Technical "specs" or noise
+            for(let i=0; i<500; i++) {
+                const x = Math.random() * size;
+                const y = Math.random() * size;
+                const s = Math.random() * 1.5;
+                ctx.fillStyle = Math.random() > 0.5 ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.2)';
+                ctx.fillRect(x, y, s, s);
+            }
+
+            const tex = new THREE.CanvasTexture(canvas);
+            tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+            tex.repeat.set(4, 1);
+            return tex;
+        };
+
+        const industrialTex = createIndustrialTexture();
+
         // Create the "Master Metal Frame" (hollow inside)
         const frameMat = new THREE.MeshStandardMaterial({
-            color: 0x050515, // Almost black/navy
-            metalness: 0.8,
-            roughness: 0.2,
-            emissive: 0x000022
+            color: 0x222233, 
+            map: industrialTex,
+            metalness: 0.9,
+            roughness: 0.3,
+            emissive: 0x000022,
+            transparent: true,
+            opacity: 0.5,
+            side: THREE.DoubleSide
         });
 
         const borderOffset = offset + 0.25;
@@ -92,14 +137,50 @@ export class EntityManager {
         ];
 
         borders.forEach(b => {
-            // Slight roundness using beveling would be complex with standard BoxGeometry
-            // but we can rely on standard boxes with a shiny mat.
             const borderGeo = new THREE.BoxGeometry(b.x, 2.4, b.z);
             const borderMesh = new THREE.Mesh(borderGeo, frameMat);
             borderMesh.position.set(b.posX, 0, b.posZ);
             borderMesh.castShadow = true;
             borderMesh.receiveShadow = true;
             this.masterBoardGroup.add(borderMesh);
+        });
+
+        // Add Retro 3D Screws to the frame corners
+        const screwGeo = new THREE.CylinderGeometry(0.12, 0.12, 0.05, 8);
+        const screwMat = new THREE.MeshStandardMaterial({
+            color: 0x444444,
+            metalness: 0.9,
+            roughness: 0.1
+        });
+        const screwSlotGeo = new THREE.BoxGeometry(0.18, 0.02, 0.02);
+        const screwSlotMat = new THREE.MeshBasicMaterial({ color: 0x111111 });
+
+        const screwPositions = [
+            { x: borderOffset, z: borderOffset },
+            { x: -borderOffset, z: borderOffset },
+            { x: borderOffset, z: -borderOffset },
+            { x: -borderOffset, z: -borderOffset }
+        ];
+
+        screwPositions.forEach(pos => {
+            const screwGroup = new THREE.Group();
+            const screwHead = new THREE.Mesh(screwGeo, screwMat);
+            const screwSlot = new THREE.Mesh(screwSlotGeo, screwSlotMat);
+            screwHead.rotation.x = Math.PI / 2;
+            screwSlot.rotation.x = Math.PI / 2;
+            screwSlot.position.y = 0.03;
+            screwGroup.add(screwHead);
+            screwGroup.add(screwSlot);
+
+            // Double the screws for top and bottom faces of the master frame
+            const topScrew = screwGroup.clone();
+            topScrew.position.set(pos.x, 1.2, pos.z);
+            this.masterBoardGroup.add(topScrew);
+
+            const bottomScrew = screwGroup.clone();
+            bottomScrew.position.set(pos.x, -1.2, pos.z);
+            bottomScrew.rotation.x = Math.PI;
+            this.masterBoardGroup.add(bottomScrew);
         });
 
         // Bottom plane separating the two sides
