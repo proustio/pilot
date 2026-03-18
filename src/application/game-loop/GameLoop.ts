@@ -55,7 +55,6 @@ export class GameLoop {
             const customEvent = e as CustomEvent;
             if (customEvent.detail && customEvent.detail.speed) {
                 Config.timing.gameSpeedMultiplier = parseFloat(customEvent.detail.speed);
-                console.log(`Game Speed set to ${Config.timing.gameSpeedMultiplier}x`);
             }
         });
 
@@ -98,8 +97,7 @@ export class GameLoop {
             const slotId = ce.detail?.slotId;
             const viewState: ViewState | undefined = ce.detail?.viewState;
             if (slotId && this.match) {
-                const success = Storage.saveGame(slotId, this.match, viewState);
-                console.log(success ? `Game saved to slot ${slotId}` : `Failed to save to slot ${slotId}`);
+                Storage.saveGame(slotId, this.match, viewState);
             }
         });
 
@@ -109,7 +107,6 @@ export class GameLoop {
             if (slotId) {
                 const match = Storage.loadGame(slotId);
                 if (match) {
-                    console.log(`Game loaded from slot ${slotId}`);
                     // Reload to get a clean 3D state, then auto-load
                     // Store the slot to load in sessionStorage so the reload can pick it up
                     sessionStorage.setItem('battleships_autoload', slotId.toString());
@@ -298,8 +295,6 @@ export class GameLoop {
     private handleEnemyTurn() {
         if (!this.match) return;
 
-        console.log(`Enemy is thinking... (Difficulty: ${this.aiEngine.difficulty})`);
-
         const executeTurn = () => {
             if (!this.match) return;
 
@@ -365,8 +360,6 @@ export class GameLoop {
 
     private handleAutoPlayerTurn() {
         if (!this.match || this.isAnimating) return;
-
-        console.log(`Auto-Battler is thinking...`);
 
         const executeTurn = () => {
             if (!this.match) return;
@@ -457,8 +450,6 @@ export class GameLoop {
                         this.transitionTo(GameState.PLAYER_TURN);
                     }
                 }
-            } else {
-                console.log(`Cannot place ship at ${x},${z} with orientation ${this.currentPlacementOrientation}`);
             }
 
         } else if (this.currentState === GameState.PLAYER_TURN) {
@@ -467,7 +458,6 @@ export class GameLoop {
             // Only allow attacks on enemy board during player turn
             if (isPlayerSide === true) return;
 
-            console.log(`Player attacking enemy grid at ${x},${z}`);
             const result = this.match.enemyBoard.receiveAttack(x, z);
 
             if (result !== 'invalid') {
