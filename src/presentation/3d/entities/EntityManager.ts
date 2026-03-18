@@ -43,9 +43,9 @@ export class EntityManager {
         this.particleSystem = new ParticleSystem();
 
         // Position faces: Player points UP, Enemy points DOWN
-        this.playerBoardGroup.position.y = 1.2;
+        this.playerBoardGroup.position.y = 0.6;
 
-        this.enemyBoardGroup.position.y = -1.2;
+        this.enemyBoardGroup.position.y = -0.6;
         this.enemyBoardGroup.rotation.x = Math.PI; // Flipped upside down
 
         this.masterBoardGroup.add(this.playerBoardGroup);
@@ -137,7 +137,7 @@ export class EntityManager {
         ];
 
         borders.forEach(b => {
-            const borderGeo = new THREE.BoxGeometry(b.x, 2.4, b.z);
+            const borderGeo = new THREE.BoxGeometry(b.x, 1.2, b.z);
             const borderMesh = new THREE.Mesh(borderGeo, frameMat);
             borderMesh.position.set(b.posX, 0, b.posZ);
             borderMesh.castShadow = true;
@@ -174,11 +174,11 @@ export class EntityManager {
 
             // Double the screws for top and bottom faces of the master frame
             const topScrew = screwGroup.clone();
-            topScrew.position.set(pos.x, 1.2, pos.z);
+            topScrew.position.set(pos.x, 0.6, pos.z);
             this.masterBoardGroup.add(topScrew);
 
             const bottomScrew = screwGroup.clone();
-            bottomScrew.position.set(pos.x, -1.2, pos.z);
+            bottomScrew.position.set(pos.x, -0.6, pos.z);
             bottomScrew.rotation.x = Math.PI;
             this.masterBoardGroup.add(bottomScrew);
         });
