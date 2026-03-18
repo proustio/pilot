@@ -15,6 +15,7 @@ export class GameOver extends BaseUIComponent {
 
         const returnBtn = this.container.querySelector('#btn-return-menu') as HTMLButtonElement;
         returnBtn.addEventListener('click', () => {
+            document.dispatchEvent(new CustomEvent('EXIT_GAME'));
             window.location.reload();
         });
     }

@@ -6,4 +6,4 @@ Please take a look at @game-concepts.md, @tech-breakdown.md and @tasks.md. We wa
 3. page reload should not reset camera angle. we should keep this position in-sync with the storage.
 4. adjust sound level in settings.
 5. switch sound effect banks in settings - icq, cyber, ww2, star wars.
-
+6. selected game mod should have a dedicated sub-panel, it should look like magic the gathering card - a small image, mode name, brief pointibased description.

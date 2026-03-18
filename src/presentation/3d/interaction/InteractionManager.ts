@@ -132,7 +132,7 @@ export class InteractionManager {
   }
 
   private onMouseClick(_event: MouseEvent) {
-    if (!this.interactionEnabled) return;
+    if (!this.interactionEnabled || (this.gameLoop && (this.gameLoop.isAnimating || this.gameLoop.currentState === GameState.GAME_OVER))) return;
 
     this.raycaster.setFromCamera(this.mouse, this.camera);
     const interacts = this.entityManager.getInteractableObjects();
@@ -173,7 +173,9 @@ export class InteractionManager {
   public update() {
     let pickedTile: THREE.Object3D | null = null;
 
-    if (this.interactionEnabled) {
+    const isInteractionBlocked = !this.interactionEnabled || (this.gameLoop && (this.gameLoop.isAnimating || this.gameLoop.currentState === GameState.GAME_OVER));
+
+    if (!isInteractionBlocked) {
       this.raycaster.setFromCamera(this.mouse, this.camera);
       const interacts = this.entityManager.getInteractableObjects();
       const intersects = this.raycaster.intersectObjects(interacts);
