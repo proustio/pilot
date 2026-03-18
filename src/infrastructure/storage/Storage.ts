@@ -99,6 +99,9 @@ export class Storage {
             board.ships.push(ship);
 
             if (ship.isPlaced) {
+                if (!ship.isSunk()) {
+                    board.aliveShipsCount++;
+                }
                 const coords = ship.getOccupiedCoordinates();
                 coords.forEach((coord, segmentIndex) => {
                     const mapKey = `${coord.x},${coord.z}`;
