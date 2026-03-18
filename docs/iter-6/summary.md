@@ -2,5 +2,4 @@ Please take a look at @game-concepts.md, @tech-breakdown.md and @tasks.md. We wa
 
 1. **Extended Shot Sequence:** The tactical board must wait for all post-shot animations—including projectile flight, impact effects, and voxel destruction—to fully conclude before flipping to the opponent's view.
 2. **Mouse Interactivity Guard:** To prevent accidental shots or UI misclicks, all interactive clicking on the UI, HUD or the batle field should be ignored. Examples: while the player is actively rotating or zooming the camera, or while the shot animation is playing, or while browsing a menu.  
-3. **Restoration of Visual State:** After loading a saved game, the engine should replay all relevant shot and "sunk ship" animations. This ensures that environmental effects like smoke, fire, and destroyed ship voxels are correctly synchronized with the game's logical state.
-4. **Procedural UI Sound Effects:** Add a unique "bubble popping" sound effect for every button on the UI. These should be procedurally generated at runtime, following the same logic used for shot/hit/miss sounds to maintain audio consistency.
+3. **Procedural UI Sound Effects:** Add a unique "bubble popping" sound effect for every button on the UI. These should be procedurally generated at runtime, following the same logic used for shot/hit/miss sounds to maintain audio consistency.
