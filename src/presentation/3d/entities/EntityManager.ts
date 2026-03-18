@@ -10,6 +10,7 @@ export class EntityManager {
     private scene: THREE.Scene;
 
     public masterBoardGroup: THREE.Group;
+    private staticGroup: THREE.Group;
     private playerBoardGroup: THREE.Group;
     private enemyBoardGroup: THREE.Group;
 
@@ -37,6 +38,7 @@ export class EntityManager {
         this.scene = scene;
 
         this.masterBoardGroup = new THREE.Group();
+        this.staticGroup = new THREE.Group();
         this.playerBoardGroup = new THREE.Group();
         this.enemyBoardGroup = new THREE.Group();
 
@@ -50,7 +52,9 @@ export class EntityManager {
 
         this.masterBoardGroup.add(this.playerBoardGroup);
         this.masterBoardGroup.add(this.enemyBoardGroup);
+        
         this.scene.add(this.masterBoardGroup);
+        this.scene.add(this.staticGroup);
 
         this.createBoardMeshes();
 
@@ -120,30 +124,89 @@ export class EntityManager {
             color: 0x222233, 
             map: industrialTex,
             metalness: 0.9,
-            roughness: 0.3,
+            roughness: 0.2,
             emissive: 0x000022,
             transparent: true,
-            opacity: 0.5,
+            opacity: 0.6,
             side: THREE.DoubleSide
         });
 
-        const borderOffset = offset + 0.25;
-        const borderLength = boardSize + 1;
+        const borderOffset = offset + 0.15;
+        const borderLength = boardSize + 0.3; 
+        
+        // Much thinner and sleeker frame
         const borders = [
-            { x: borderLength, z: 0.5, posZ: -borderOffset, posX: 0 },  // Top
-            { x: borderLength, z: 0.5, posZ: borderOffset, posX: 0 },   // Bottom
-            { x: 0.5, z: boardSize, posZ: 0, posX: -borderOffset },   // Left
-            { x: 0.5, z: boardSize, posZ: 0, posX: borderOffset }     // Right
+            { x: borderLength, y: 0.15, z: 0.15, posZ: -borderOffset, posX: 0 },  // Top
+            { x: borderLength, y: 0.15, z: 0.15, posZ: borderOffset, posX: 0 },   // Bottom
+            { x: 0.15, y: 0.15, z: borderLength, posZ: 0, posX: -borderOffset },   // Left
+            { x: 0.15, y: 0.15, z: borderLength, posZ: 0, posX: borderOffset }     // Right
         ];
 
         borders.forEach(b => {
-            const borderGeo = new THREE.BoxGeometry(b.x, 1.2, b.z);
+            const borderGeo = new THREE.BoxGeometry(b.x, b.y, b.z);
             const borderMesh = new THREE.Mesh(borderGeo, frameMat);
             borderMesh.position.set(b.posX, 0, b.posZ);
             borderMesh.castShadow = true;
             borderMesh.receiveShadow = true;
             this.masterBoardGroup.add(borderMesh);
         });
+
+        // Add a "Tactical Base" block (stays static at bottom)
+        const baseGeo = new THREE.BoxGeometry(boardSize + 2, 0.4, boardSize + 2);
+        const baseMat = new THREE.MeshStandardMaterial({
+            color: 0x050510,
+            metalness: 0.9,
+            roughness: 0.4,
+            transparent: true,
+            opacity: 0.8
+        });
+        const baseMesh = new THREE.Mesh(baseGeo, baseMat);
+        baseMesh.position.y = -1.2;
+        this.staticGroup.add(baseMesh);
+
+        // Add corner "bracket" supports (also static)
+        const bracketGeo = new THREE.BoxGeometry(0.8, 2.4, 0.8);
+        const bracketPos = borderOffset + 0.2;
+        const cornerPositions = [
+            { x: bracketPos, z: bracketPos },
+            { x: -bracketPos, z: bracketPos },
+            { x: bracketPos, z: -bracketPos },
+            { x: -bracketPos, z: -bracketPos }
+        ];
+
+        cornerPositions.forEach(pos => {
+            const bracket = new THREE.Mesh(bracketGeo, frameMat);
+            bracket.position.set(pos.x, -1.0, pos.z);
+            this.staticGroup.add(bracket);
+            
+            // Add a small glowing status LED on each corner bracket
+            const ledGeo = new THREE.SphereGeometry(0.08, 8, 8);
+            const ledMat = new THREE.MeshBasicMaterial({ color: 0x4169E1, transparent: true }); 
+            const led = new THREE.Mesh(ledGeo, ledMat);
+            led.position.set(pos.x * 1.1, 0.2, pos.z * 1.1);
+            led.userData = { isStatusLED: true, phase: Math.random() * Math.PI };
+            this.staticGroup.add(led);
+        });
+
+        // Industrial Rivets along the frame
+        const rivetGeo = new THREE.CylinderGeometry(0.06, 0.06, 0.04, 6);
+        const rivetMat = new THREE.MeshStandardMaterial({ color: 0x444455, metalness: 0.8, roughness: 0.2 });
+        
+        const spawnRivets = (count: number, start: THREE.Vector3, end: THREE.Vector3) => {
+            for(let i=0; i<count; i++) {
+                const rivet = new THREE.Mesh(rivetGeo, rivetMat);
+                const t = i / (count - 1);
+                rivet.position.lerpVectors(start, end, t);
+                this.masterBoardGroup.add(rivet);
+            }
+        };
+
+        const rD = borderOffset;
+        const rH = 0.08;
+        spawnRivets(8, new THREE.Vector3(-offset, rH, rD), new THREE.Vector3(offset, rH, rD));
+        spawnRivets(8, new THREE.Vector3(-offset, rH, -rD), new THREE.Vector3(offset, rH, -rD));
+        spawnRivets(8, new THREE.Vector3(rD, rH, -offset), new THREE.Vector3(rD, rH, offset));
+        spawnRivets(8, new THREE.Vector3(-rD, rH, -offset), new THREE.Vector3(-rD, rH, offset));
 
         // Add Retro 3D Screws to the frame corners
         const screwGeo = new THREE.CylinderGeometry(0.12, 0.12, 0.05, 8);
@@ -156,31 +219,26 @@ export class EntityManager {
         const screwSlotMat = new THREE.MeshBasicMaterial({ color: 0x111111 });
 
         const screwPositions = [
-            { x: borderOffset, z: borderOffset },
-            { x: -borderOffset, z: borderOffset },
-            { x: borderOffset, z: -borderOffset },
-            { x: -borderOffset, z: -borderOffset }
+            { x: borderOffset + 0.25, z: borderOffset + 0.25 },
+            { x: -(borderOffset + 0.25), z: borderOffset + 0.25 },
+            { x: borderOffset + 0.25, z: -(borderOffset + 0.25) },
+            { x: -(borderOffset + 0.25), z: -(borderOffset + 0.25) }
         ];
 
+        // Screws moved to corner brackets for better look
         screwPositions.forEach(pos => {
             const screwGroup = new THREE.Group();
             const screwHead = new THREE.Mesh(screwGeo, screwMat);
             const screwSlot = new THREE.Mesh(screwSlotGeo, screwSlotMat);
             screwHead.rotation.x = Math.PI / 2;
             screwSlot.rotation.x = Math.PI / 2;
-            screwSlot.position.y = 0.03;
+            screwSlot.position.y = 0.04;
             screwGroup.add(screwHead);
             screwGroup.add(screwSlot);
 
-            // Double the screws for top and bottom faces of the master frame
             const topScrew = screwGroup.clone();
-            topScrew.position.set(pos.x, 0.6, pos.z);
-            this.masterBoardGroup.add(topScrew);
-
-            const bottomScrew = screwGroup.clone();
-            bottomScrew.position.set(pos.x, -0.6, pos.z);
-            bottomScrew.rotation.x = Math.PI;
-            this.masterBoardGroup.add(bottomScrew);
+            topScrew.position.set(pos.x, 0.2, pos.z);
+            this.staticGroup.add(topScrew);
         });
 
         // Bottom plane separating the two sides
@@ -407,6 +465,16 @@ export class EntityManager {
             }
         };
 
+        this.staticGroup.children.forEach(child => {
+            if (child.userData.isStatusLED) {
+                const led = child as THREE.Mesh;
+                const mat = led.material as THREE.MeshBasicMaterial;
+                child.userData.phase += 0.05;
+                const glow = 0.5 + Math.sin(child.userData.phase) * 0.5;
+                mat.opacity = 0.3 + glow * 0.7;
+            }
+        });
+
         updateWater(this.playerWaterUniforms);
         updateWater(this.enemyWaterUniforms);
 
@@ -479,96 +547,7 @@ export class EntityManager {
                 }
 
                 if (m.result === 'hit' || m.result === 'sunk') {
-                    this.particleSystem.spawnExplosion(m.worldX, 0.4, m.worldZ, targetGroup);
-                    this.particleSystem.addEmitter(m.worldX, 0.4, m.worldZ, m.result === 'sunk', targetGroup);
-
-                    const impactPos = new THREE.Vector3(m.worldX, 0.4, m.worldZ);
-                    let voxelsRemoved = 0;
-
-                    targetGroup.children.forEach((child: THREE.Object3D) => {
-                        if (child.userData.isShip && child.userData.instancedMesh && child.userData.coversCell(m.cellX, m.cellZ)) {
-                            const im = child.userData.instancedMesh as THREE.InstancedMesh;
-                            const dummy = new THREE.Object3D();
-                            let updated = false;
-
-                            const destroyRatio = m.result === 'sunk' ? 0.85 : 0.25;
-                            const blastRadius = 0.65;
-
-                            for (let i = 0; i < im.count; i++) {
-                                im.getMatrixAt(i, dummy.matrix);
-                                dummy.matrix.decompose(dummy.position, dummy.quaternion, dummy.scale);
-
-                                if (dummy.scale.x > 0) {
-                                    const worldVoxelPos = dummy.position.clone();
-                                    child.localToWorld(worldVoxelPos);
-
-                                    if (worldVoxelPos.distanceTo(impactPos) < blastRadius) {
-                                        if (Math.random() < destroyRatio) {
-                                            dummy.scale.set(0, 0, 0);
-                                            dummy.updateMatrix();
-                                            im.setMatrixAt(i, dummy.matrix);
-                                            updated = true;
-                                            voxelsRemoved++;
-                                        }
-                                    }
-                                }
-                            }
-
-                            if (updated) {
-                                im.instanceMatrix.needsUpdate = true;
-                            }
-
-                            // Handle Sinking
-                            if (m.result === 'sunk') {
-                                child.userData.isSinking = true;
-                                child.visible = true; // Reveal if it was a hidden enemy ship
-
-                                // Setup sequential segment explosions based on ship size and orientation
-                                const shipGroup = child as THREE.Group;
-                                const isHorizontal = shipGroup.userData.coversCell(m.cellX + 1, m.cellZ) || shipGroup.userData.coversCell(m.cellX - 1, m.cellZ) || shipGroup.userData.shipOrientation === Orientation.Horizontal;
-
-                                // We can infer length from number of voxels roughly or just test coversCell
-                                let minX = m.cellX;
-                                let maxX = m.cellX;
-                                let minZ = m.cellZ;
-                                let maxZ = m.cellZ;
-
-                                for (let dx = -5; dx <= 5; dx++) {
-                                    if (shipGroup.userData.coversCell(m.cellX + dx, m.cellZ)) {
-                                        minX = Math.min(minX, m.cellX + dx);
-                                        maxX = Math.max(maxX, m.cellX + dx);
-                                    }
-                                }
-                                for (let dz = -5; dz <= 5; dz++) {
-                                    if (shipGroup.userData.coversCell(m.cellX, m.cellZ + dz)) {
-                                        minZ = Math.min(minZ, m.cellZ + dz);
-                                        maxZ = Math.max(maxZ, m.cellZ + dz);
-                                    }
-                                }
-
-                                const shipLength = Math.max(maxX - minX, maxZ - minZ) + 1;
-
-                                // Launch sequence of explosions along the true length of the ship
-                                for (let s = 0; s < shipLength; s++) {
-                                    const delay = s * 0.2 + (Math.random() * 0.1);
-
-                                    const ex = (minX + (isHorizontal ? s : 0)) - (Config.board.width / 2) + 0.5;
-                                    const ez = (minZ + (!isHorizontal ? s : 0)) - (Config.board.width / 2) + 0.5;
-
-                                    setTimeout(() => {
-                                        this.particleSystem.spawnExplosion(ex, 0.4, ez, targetGroup);
-                                        this.particleSystem.spawnVoxelExplosion(ex, 0.4, ez, 10, targetGroup);
-                                        // add water ripple
-                                        this.addRipple(ex, ez, !m.isPlayer);
-                                    }, delay * 1000);
-                                }
-                            }
-                        }
-                    });
-
-                    if (voxelsRemoved > 0) {
-                        this.particleSystem.spawnVoxelExplosion(m.worldX, 0.4, m.worldZ, voxelsRemoved, targetGroup);
-                    }
+                    this.applyImpactEffects(m.cellX, m.cellZ, m.result, m.isPlayer, false);
                 } else {
                     // Miss: sink into water partially
                     m.mesh.position.y = -0.15; // Lower it so it looks mostly sunk
@@ -958,6 +937,11 @@ export class EntityManager {
                 this.clearFogCell(x, z);
             }
             targetGroup.add(marker);
+
+            // Restore visual effects (smoke, fire, sinks, voxel holes)
+            if (result === 'hit' || result === 'sunk') {
+                this.applyImpactEffects(x, z, result, isPlayer, true);
+            }
             return;
         }
 
@@ -997,5 +981,110 @@ export class EntityManager {
             cellZ: z,
             isReplayFlag: isReplay
         });
+    }
+
+    /**
+     * Applies the visual impact of a shot (explosions, smoke, voxel destruction).
+     * Can be called for live shots or during replay (load/refresh).
+     */
+    private applyImpactEffects(cellX: number, cellZ: number, result: string, isPlayer: boolean, isReplay: boolean) {
+        const boardOffset = Config.board.width / 2;
+        const worldX = cellX - boardOffset + 0.5;
+        const worldZ = cellZ - boardOffset + 0.5;
+        const targetGroup = isPlayer ? this.enemyBoardGroup : this.playerBoardGroup;
+        const impactPos = new THREE.Vector3(worldX, 0.4, worldZ);
+
+        if (!isReplay) {
+            this.particleSystem.spawnExplosion(worldX, 0.4, worldZ, targetGroup);
+        }
+        
+        // Add persistent smoke/fire emitter
+        this.particleSystem.addEmitter(worldX, 0.4, worldZ, result === 'sunk', targetGroup);
+
+        let voxelsRemoved = 0;
+
+        targetGroup.children.forEach((child: THREE.Object3D) => {
+            if (child.userData.isShip && child.userData.instancedMesh && child.userData.coversCell(cellX, cellZ)) {
+                const im = child.userData.instancedMesh as THREE.InstancedMesh;
+                const dummy = new THREE.Object3D();
+                let updated = false;
+
+                const destroyRatio = result === 'sunk' ? 0.85 : 0.25;
+                const blastRadius = 0.65;
+
+                for (let i = 0; i < im.count; i++) {
+                    im.getMatrixAt(i, dummy.matrix);
+                    dummy.matrix.decompose(dummy.position, dummy.quaternion, dummy.scale);
+
+                    if (dummy.scale.x > 0) {
+                        const worldVoxelPos = dummy.position.clone();
+                        child.localToWorld(worldVoxelPos);
+
+                        if (worldVoxelPos.distanceTo(impactPos) < blastRadius) {
+                            if (Math.random() < destroyRatio) {
+                                dummy.scale.set(0, 0, 0);
+                                dummy.updateMatrix();
+                                im.setMatrixAt(i, dummy.matrix);
+                                updated = true;
+                                voxelsRemoved++;
+                            }
+                        }
+                    }
+                }
+
+                if (updated) {
+                    im.instanceMatrix.needsUpdate = true;
+                }
+
+                // Handle Sinking
+                if (result === 'sunk') {
+                    child.userData.isSinking = true;
+                    child.visible = true; // Reveal if it was a hidden enemy ship
+                    
+                    if (isReplay) {
+                        // Immediately sink partially
+                        child.position.y = -0.5; 
+                        child.rotation.z = 0.1;
+                    } else {
+                        // Setup sequential segment explosions
+                        const shipGroup = child as THREE.Group;
+                        const isHorizontal = shipGroup.userData.coversCell(cellX + 1, cellZ) || 
+                                           shipGroup.userData.coversCell(cellX - 1, cellZ) || 
+                                           shipGroup.userData.shipOrientation === Orientation.Horizontal;
+
+                        let minX = cellX, maxX = cellX, minZ = cellZ, maxZ = cellZ;
+                        for (let dx = -5; dx <= 5; dx++) {
+                            if (shipGroup.userData.coversCell(cellX + dx, cellZ)) {
+                                minX = Math.min(minX, cellX + dx);
+                                maxX = Math.max(maxX, cellX + dx);
+                            }
+                        }
+                        for (let dz = -5; dz <= 5; dz++) {
+                            if (shipGroup.userData.coversCell(cellX, cellZ + dz)) {
+                                minZ = Math.min(minZ, cellZ + dz);
+                                maxZ = Math.max(maxZ, cellZ + dz);
+                            }
+                        }
+
+                        const shipLength = Math.max(maxX - minX, maxZ - minZ) + 1;
+                        for (let s = 0; s < shipLength; s++) {
+                            const delay = s * 0.2 + (Math.random() * 0.1);
+                            const ex = (minX + (isHorizontal ? s : 0)) - boardOffset + 0.5;
+                            const ez = (minZ + (!isHorizontal ? s : 0)) - boardOffset + 0.5;
+
+                            setTimeout(() => {
+                                this.particleSystem.spawnExplosion(ex, 0.4, ez, targetGroup);
+                                this.particleSystem.spawnVoxelExplosion(ex, 0.4, ez, 10, targetGroup);
+                                this.addRipple(ex, ez, !isPlayer);
+                            }, delay * 1000);
+                        }
+                    }
+                }
+            }
+        });
+
+        if (voxelsRemoved > 0 && !isReplay) {
+            this.particleSystem.spawnVoxelExplosion(worldX, 0.4, worldZ, voxelsRemoved, targetGroup);
+        }
     }
 }
