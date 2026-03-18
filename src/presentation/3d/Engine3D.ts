@@ -6,7 +6,7 @@ export class Engine3D {
   public camera: THREE.PerspectiveCamera;
   public renderer: THREE.WebGLRenderer;
 
-  public targetCameraPos = new THREE.Vector3(0, 14, 10.1);
+  public targetCameraPos = new THREE.Vector3(5, 10, 14);
   public targetLookAt = new THREE.Vector3(0, 0, 0);
   private currentLookAt = new THREE.Vector3(0, 0, 0);
 
@@ -31,7 +31,7 @@ export class Engine3D {
 
     const aspect = window.innerWidth / window.innerHeight;
     this.camera = new THREE.PerspectiveCamera(50, aspect, 0.1, 1000);
-    this.camera.position.set(0, 22, 0.1);
+    this.camera.position.set(5, 10, 14);
     this.camera.lookAt(0, 0, 0);
 
     this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
