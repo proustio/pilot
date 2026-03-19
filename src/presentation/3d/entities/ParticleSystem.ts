@@ -15,6 +15,12 @@ export class ParticleSystem {
     
     private explosionGeo = new THREE.BoxGeometry(0.15, 0.15, 0.15);
     private smokeGeo = new THREE.BoxGeometry(0.2, 0.2, 0.2);
+
+    public hasActiveParticles(): boolean {
+        // Only count explosion/splash/voxel particles, not continuous smoke emitters
+        return this.particles.some(p => !p.isSmoke);
+    }
+
     
     // Materials
     private fireMat = new THREE.MeshStandardMaterial({ color: 0xff4500, emissive: 0xff0000, roughness: 0.4 });

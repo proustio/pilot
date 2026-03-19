@@ -7,6 +7,8 @@ import { Settings } from './settings/Settings';
 import { GameOver } from './menu/GameOver';
 import { SaveLoadDialog } from './components/SaveLoadDialog';
 import { Storage } from '../../infrastructure/storage/Storage';
+import { AudioEngine } from '../../infrastructure/audio/AudioEngine';
+
 
 export class UIManager {
     private gameLoop: GameLoop;
@@ -90,8 +92,27 @@ export class UIManager {
             }
         });
 
+
         this.checkAutoLoad();
+
+        // Global UI sound effect listener
+        document.addEventListener('click', (e: MouseEvent) => {
+            const target = e.target as HTMLElement;
+            const button = target.closest('button');
+            if (button) {
+                // Generate a "unique" frequency based on button ID or text
+                const seedString = button.id || button.innerText || 'default';
+                let hash = 0;
+                for (let i = 0; i < seedString.length; i++) {
+                    hash = ((hash << 5) - hash) + seedString.charCodeAt(i);
+                    hash |= 0;
+                }
+                const freq = 300 + (Math.abs(hash) % 300); // 300-600Hz
+                AudioEngine.getInstance().playPop(freq);
+            }
+        });
     }
+
 
     private checkAutoLoad(): void {
         const autoloadSlot = sessionStorage.getItem('battleships_autoload');

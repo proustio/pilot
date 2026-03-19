@@ -1,4 +1,3 @@
 Please take a look at @game-concepts.md, @tech-breakdown.md and @tasks.md. We want to continue improving our game. We will make both visual, functional and maybe even some structural changes.
 
-1. **Extended Shot Sequence:** The tactical board must wait for all post-shot animations—including projectile flight, impact effects, and voxel destruction—to fully conclude before flipping to the opponent's view.
-2. **Procedural UI Sound Effects:** Add a unique "bubble popping" sound effect for every button on the UI. These should be procedurally generated at runtime, following the same logic used for shot/hit/miss sounds to maintain audio consistency.
+1. **Procedural UI Sound Effects:** Add a unique "bubble popping" sound effect for every button on the UI. These should be procedurally generated at runtime, following the same logic used for shot/hit/miss sounds to maintain audio consistency.

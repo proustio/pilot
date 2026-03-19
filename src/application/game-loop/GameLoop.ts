@@ -32,6 +32,8 @@ export class GameLoop {
     private listeners: StateChangeListener[] = [];
     private shipPlacedListeners: ShipPlacedListener[] = [];
     private attackResultListeners: AttackResultListener[] = [];
+    private onAnimationsComplete: (() => void) | null = null;
+
 
     constructor() {
         this.aiEngine = new AIEngine();
@@ -116,7 +118,17 @@ export class GameLoop {
                 }
             }
         });
+
+        // Listen for 3D animation completion
+        document.addEventListener('GAME_ANIMATIONS_COMPLETE', () => {
+            if (this.onAnimationsComplete) {
+                const callback = this.onAnimationsComplete;
+                this.onAnimationsComplete = null;
+                callback();
+            }
+        });
     }
+
 
     /**
      * Returns true if the current match has any progress worth saving.
@@ -341,7 +353,6 @@ export class GameLoop {
                         throw e;
                     }
                         this.isAnimating = false;
-
                         if (status !== 'ongoing') {
                             this.transitionTo(GameState.GAME_OVER);
                         } else {
@@ -349,7 +360,8 @@ export class GameLoop {
                         }
                     };
 
-                    setTimeout(finalizeTurn, Config.timing.turnDelayMs / Config.timing.gameSpeedMultiplier);
+                    this.onAnimationsComplete = finalizeTurn;
+
 
                 }, Config.timing.aiThinkingTimeMs / Config.timing.gameSpeedMultiplier);
             }, flipWait);
@@ -407,7 +419,6 @@ export class GameLoop {
                         throw e;
                     }
                         this.isAnimating = false;
-
                         if (status !== 'ongoing') {
                             this.transitionTo(GameState.GAME_OVER);
                         } else {
@@ -415,7 +426,8 @@ export class GameLoop {
                         }
                     };
 
-                    setTimeout(finalizeTurn, Config.timing.turnDelayMs / Config.timing.gameSpeedMultiplier);
+                    this.onAnimationsComplete = finalizeTurn;
+
 
                 }, Config.timing.aiThinkingTimeMs / Config.timing.gameSpeedMultiplier);
             }, flipWait);
@@ -465,7 +477,7 @@ export class GameLoop {
 
                 this.isAnimating = true;
 
-                setTimeout(() => {
+                const finalizeTurn = () => {
                     let status: 'ongoing' | 'player_wins' | 'enemy_wins' = 'ongoing';
                     try {
                         status = this.match!.checkGameEnd();
@@ -477,13 +489,16 @@ export class GameLoop {
                         throw e;
                     }
                     this.isAnimating = false;
-
                     if (status !== 'ongoing') {
                         this.transitionTo(GameState.GAME_OVER);
                     } else {
                         this.transitionTo(GameState.ENEMY_TURN);
                     }
-                }, Config.timing.turnDelayMs / Config.timing.gameSpeedMultiplier);
+                };
+
+                this.onAnimationsComplete = finalizeTurn;
+
+
             }
         }
     }

@@ -101,4 +101,12 @@ export class AudioEngine {
             this.playNoise(0.6, 0.8, 0.01);
         }, 100);
     }
+
+    public playPop(frequency: number = 400) {
+        // A short, high-pitched "bubble pop" sound
+        // Quick upward sine sweep
+        this.playTone(frequency, frequency * 2, 0.05, 'sine', 0.2, 0.01);
+    }
 }
+
+

@@ -24,6 +24,8 @@ export class EntityManager {
     }
     private fogMeshes: (THREE.Mesh | null)[] = new Array(Config.board.width * Config.board.height).fill(null);
     private fallingMarkers: { mesh: THREE.Object3D, curve: THREE.QuadraticBezierCurve3, progress: number, worldX: number, worldZ: number, result: string, isPlayer: boolean, cellX: number, cellZ: number, isReplayFlag: boolean }[] = [];
+    private wasBusy: boolean = false;
+
 
     private time: number = 0;
     private playerWaterUniforms: any = null;
@@ -415,6 +417,30 @@ export class EntityManager {
         }
     }
 
+    /**
+     * Returns true if there are any active animations (projectiles, particles, sinking ships).
+     */
+    public isBusy(): boolean {
+        if (this.fallingMarkers.length > 0) return true;
+        if (this.particleSystem.hasActiveParticles()) return true;
+
+        // Check for sinking ships
+        let shipsSinking = false;
+        const sinkFloor = -1.1;
+        [this.playerBoardGroup, this.enemyBoardGroup].forEach(group => {
+            group.children.forEach((child: THREE.Object3D) => {
+                if (child.userData.isShip && child.userData.isSinking) {
+                    if (child.position.y > sinkFloor) {
+                        shipsSinking = true;
+                    }
+                }
+            });
+        });
+
+        return shipsSinking;
+    }
+
+
     public update() {
         // Smoothly lerp board rotation
         const actualFlipSpeed = Config.timing.boardFlipSpeed * Config.timing.gameSpeedMultiplier;
@@ -577,7 +603,14 @@ export class EntityManager {
             }
         }
 
+        const currentBusy = this.isBusy();
+        if (this.wasBusy && !currentBusy) {
+            document.dispatchEvent(new CustomEvent('GAME_ANIMATIONS_COMPLETE'));
+        }
+        this.wasBusy = currentBusy;
+
         const descentRate = 0.005 * Config.timing.gameSpeedMultiplier;
+
         const sinkFloor = -1.1;
         [this.playerBoardGroup, this.enemyBoardGroup].forEach(group => {
             group.children.forEach((child: THREE.Object3D) => {
