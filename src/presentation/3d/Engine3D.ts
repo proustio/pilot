@@ -12,7 +12,9 @@ export class Engine3D {
   private currentLookAt = new THREE.Vector3(0, 0, 0);
 
   public orbitControls!: OrbitControls;
-  private isTransitioning: boolean = false;
+  public isTransitioning: boolean = false;
+  public hasManualMovement: boolean = false;
+
 
   private ambientLight!: THREE.AmbientLight;
   private dirLight!: THREE.DirectionalLight;
@@ -55,7 +57,14 @@ export class Engine3D {
     this.orbitControls.maxDistance = 30;
     this.orbitControls.target.copy(this.targetLookAt);
 
+    this.orbitControls.addEventListener('change', () => {
+      if (!this.isTransitioning) {
+        this.hasManualMovement = true;
+      }
+    });
+
     this.orbitControls.addEventListener('start', () => {
+
       InteractivityGuard.setCameraInteracting(true);
     });
     this.orbitControls.addEventListener('end', () => {

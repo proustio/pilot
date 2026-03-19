@@ -664,10 +664,20 @@ export class EntityManager {
         shipGroup.visible = isPlayer;
 
         // Base dark metal colors
-        const hullColor = new THREE.Color(0x111111); // Black/Dark Grey
-        const deckColor = new THREE.Color(0x222222);
-        const bridgeColor = new THREE.Color(0x1a1a1a);
-        const darkAccent = new THREE.Color(0x050505);
+        let hullColor = new THREE.Color(0x111111); // Black/Dark Grey
+        let deckColor = new THREE.Color(0x222222);
+        let bridgeColor = new THREE.Color(0x1a1a1a);
+        let darkAccent = new THREE.Color(0x050505);
+
+        if (!isPlayer) {
+            // Invert colors for enemy ships (Light Tech Vibe)
+            const invert = (c: THREE.Color) => new THREE.Color(1 - c.r, 1 - c.g, 1 - c.b);
+            hullColor = invert(hullColor);
+            deckColor = invert(deckColor);
+            bridgeColor = invert(bridgeColor);
+            darkAccent = invert(darkAccent);
+        }
+
 
         // Neon Accents (Glow colors assigned to edges/accents)
         const accentColor = isPlayer ? new THREE.Color(0xFFD700) : new THREE.Color(0xFF2400); // Gold vs Scarlet
@@ -836,8 +846,17 @@ export class EntityManager {
         shipGroup.add(instancedMesh);
 
         const turretCount = ship.size <= 2 ? 1 : ship.size <= 4 ? 2 : 3;
-        const turretBaseMat = new THREE.MeshStandardMaterial({ color: 0x2a2a2a, roughness: 0.6 });
-        const barrelMat = new THREE.MeshStandardMaterial({ color: 0x555555, roughness: 0.5 });
+        let turretBaseColor = new THREE.Color(0x2a2a2a);
+        let barrelColor = new THREE.Color(0x555555);
+
+        if (!isPlayer) {
+            turretBaseColor = new THREE.Color(1 - turretBaseColor.r, 1 - turretBaseColor.g, 1 - turretBaseColor.b);
+            barrelColor = new THREE.Color(1 - barrelColor.r, 1 - barrelColor.g, 1 - barrelColor.b);
+        }
+
+        const turretBaseMat = new THREE.MeshStandardMaterial({ color: turretBaseColor, roughness: 0.6 });
+        const barrelMat = new THREE.MeshStandardMaterial({ color: barrelColor, roughness: 0.5 });
+
 
         const shipLen = ship.size;
 
