@@ -113,6 +113,13 @@ export class Engine3D {
       }
     });
 
+    document.addEventListener('RESET_CAMERA', () => {
+      this.targetCameraPos.set(5, 10, 14);
+      this.targetLookAt.set(0, 0, 0);
+      this.isTransitioning = true;
+      InteractivityGuard.setCameraTransitioning(true);
+    });
+
     window.addEventListener('resize', this.onWindowResize.bind(this));
   }
 

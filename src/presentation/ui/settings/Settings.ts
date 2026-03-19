@@ -1,6 +1,7 @@
 import { BaseUIComponent } from '../components/BaseUIComponent';
 import { GameLoop, GameState } from '../../../application/game-loop/GameLoop';
 import { Config } from '../../../infrastructure/config/Config';
+import { AudioEngine } from '../../../infrastructure/audio/AudioEngine';
 
 export class Settings extends BaseUIComponent {
     private gameLoop: GameLoop;
@@ -32,8 +33,13 @@ export class Settings extends BaseUIComponent {
                 <select id="ai-difficulty" class="voxel-select" style="width: auto;">
                     <option value="easy" ${this.gameLoop.aiEngine.difficulty === 'easy' ? 'selected' : ''}>Easy (Random)</option>
                     <option value="normal" ${this.gameLoop.aiEngine.difficulty === 'normal' ? 'selected' : ''}>Normal (Hunt/Target)</option>
-                    <option value="hard" ${this.gameLoop.aiEngine.difficulty === 'hard' ? 'selected' : ''}>Hard (Probabilistic)</option>
                 </select>
+            </div>
+
+            <div class="settings-row">
+                <label>Master Volume:</label>
+                <input type="range" id="sound-volume" min="0" max="1" step="0.05" value="${Config.audio.masterVolume}" class="voxel-slider" style="flex-grow: 1; margin-left: 20px;">
+                <span id="volume-value" style="width: 40px; text-align: right;">${Math.round(Config.audio.masterVolume * 100)}%</span>
             </div>
 
             <div class="settings-row">
@@ -120,6 +126,16 @@ export class Settings extends BaseUIComponent {
             if (customEvent.detail && customEvent.detail.speed) {
                 gameSpeedSelect.value = customEvent.detail.speed.toString();
             }
+        });
+
+        const volumeSlider = this.container.querySelector('#sound-volume') as HTMLInputElement;
+        const volumeValue = this.container.querySelector('#volume-value') as HTMLElement;
+        volumeSlider.addEventListener('input', (e) => {
+            const val = parseFloat((e.target as HTMLInputElement).value);
+            volumeValue.textContent = `${Math.round(val * 100)}%`;
+            Config.audio.masterVolume = val;
+            Config.saveConfig();
+            AudioEngine.getInstance().setVolume(val);
         });
 
         const aiSelect = this.container.querySelector('#ai-difficulty') as HTMLSelectElement;
