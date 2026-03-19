@@ -63,6 +63,18 @@ export class InteractivityGuard {
     }
 
     /**
+     * Returns true if the pointer is currently over a UI element that should block 3D interaction.
+     */
+    public static isPointerOverUI(clientX: number, clientY: number): boolean {
+        const el = document.elementFromPoint(clientX, clientY);
+        if (!el) return false;
+        
+        // If the element is within the UI layer, it should block interaction
+        return !!el.closest('#ui-layer');
+    }
+
+
+    /**
      * Returns true if ONLY camera-related blocking is active.
      */
     public static isCameraMoving(): boolean {

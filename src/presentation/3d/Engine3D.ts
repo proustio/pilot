@@ -68,12 +68,10 @@ export class Engine3D {
       // Disable rotation if cursor is over the Battlefield or HUD.
 
       const isBattlefieldHovered = (window as any).isHoveringBattlefield;
-      
-      // Check for HUD (HTML elements with pointer-events: auto)
-      const hitElement = document.elementFromPoint(event.clientX, event.clientY);
-      const isHUDHovered = hitElement && hitElement.closest('.ui-interactive');
+      const isHUDHovered = InteractivityGuard.isPointerOverUI(event.clientX, event.clientY);
 
       if (isBattlefieldHovered || isHUDHovered) {
+
         this.orbitControls.enabled = false;
         // Re-enable after a short delay so normal events aren't permanently blocked
         setTimeout(() => { if (!this.isTransitioning) this.orbitControls.enabled = true; }, 100);

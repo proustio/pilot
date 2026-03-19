@@ -132,8 +132,12 @@ export class InteractionManager {
     }
   }
 
-  private onMouseClick(_event: MouseEvent) {
+  private onMouseClick(event: MouseEvent) {
     if (InteractivityGuard.isBlocked() || !this.interactionEnabled || (this.gameLoop && (this.gameLoop.isAnimating || this.gameLoop.currentState === GameState.GAME_OVER))) return;
+
+    // Block if clicking over HUD/UI
+    if (InteractivityGuard.isPointerOverUI(event.clientX, event.clientY)) return;
+
 
     this.raycaster.setFromCamera(this.mouse, this.camera);
     const interacts = this.entityManager.getInteractableObjects();
@@ -183,7 +187,11 @@ export class InteractionManager {
       if (hit) pickedTile = hit.object;
     }
 
-    const isInteractionBlocked = InteractivityGuard.isBlocked() || !this.interactionEnabled || (this.gameLoop && (this.gameLoop.isAnimating || this.gameLoop.currentState === GameState.GAME_OVER));
+    const isInteractionBlocked = InteractivityGuard.isBlocked() || 
+                                 !this.interactionEnabled || 
+                                 (this.gameLoop && (this.gameLoop.isAnimating || this.gameLoop.currentState === GameState.GAME_OVER)) ||
+                                 InteractivityGuard.isPointerOverUI(this.lastMouseClientX, this.lastMouseClientY);
+
 
     if (pickedTile && !isInteractionBlocked) {
       if (this.gameLoop && this.gameLoop.currentState === GameState.SETUP_BOARD && this.gameLoop.playerShipsToPlace.length > 0) {
