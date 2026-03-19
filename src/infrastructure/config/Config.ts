@@ -20,8 +20,11 @@ export const Config = {
     visual: {
         isDayMode: new Date().getHours() >= 6 && new Date().getHours() < 18,
         showGeekStats: false,
-        fpsCap: 60
+        fpsCap: 60,
+        sinkingFloor: -0.35,
+        sinkingMaxAngle: 0.25
     },
+
     autoBattler: false,
     aiDifficulty: 'normal',
 

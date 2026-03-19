@@ -423,10 +423,11 @@ export class EntityManager {
     public isBusy(): boolean {
         if (this.fallingMarkers.length > 0) return true;
         if (this.particleSystem.hasActiveParticles()) return true;
+        if (this.isTransitioning) return true; // Block if camera is moving
 
         // Check for sinking ships
         let shipsSinking = false;
-        const sinkFloor = -1.1;
+        const sinkFloor = Config.visual.sinkingFloor;
         [this.playerBoardGroup, this.enemyBoardGroup].forEach(group => {
             group.children.forEach((child: THREE.Object3D) => {
                 if (child.userData.isShip && child.userData.isSinking) {
@@ -439,6 +440,7 @@ export class EntityManager {
 
         return shipsSinking;
     }
+
 
 
     public update() {
@@ -611,19 +613,25 @@ export class EntityManager {
 
         const descentRate = 0.005 * Config.timing.gameSpeedMultiplier;
 
-        const sinkFloor = -1.1;
+        const sinkFloor = Config.visual.sinkingFloor;
         [this.playerBoardGroup, this.enemyBoardGroup].forEach(group => {
             group.children.forEach((child: THREE.Object3D) => {
                 if (child.userData.isShip && child.userData.isSinking) {
                     if (child.position.y > sinkFloor) {
                         child.position.y -= descentRate;
                         const sinkProgress = Math.min(1.0, -child.position.y / Math.abs(sinkFloor));
-                        child.rotation.z = sinkProgress * 0.15;
-                        child.rotation.x = sinkProgress * 0.08;
+                        
+                        // Use randomized target angles stored in userData
+                        const targetZ = child.userData.sinkAngleZ ?? 0.15;
+                        const targetX = child.userData.sinkAngleX ?? 0.08;
+                        
+                        child.rotation.z = sinkProgress * targetZ;
+                        child.rotation.x = sinkProgress * targetX;
                     }
                 }
             });
         });
+
     }
 
     public addShip(ship: Ship, x: number, z: number, orientation: Orientation, isPlayer: boolean) {
@@ -1071,13 +1079,23 @@ export class EntityManager {
 
                 // Handle Sinking
                 if (result === 'sunk') {
-                    child.userData.isSinking = true;
+                    if (!child.userData.isSinking) {
+                        child.userData.isSinking = true;
+                        
+                        // Assign random sinking lean if not already set
+                        const maxLean = Config.visual.sinkingMaxAngle;
+                        child.userData.sinkAngleX = (Math.random() - 0.5) * maxLean * 2;
+                        child.userData.sinkAngleZ = (Math.random() - 0.5) * maxLean * 2;
+                    }
+                    
                     child.visible = true; // Reveal if it was a hidden enemy ship
                     
                     if (isReplay) {
                         // Immediately sink partially
-                        child.position.y = -0.5; 
-                        child.rotation.z = 0.1;
+                        child.position.y = Config.visual.sinkingFloor; 
+                        child.rotation.z = child.userData.sinkAngleZ;
+                        child.rotation.x = child.userData.sinkAngleX;
+
                     } else {
                         // Setup sequential segment explosions
                         const shipGroup = child as THREE.Group;
