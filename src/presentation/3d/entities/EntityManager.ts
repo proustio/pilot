@@ -47,9 +47,11 @@ export class EntityManager {
         this.particleSystem = new ParticleSystem();
 
         // Position faces: Player points UP, Enemy points DOWN
-        this.playerBoardGroup.position.y = 0.6;
+        this.playerBoardGroup.position.y = 1.2; // Increased from 0.8 to 1.2
 
-        this.enemyBoardGroup.position.y = -0.6;
+        this.enemyBoardGroup.position.y = -1.2; // Increased from -0.8 to -1.2
+
+
         this.enemyBoardGroup.rotation.x = Math.PI; // Flipped upside down
 
         this.masterBoardGroup.add(this.playerBoardGroup);
@@ -163,8 +165,10 @@ export class EntityManager {
             opacity: 0.8
         });
         const baseMesh = new THREE.Mesh(baseGeo, baseMat);
-        baseMesh.position.y = -1.2;
+        baseMesh.position.y = -2.4; // Lowered from -1.6 to -2.4 to match deeper board
         this.staticGroup.add(baseMesh);
+
+
 
         // Add corner "bracket" supports (also static)
         const bracketGeo = new THREE.BoxGeometry(0.8, 2.4, 0.8);
@@ -178,8 +182,10 @@ export class EntityManager {
 
         cornerPositions.forEach(pos => {
             const bracket = new THREE.Mesh(bracketGeo, frameMat);
-            bracket.position.set(pos.x, -1.0, pos.z);
+            bracket.position.set(pos.x, -1.8, pos.z); // Lowered from -1.2 to -1.8
             this.staticGroup.add(bracket);
+
+
             
             // Add a small glowing status LED on each corner bracket
             const ledGeo = new THREE.SphereGeometry(0.08, 8, 8);
@@ -327,16 +333,17 @@ export class EntityManager {
                 // Voxel Fog cloud per cell - increased voxel count for density
                 const numVoxels = 100;
                 const fogCloud = new THREE.InstancedMesh(fogVoxelGeo, fogMat, numVoxels);
-                fogCloud.position.set(worldX, 0.3, worldZ);
+                fogCloud.position.set(worldX, 0.2, worldZ); // Lowered from 0.3 to 0.2
 
                 const dummy = new THREE.Object3D();
                 const voxelData = [];
                 for (let i = 0; i < numVoxels; i++) {
                     // Spread a bit wider and taller to completely obscure cell
                     const vx = (Math.random() - 0.5) * 0.95;
-                    const vy = (Math.random() - 0.5) * 0.8;
+                    const vy = (Math.random() - 0.5) * 0.4; // Halved from 0.8 to 0.4
                     const vz = (Math.random() - 0.5) * 0.95;
                     dummy.position.set(vx, vy, vz);
+
                     dummy.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
                     dummy.scale.setScalar(1.0 + Math.random() * 0.8);
                     dummy.updateMatrix();

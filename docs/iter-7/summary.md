@@ -2,7 +2,7 @@ Please take a look at @tech.md, @structure.md and @product.md.
 We want to continue improving our game. 
 We will make both visual, functional and maybe even some structural changes.
 
-1. [] fog height should be halved.
+1. [v] fog height should be halved.
 2. [v] sank ships should sink at an angle and remain at least 20% visible above water.
 3. [] hits and kills on a ship should set that section on fire.
 4. [] kills on a ship should break the ship in a V shape, with the last hit section being the pivot.
