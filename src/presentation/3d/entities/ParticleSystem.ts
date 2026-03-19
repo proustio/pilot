@@ -6,24 +6,37 @@ interface Particle {
     life: number;
     maxLife: number;
     isSmoke: boolean;
+    isFire?: boolean;
+    group: THREE.Object3D;
+}
+
+interface Emitter {
+    x: number;
+    y: number;
+    z: number;
+    isBlack: boolean;
+    hasFire: boolean;
+    nextSpawn: number;
     group: THREE.Object3D;
 }
 
 export class ParticleSystem {
     private particles: Particle[] = [];
-    private emitters: { x: number, y: number, z: number, isBlack: boolean, nextSpawn: number, group: THREE.Object3D }[] = [];
+    private emitters: Emitter[] = [];
     
     private explosionGeo = new THREE.BoxGeometry(0.15, 0.15, 0.15);
     private smokeGeo = new THREE.BoxGeometry(0.2, 0.2, 0.2);
+    private fireGeo = new THREE.BoxGeometry(0.12, 0.12, 0.12);
 
     public hasActiveParticles(): boolean {
-        // Only count explosion/splash/voxel particles, not continuous smoke emitters
-        return this.particles.some(p => !p.isSmoke);
+        // Only count explosion/splash/voxel particles, not continuous smoke/fire emitters
+        return this.particles.some(p => !p.isSmoke && !p.isFire);
     }
 
     
     // Materials
     private fireMat = new THREE.MeshStandardMaterial({ color: 0xff4500, emissive: 0xff0000, roughness: 0.4 });
+    private secondaryFireMat = new THREE.MeshStandardMaterial({ color: 0xffa500, emissive: 0xff8c00, roughness: 0.4 });
     private greySmokeMat = new THREE.MeshStandardMaterial({ color: 0x888888, transparent: true, opacity: 0.8 });
     private blackSmokeMat = new THREE.MeshStandardMaterial({ color: 0x222222, transparent: true, opacity: 0.9 });
     private splashMatWhite = new THREE.MeshStandardMaterial({ color: 0xffffff, transparent: true, opacity: 0.7, roughness: 0.2 });
@@ -162,17 +175,56 @@ export class ParticleSystem {
             group
         });
     }
+
+    public spawnFire(x: number, y: number, z: number, group: THREE.Object3D) {
+        const isSecondary = Math.random() > 0.4;
+        const mesh = new THREE.Mesh(this.fireGeo, isSecondary ? this.secondaryFireMat : this.fireMat);
+        
+        mesh.position.set(
+            x + (Math.random() - 0.5) * 0.2,
+            y,
+            z + (Math.random() - 0.5) * 0.2
+        );
+        
+        const velocity = new THREE.Vector3(
+            (Math.random() - 0.5) * 0.02,
+            0.04 + Math.random() * 0.04,
+            (Math.random() - 0.5) * 0.02
+        );
+        
+        // Random slight rotation
+        mesh.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
+        
+        group.add(mesh);
+        
+        const life = 0.5 + Math.random() * 0.5;
+        this.particles.push({
+            mesh,
+            velocity,
+            life: life,
+            maxLife: life,
+            isSmoke: false,
+            isFire: true,
+            group
+        });
+    }
     
-    public addEmitter(x: number, y: number, z: number, isBlack: boolean, group: THREE.Object3D) {
-        this.emitters.push({ x, y, z, isBlack, nextSpawn: 0, group });
+    public addEmitter(x: number, y: number, z: number, hasFire: boolean, group: THREE.Object3D, isBlack: boolean = true) {
+        this.emitters.push({ x, y, z, isBlack, hasFire, nextSpawn: 0, group });
     }
     
     public update() {
         const now = Date.now();
         for (const emitter of this.emitters) {
             if (now > emitter.nextSpawn) {
-                this.spawnSmoke(emitter.x, emitter.y, emitter.z, emitter.isBlack, emitter.group);
-                emitter.nextSpawn = now + (emitter.isBlack ? 300 : 700); // Black smoke is thicker/faster
+                if (emitter.hasFire) {
+                    this.spawnFire(emitter.x, emitter.y, emitter.z, emitter.group);
+                    this.spawnSmoke(emitter.x, emitter.y + 0.2, emitter.z, true, emitter.group);
+                    emitter.nextSpawn = now + 150; // Fire/Black smoke is frequent
+                } else {
+                    this.spawnSmoke(emitter.x, emitter.y, emitter.z, emitter.isBlack, emitter.group);
+                    emitter.nextSpawn = now + (emitter.isBlack ? 300 : 700); // Black smoke is thicker/faster
+                }
             }
         }
         
@@ -187,8 +239,18 @@ export class ParticleSystem {
                 // add slight wind/wobble
                 p.velocity.x += (Math.random() - 0.5) * 0.002;
                 p.velocity.z += (Math.random() - 0.5) * 0.002;
+            } else if (p.isFire) {
+                // Fire rises and flickers
+                p.mesh.scale.multiplyScalar(0.96);
+                p.velocity.x += (Math.random() - 0.5) * 0.005;
+                p.velocity.z += (Math.random() - 0.5) * 0.005;
+                
+                // Randomly pulsate emissive intensity for flicker
+                if (p.mesh.material instanceof THREE.MeshStandardMaterial) {
+                    p.mesh.material.emissiveIntensity = 1.0 + Math.random() * 2.0;
+                }
             } else {
-                // Gravity for explosion pieces
+                // Gravity for explosion/splash pieces
                 p.velocity.y -= 0.005;
             }
             
@@ -203,7 +265,7 @@ export class ParticleSystem {
                 p.mesh.scale.multiplyScalar(0.9);
             }
             
-            if (p.life <= 0 || p.mesh.position.y < -1) {
+            if (p.life <= 0 || p.mesh.position.y < -3) { // Use -3 to avoid premature removal during sinking
                 p.group.remove(p.mesh);
 
                 // Swap-and-pop instead of splice for performance

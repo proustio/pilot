@@ -1064,13 +1064,12 @@ export class EntityManager {
             this.particleSystem.spawnExplosion(worldX, 0.4, worldZ, targetGroup);
         }
 
-        // Add persistent smoke/fire emitter
-        this.particleSystem.addEmitter(worldX, 0.4, worldZ, result === 'sunk', targetGroup);
-
         let voxelsRemoved = 0;
+        let shipFound: THREE.Object3D | null = null;
 
         targetGroup.children.forEach((child: THREE.Object3D) => {
             if (child.userData.isShip && child.userData.instancedMesh && child.userData.coversCell(cellX, cellZ)) {
+                shipFound = child;
                 const im = child.userData.instancedMesh as THREE.InstancedMesh;
                 const dummy = new THREE.Object3D();
                 let updated = false;
@@ -1115,49 +1114,77 @@ export class EntityManager {
 
                     child.visible = true; // Reveal if it was a hidden enemy ship
 
+                    const shipGroup = child as THREE.Group;
+                    const isHorizontal = shipGroup.userData.shipOrientation === Orientation.Horizontal;
+
+                    let minX = cellX, maxX = cellX, minZ = cellZ, maxZ = cellZ;
+                    // Find bounds of the ship to set all sections on fire
+                    for (let dx = -5; dx <= 5; dx++) {
+                        if (shipGroup.userData.coversCell(cellX + dx, cellZ)) {
+                            minX = Math.min(minX, cellX + dx);
+                            maxX = Math.max(maxX, cellX + dx);
+                        }
+                    }
+                    for (let dz = -5; dz <= 5; dz++) {
+                        if (shipGroup.userData.coversCell(cellX, cellZ + dz)) {
+                            minZ = Math.min(minZ, cellZ + dz);
+                            maxZ = Math.max(maxZ, cellZ + dz);
+                        }
+                    }
+
+                    const shipLength = Math.max(maxX - minX, maxZ - minZ) + 1;
+
                     if (isReplay) {
                         // Immediately sink partially
                         child.position.y = Config.visual.sinkingFloor;
                         child.rotation.z = child.userData.sinkAngleZ;
                         child.rotation.x = child.userData.sinkAngleX;
 
+                        // Add fire to all sections for replayed sunk ships
+                        for (let s = 0; s < shipLength; s++) {
+                            const sx = minX + (isHorizontal ? s : 0);
+                            const sz = minZ + (!isHorizontal ? s : 0);
+                            const lX = sx - boardOffset + 0.5 - shipGroup.position.x;
+                            const lZ = sz - boardOffset + 0.5 - shipGroup.position.z;
+                            this.particleSystem.addEmitter(lX, 0.4, lZ, true, shipGroup);
+                        }
                     } else {
-                        // Setup sequential segment explosions
-                        const shipGroup = child as THREE.Group;
-                        const isHorizontal = shipGroup.userData.coversCell(cellX + 1, cellZ) ||
-                            shipGroup.userData.coversCell(cellX - 1, cellZ) ||
-                            shipGroup.userData.shipOrientation === Orientation.Horizontal;
-
-                        let minX = cellX, maxX = cellX, minZ = cellZ, maxZ = cellZ;
-                        for (let dx = -5; dx <= 5; dx++) {
-                            if (shipGroup.userData.coversCell(cellX + dx, cellZ)) {
-                                minX = Math.min(minX, cellX + dx);
-                                maxX = Math.max(maxX, cellX + dx);
-                            }
-                        }
-                        for (let dz = -5; dz <= 5; dz++) {
-                            if (shipGroup.userData.coversCell(cellX, cellZ + dz)) {
-                                minZ = Math.min(minZ, cellZ + dz);
-                                maxZ = Math.max(maxZ, cellZ + dz);
-                            }
-                        }
-
-                        const shipLength = Math.max(maxX - minX, maxZ - minZ) + 1;
+                        // Setup sequential segment explosions and fire
                         for (let s = 0; s < shipLength; s++) {
                             const delay = s * 0.2 + (Math.random() * 0.1);
-                            const ex = (minX + (isHorizontal ? s : 0)) - boardOffset + 0.5;
-                            const ez = (minZ + (!isHorizontal ? s : 0)) - boardOffset + 0.5;
+                            const sx = minX + (isHorizontal ? s : 0);
+                            const sz = minZ + (!isHorizontal ? s : 0);
+                            
+                            const ex = sx - boardOffset + 0.5;
+                            const ez = sz - boardOffset + 0.5;
 
                             setTimeout(() => {
                                 this.particleSystem.spawnExplosion(ex, 0.4, ez, targetGroup);
                                 this.particleSystem.spawnVoxelExplosion(ex, 0.4, ez, 10, targetGroup);
                                 this.addRipple(ex, ez, !isPlayer);
+                                
+                                // Add persistent fire to the ship section
+                                const lX = ex - shipGroup.position.x;
+                                const lZ = ez - shipGroup.position.z;
+                                this.particleSystem.addEmitter(lX, 0.4, lZ, true, shipGroup);
                             }, delay * 1000);
                         }
                     }
+                } else if (result === 'hit') {
+                    // Just a hit: add fire to this section only
+                    const shipGroup = child as THREE.Group;
+                    const lX = worldX - shipGroup.position.x;
+                    const lZ = worldZ - shipGroup.position.z;
+                    this.particleSystem.addEmitter(lX, 0.4, lZ, true, shipGroup);
                 }
             }
         });
+
+        // If it was a hit/sunk but no ship found (rare edge case with markers), 
+        // still add a smoke emitter to the board
+        if (!shipFound && (result === 'hit' || result === 'sunk')) {
+            this.particleSystem.addEmitter(worldX, 0.4, worldZ, false, targetGroup, true);
+        }
 
         if (voxelsRemoved > 0 && !isReplay) {
             this.particleSystem.spawnVoxelExplosion(worldX, 0.4, worldZ, voxelsRemoved, targetGroup);
