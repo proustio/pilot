@@ -633,6 +633,20 @@ export class EntityManager {
 
                         child.rotation.z = sinkProgress * targetZ;
                         child.rotation.x = sinkProgress * targetX;
+
+                        // V-Shape Breaking Animation
+                        if (child.userData.isBroken && child.userData.halfA && child.userData.halfB) {
+                            const breakAngle = sinkProgress * 0.4; // Tweak for V-shape intensity
+                            const isHorizontal = child.userData.shipOrientation === Orientation.Horizontal;
+                            
+                            if (isHorizontal) {
+                                child.userData.halfA.rotation.z = breakAngle;
+                                child.userData.halfB.rotation.z = -breakAngle;
+                            } else {
+                                child.userData.halfA.rotation.x = -breakAngle;
+                                child.userData.halfB.rotation.x = breakAngle;
+                            }
+                        }
                     }
                 }
             });
@@ -1110,6 +1124,9 @@ export class EntityManager {
                         const maxLean = Config.visual.sinkingMaxAngle;
                         child.userData.sinkAngleX = (Math.random() - 0.5) * maxLean * 2;
                         child.userData.sinkAngleZ = (Math.random() - 0.5) * maxLean * 2;
+                        
+                        // Break the ship!
+                        this.splitShipForBreaking(child as THREE.Group, cellX, cellZ);
                     }
 
                     child.visible = true; // Reveal if it was a hidden enemy ship
@@ -1144,9 +1161,7 @@ export class EntityManager {
                         for (let s = 0; s < shipLength; s++) {
                             const sx = minX + (isHorizontal ? s : 0);
                             const sz = minZ + (!isHorizontal ? s : 0);
-                            const lX = sx - boardOffset + 0.5 - shipGroup.position.x;
-                            const lZ = sz - boardOffset + 0.5 - shipGroup.position.z;
-                            this.particleSystem.addEmitter(lX, 0.4, lZ, true, shipGroup);
+                            this.addPersistentFireToShipCell(shipGroup, sx, sz, boardOffset);
                         }
                     } else {
                         // Setup sequential segment explosions and fire
@@ -1164,18 +1179,13 @@ export class EntityManager {
                                 this.addRipple(ex, ez, !isPlayer);
                                 
                                 // Add persistent fire to the ship section
-                                const lX = ex - shipGroup.position.x;
-                                const lZ = ez - shipGroup.position.z;
-                                this.particleSystem.addEmitter(lX, 0.4, lZ, true, shipGroup);
+                                this.addPersistentFireToShipCell(shipGroup, sx, sz, boardOffset);
                             }, delay * 1000);
                         }
                     }
                 } else if (result === 'hit') {
                     // Just a hit: add fire to this section only
-                    const shipGroup = child as THREE.Group;
-                    const lX = worldX - shipGroup.position.x;
-                    const lZ = worldZ - shipGroup.position.z;
-                    this.particleSystem.addEmitter(lX, 0.4, lZ, true, shipGroup);
+                    this.addPersistentFireToShipCell(child as THREE.Group, cellX, cellZ, boardOffset);
                 }
             }
         });
@@ -1189,5 +1199,95 @@ export class EntityManager {
         if (voxelsRemoved > 0 && !isReplay) {
             this.particleSystem.spawnVoxelExplosion(worldX, 0.4, worldZ, voxelsRemoved, targetGroup);
         }
+    }
+
+    private addPersistentFireToShipCell(shipGroup: THREE.Group, cellX: number, cellZ: number, boardOffset: number) {
+        const targetWorldX = cellX - boardOffset + 0.5;
+        const targetWorldZ = cellZ - boardOffset + 0.5;
+        
+        let targetGroup: THREE.Object3D = shipGroup;
+
+        // If broken, find which half to attach to
+        if (shipGroup.userData.isBroken && shipGroup.userData.halfA && shipGroup.userData.halfB) {
+            const isHorizontal = shipGroup.userData.shipOrientation === Orientation.Horizontal;
+            const pivot = shipGroup.userData.pivotPos;
+            const currentPos = new THREE.Vector2(targetWorldX - shipGroup.position.x, targetWorldZ - shipGroup.position.z);
+            
+            const isPartA = isHorizontal ? currentPos.x < pivot.x : currentPos.y < pivot.z;
+            targetGroup = isPartA ? shipGroup.userData.halfA : shipGroup.userData.halfB;
+        }
+
+        const lX = targetWorldX - shipGroup.position.x - (targetGroup === shipGroup ? 0 : shipGroup.userData.pivotPos.x);
+        const lZ = targetWorldZ - shipGroup.position.z - (targetGroup === shipGroup ? 0 : shipGroup.userData.pivotPos.z);
+        this.particleSystem.addEmitter(lX, 0.4, lZ, true, targetGroup);
+    }
+
+    private splitShipForBreaking(shipGroup: THREE.Group, pivotCellX: number, pivotCellZ: number) {
+        if (shipGroup.userData.isBroken) return;
+        shipGroup.userData.isBroken = true;
+        
+        const boardOffset = Config.board.width / 2;
+        const px = pivotCellX - boardOffset + 0.5 - shipGroup.position.x;
+        const pz = pivotCellZ - boardOffset + 0.5 - shipGroup.position.z;
+        const pivotPos = new THREE.Vector3(px, 0, pz);
+        shipGroup.userData.pivotPos = pivotPos;
+
+        const halfA = new THREE.Group();
+        const halfB = new THREE.Group();
+        halfA.position.copy(pivotPos);
+        halfB.position.copy(pivotPos);
+        
+        shipGroup.add(halfA);
+        shipGroup.add(halfB);
+        shipGroup.userData.halfA = halfA;
+        shipGroup.userData.halfB = halfB;
+
+        const isHorizontal = shipGroup.userData.shipOrientation === Orientation.Horizontal;
+
+        const children = [...shipGroup.children];
+        children.forEach(child => {
+            if (child === halfA || child === halfB) return;
+
+            if (child instanceof THREE.InstancedMesh) {
+                const imA = child.clone();
+                const imB = child.clone();
+                
+                imA.position.sub(pivotPos);
+                imB.position.sub(pivotPos);
+                
+                halfA.add(imA);
+                halfB.add(imB);
+                
+                const dummy = new THREE.Object3D();
+                for (let i = 0; i < child.count; i++) {
+                    child.getMatrixAt(i, dummy.matrix);
+                    dummy.matrix.decompose(dummy.position, dummy.quaternion, dummy.scale);
+                    
+                    const voxelLocalX = dummy.position.x + child.position.x;
+                    const voxelLocalZ = dummy.position.z + child.position.z;
+                    
+                    const isPartA = isHorizontal ? voxelLocalX < px : voxelLocalZ < pz;
+                    
+                    if (isPartA) {
+                        dummy.scale.set(0, 0, 0);
+                        dummy.updateMatrix();
+                        imB.setMatrixAt(i, dummy.matrix);
+                    } else {
+                        dummy.scale.set(0, 0, 0);
+                        dummy.updateMatrix();
+                        imA.setMatrixAt(i, dummy.matrix);
+                    }
+                }
+                imA.instanceMatrix.needsUpdate = true;
+                imB.instanceMatrix.needsUpdate = true;
+                shipGroup.remove(child);
+            } else {
+                // Turrets / other groups
+                const isPartA = isHorizontal ? child.position.x < px : child.position.z < pz;
+                child.position.sub(pivotPos);
+                if (isPartA) halfA.add(child);
+                else halfB.add(child);
+            }
+        });
     }
 }
