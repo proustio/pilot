@@ -56,7 +56,7 @@ export class EntityManager {
 
         this.masterBoardGroup.add(this.playerBoardGroup);
         this.masterBoardGroup.add(this.enemyBoardGroup);
-        
+
         this.scene.add(this.masterBoardGroup);
         this.scene.add(this.staticGroup);
 
@@ -89,15 +89,15 @@ export class EntityManager {
             canvas.width = size;
             canvas.height = size;
             const ctx = canvas.getContext('2d')!;
-            
+
             // Base metal color
             ctx.fillStyle = '#050515';
             ctx.fillRect(0, 0, size, size);
-            
+
             // Technical grid lines
             ctx.strokeStyle = 'rgba(65, 105, 225, 0.15)';
             ctx.lineWidth = 1;
-            for(let i=0; i<size; i+=16) {
+            for (let i = 0; i < size; i += 16) {
                 ctx.beginPath();
                 ctx.moveTo(i, 0); ctx.lineTo(i, size);
                 ctx.stroke();
@@ -107,7 +107,7 @@ export class EntityManager {
             }
 
             // Technical "specs" or noise
-            for(let i=0; i<500; i++) {
+            for (let i = 0; i < 500; i++) {
                 const x = Math.random() * size;
                 const y = Math.random() * size;
                 const s = Math.random() * 1.5;
@@ -125,7 +125,7 @@ export class EntityManager {
 
         // Create the "Master Metal Frame" (hollow inside)
         const frameMat = new THREE.MeshStandardMaterial({
-            color: 0x222233, 
+            color: 0x222233,
             map: industrialTex,
             metalness: 0.9,
             roughness: 0.2,
@@ -136,8 +136,8 @@ export class EntityManager {
         });
 
         const borderOffset = offset + 0.15;
-        const borderLength = boardSize + 0.3; 
-        
+        const borderLength = boardSize + 0.3;
+
         // Much thinner and sleeker frame
         const borders = [
             { x: borderLength, y: 0.15, z: 0.15, posZ: -borderOffset, posX: 0 },  // Top
@@ -186,10 +186,10 @@ export class EntityManager {
             this.staticGroup.add(bracket);
 
 
-            
+
             // Add a small glowing status LED on each corner bracket
             const ledGeo = new THREE.SphereGeometry(0.08, 8, 8);
-            const ledMat = new THREE.MeshBasicMaterial({ color: 0x4169E1, transparent: true }); 
+            const ledMat = new THREE.MeshBasicMaterial({ color: 0x4169E1, transparent: true });
             const led = new THREE.Mesh(ledGeo, ledMat);
             led.position.set(pos.x * 1.1, 0.2, pos.z * 1.1);
             led.userData = { isStatusLED: true, phase: Math.random() * Math.PI };
@@ -199,9 +199,9 @@ export class EntityManager {
         // Industrial Rivets along the frame
         const rivetGeo = new THREE.CylinderGeometry(0.06, 0.06, 0.04, 6);
         const rivetMat = new THREE.MeshStandardMaterial({ color: 0x444455, metalness: 0.8, roughness: 0.2 });
-        
+
         const spawnRivets = (count: number, start: THREE.Vector3, end: THREE.Vector3) => {
-            for(let i=0; i<count; i++) {
+            for (let i = 0; i < count; i++) {
                 const rivet = new THREE.Mesh(rivetGeo, rivetMat);
                 const t = i / (count - 1);
                 rivet.position.lerpVectors(start, end, t);
@@ -430,7 +430,6 @@ export class EntityManager {
     public isBusy(): boolean {
         if (this.fallingMarkers.length > 0) return true;
         if (this.particleSystem.hasActiveParticles()) return true;
-        if (this.isTransitioning) return true; // Block if camera is moving
 
         // Check for sinking ships
         let shipsSinking = false;
@@ -627,11 +626,11 @@ export class EntityManager {
                     if (child.position.y > sinkFloor) {
                         child.position.y -= descentRate;
                         const sinkProgress = Math.min(1.0, -child.position.y / Math.abs(sinkFloor));
-                        
+
                         // Use randomized target angles stored in userData
                         const targetZ = child.userData.sinkAngleZ ?? 0.15;
                         const targetX = child.userData.sinkAngleX ?? 0.08;
-                        
+
                         child.rotation.z = sinkProgress * targetZ;
                         child.rotation.x = sinkProgress * targetX;
                     }
@@ -797,7 +796,7 @@ export class EntityManager {
         // Instead, we create a wireframe outline overlay to enforce the "neon border" jarvis vibe.
 
         const instancedLines = new THREE.InstancedMesh(
-            new THREE.BoxGeometry(voxelSize*1.01, voxelSize*1.01, voxelSize*1.01), // slightly larger box for line substitute
+            new THREE.BoxGeometry(voxelSize * 1.01, voxelSize * 1.01, voxelSize * 1.01), // slightly larger box for line substitute
             new THREE.MeshBasicMaterial({
                 color: isPlayer ? 0xFFD700 : 0xFF2400,
                 wireframe: true,
@@ -814,13 +813,13 @@ export class EntityManager {
             instancedLines.setMatrixAt(index, dummy.matrix);
             // Only show glow on the edges/accents
             if (vd.color.equals(accentColor)) {
-               instancedLines.setColorAt(index, new THREE.Color(isPlayer ? 0xFFD700 : 0xFF2400));
+                instancedLines.setColorAt(index, new THREE.Color(isPlayer ? 0xFFD700 : 0xFF2400));
             } else {
-               instancedLines.setColorAt(index, new THREE.Color(0x000000));
-               // hide the others by zeroing scale
-               dummy.scale.set(0,0,0);
-               dummy.updateMatrix();
-               instancedLines.setMatrixAt(index, dummy.matrix);
+                instancedLines.setColorAt(index, new THREE.Color(0x000000));
+                // hide the others by zeroing scale
+                dummy.scale.set(0, 0, 0);
+                dummy.updateMatrix();
+                instancedLines.setMatrixAt(index, dummy.matrix);
             }
         });
 
@@ -1045,7 +1044,7 @@ export class EntityManager {
         if (!isReplay) {
             this.particleSystem.spawnExplosion(worldX, 0.4, worldZ, targetGroup);
         }
-        
+
         // Add persistent smoke/fire emitter
         this.particleSystem.addEmitter(worldX, 0.4, worldZ, result === 'sunk', targetGroup);
 
@@ -1088,27 +1087,27 @@ export class EntityManager {
                 if (result === 'sunk') {
                     if (!child.userData.isSinking) {
                         child.userData.isSinking = true;
-                        
+
                         // Assign random sinking lean if not already set
                         const maxLean = Config.visual.sinkingMaxAngle;
                         child.userData.sinkAngleX = (Math.random() - 0.5) * maxLean * 2;
                         child.userData.sinkAngleZ = (Math.random() - 0.5) * maxLean * 2;
                     }
-                    
+
                     child.visible = true; // Reveal if it was a hidden enemy ship
-                    
+
                     if (isReplay) {
                         // Immediately sink partially
-                        child.position.y = Config.visual.sinkingFloor; 
+                        child.position.y = Config.visual.sinkingFloor;
                         child.rotation.z = child.userData.sinkAngleZ;
                         child.rotation.x = child.userData.sinkAngleX;
 
                     } else {
                         // Setup sequential segment explosions
                         const shipGroup = child as THREE.Group;
-                        const isHorizontal = shipGroup.userData.coversCell(cellX + 1, cellZ) || 
-                                           shipGroup.userData.coversCell(cellX - 1, cellZ) || 
-                                           shipGroup.userData.shipOrientation === Orientation.Horizontal;
+                        const isHorizontal = shipGroup.userData.coversCell(cellX + 1, cellZ) ||
+                            shipGroup.userData.coversCell(cellX - 1, cellZ) ||
+                            shipGroup.userData.shipOrientation === Orientation.Horizontal;
 
                         let minX = cellX, maxX = cellX, minZ = cellZ, maxZ = cellZ;
                         for (let dx = -5; dx <= 5; dx++) {
