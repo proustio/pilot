@@ -9,7 +9,8 @@ Browser-based Battleships game with a Minecraft-style 3D voxel aesthetic, built 
 ## Game Modes
 - Classic: American rules (standard fleet, standard placement)
 - Russian: Russian rules (1×4-deck, 2×3-deck, etc., strict non-touching adjacency)
-- Rogue: Placeholder for future rogue-like mode (movable ships, weapon variety)
+- Rogue (Active): Rogue-like mode with movable ships and weapon variety (in development)
+- PvP (Active): Multiplayer mode (in development)
 
 ## Core Gameplay
 - Single-player vs AI (Easy / Normal / Hard difficulty)
@@ -19,7 +20,8 @@ Browser-based Battleships game with a Minecraft-style 3D voxel aesthetic, built 
 
 ## Key Visual Features
 - Voxel water with animated shaders (sine wave / noise)
-- Ship destruction with particle explosions and smoke effects
+- Fog of War: Volumetric voxel-based clouds that sit at water level and obscure enemy fleet.
+- Ship destruction: Voxel particles, persistent hit flames, and authentic multi-layered explosion audio.
 - Raycasting-based grid interaction with hover highlights
 - Camera transitions between player/enemy boards per turn phase
 

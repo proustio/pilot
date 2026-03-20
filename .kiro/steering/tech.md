@@ -38,3 +38,5 @@ npm run preview  # Preview production build locally
 - **Shared State**: Communication between coordinators and helpers is managed via explicit state interfaces or minimal public APIs rather than direct field access.
 - **Static Builders**: Heavy procedural generation (e.g., 3D board construction) is extracted into static `build()` methods in dedicated classes like `BoardBuilder`.
 - **CSS Modularity**: Global styles are decomposed into thematic modules (`theme.css`, `components.css`, `hud.css`, etc.) and bundled via build-time `@import` statements in `style.css`.
+- **Visual Consistency**: Prefer referencing shared material properties or color constants from `ParticleSystem.ts` (e.g., `greySmokeMat`, `blackSmokeMat`) over hardcoded hex strings to ensure unified visual density and style.
+- **Authentic Audio**: Impactful sound effects (like ship kills) are built using layered Web Audio API nodes (boom, shockwave, crackle, rumble) to achieve a high-quality "cinematic" feel without large assets.
