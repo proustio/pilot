@@ -59,14 +59,22 @@ const init = () => {
 
             if (newState === 'SETUP_BOARD') {
                 entityManager.showPlayerBoard();
-                document.dispatchEvent(new CustomEvent('SET_CAMERA_TARGET', { detail: { x: 0, y: 12, z: 0.1 } }));
+                if (!engine.hasManualMovement) {
+                    document.dispatchEvent(new CustomEvent('SET_CAMERA_TARGET', { detail: { x: 0, y: 12, z: 0.1 } }));
+                }
             } else if (newState === 'ENEMY_TURN') {
                 entityManager.showPlayerBoard();
-                document.dispatchEvent(new CustomEvent('SET_CAMERA_TARGET', { detail: { x: 0, y: 8, z: 12 } }));
-            } else if (newState === 'PLAYER_TURN') {
-                entityManager.showEnemyBoard();
-                document.dispatchEvent(new CustomEvent('SET_CAMERA_TARGET', { detail: { x: 0, y: 6, z: 8 } }));
+                if (!engine.hasManualMovement) {
+                    document.dispatchEvent(new CustomEvent('SET_CAMERA_TARGET', { detail: { x: 0, y: 8, z: 12 } }));
+                }
             }
+ else if (newState === 'PLAYER_TURN') {
+                entityManager.showEnemyBoard();
+                if (!engine.hasManualMovement) {
+                    document.dispatchEvent(new CustomEvent('SET_CAMERA_TARGET', { detail: { x: 5, y: 10, z: 14 } }));
+                }
+            }
+
         });
 
         const uiManager = new UIManager(gameLoop);
@@ -129,7 +137,17 @@ const init = () => {
             engine.render();
         };
 
+        // Persistent Camera Sync
+        let cameraAutoSaveTimeout: any = null;
+        engine.orbitControls.addEventListener('end', () => {
+            if (cameraAutoSaveTimeout) clearTimeout(cameraAutoSaveTimeout);
+            cameraAutoSaveTimeout = setTimeout(() => {
+                gameLoop.triggerAutoSave();
+            }, 1000); // 1 second debounce
+        });
+
         document.addEventListener('SAVE_GAME', (e: Event) => {
+
             const ce = e as CustomEvent;
             if (!ce.detail?.viewState && gameLoop.match) {
                 const isEnemyBoardShowing = entityManager.boardOrientation === 'enemy';
@@ -157,8 +175,8 @@ const init = () => {
             if (!vs) return;
 
             isRestoringState = true;
+            engine.hasManualMovement = true; // Restored state counts as manual/persistent
 
-            engine.restoreViewState(vs.cameraX, vs.cameraY, vs.cameraZ, vs.targetX, vs.targetY, vs.targetZ);
 
             // Also directly jump the current camera to the saved position so it doesn't animate from default
             engine.camera.position.set(vs.cameraX, vs.cameraY, vs.cameraZ);

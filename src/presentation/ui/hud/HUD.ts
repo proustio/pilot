@@ -99,7 +99,7 @@ export class HUD extends BaseUIComponent {
             </div>
             
             <div class="hud-bottom-bar">
-                <div class="hud-controls-panel ui-interactive">
+                <div class="hud-controls-panel ui-interactive" style="grid-template-columns: repeat(9, 1fr);">
                     <div class="sw-screw tl"></div>
                     <div class="sw-screw tr"></div>
                     <div class="sw-screw bl"></div>
@@ -128,6 +128,12 @@ export class HUD extends BaseUIComponent {
                         <div class="sw-label">MODE</div>
                         <div id="led-day-night" class="sw-led ${Config.visual.isDayMode ? 'on-gold' : 'on-blue'}"></div>
                         <button id="hud-btn-day-night" class="sw-push" title="Toggle Day/Night" style="font-size: 1.2rem;">${Config.visual.isDayMode ? '🌞' : '🌚'}</button>
+                    </div>
+
+                    <div class="sw-mount">
+                        <div class="sw-label">CAM</div>
+                        <div id="led-cam-reset" class="sw-led"></div>
+                        <button id="hud-btn-cam-reset" class="sw-push" title="Reset Camera" style="font-size: 0.8rem;">VIEW</button>
                     </div>
 
                     <!-- Row 2: Settings & System -->
@@ -284,6 +290,14 @@ export class HUD extends BaseUIComponent {
             document.body.classList.remove('day-mode', 'night-mode');
             document.body.classList.add(Config.visual.isDayMode ? 'day-mode' : 'night-mode');
             document.dispatchEvent(new CustomEvent('TOGGLE_DAY_NIGHT', { detail: { isDay: Config.visual.isDayMode } }));
+        });
+
+        const camResetBtn = this.container.querySelector('#hud-btn-cam-reset') as HTMLButtonElement;
+        const camResetLed = this.container.querySelector('#led-cam-reset') as HTMLElement;
+        camResetBtn.addEventListener('click', () => {
+            camResetLed.classList.add('on-gold');
+            document.dispatchEvent(new CustomEvent('RESET_CAMERA'));
+            setTimeout(() => camResetLed.classList.remove('on-gold'), 500);
         });
 
 
