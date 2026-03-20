@@ -65,10 +65,10 @@
 - `src/presentation/ui/hud/HUDControls.ts` [NEW]
 - `src/presentation/ui/hud/HUDStats.ts` [NEW]
 
-- [ ] **Create `HUDControls.ts`** — export a function `bindHUDControls(container: HTMLElement)` that wires all switchboard button handlers (peek, geek-stats, auto-battler, day/night, cam-reset, speed, FPS, settings, mouse-coords). Returns cleanup handle if needed.
-- [ ] **Create `HUDStats.ts`** — export helper functions `renderFleetIcons(container, ships)`, `updateGameStats(container, match)`, and `calculateWinProbability(playerBoard, enemyBoard)`.
-- [ ] **Slim `HUD.ts`** — keep render template, `mount()`, `update()`, and delegate to `HUDControls.bindHUDControls()` and `HUDStats` helpers.
-- [ ] **Acceptance**: `npm run dev` compiles cleanly; all HUD buttons, LEDs, stat displays function identically.
+- [v] **Create `HUDControls.ts`** — export a function `bindHUDControls(container: HTMLElement)` that wires all switchboard button handlers (peek, geek-stats, auto-battler, day/night, cam-reset, speed, FPS, settings, mouse-coords). Returns cleanup handle if needed.
+- [v] **Create `HUDStats.ts`** — export helper functions `renderFleetIcons(container, ships)`, `updateGameStats(container, match)`, and `calculateWinProbability(playerBoard, enemyBoard)`.
+- [v] **Slim `HUD.ts`** — keep render template, `mount()`, `update()`, and delegate to `HUDControls.bindHUDControls()` and `HUDStats` helpers.
+- [v] **Acceptance**: `npm run dev` compiles cleanly; all HUD buttons, LEDs, stat displays function identically.
 
 ---
 
