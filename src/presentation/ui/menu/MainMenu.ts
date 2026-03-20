@@ -41,7 +41,6 @@ export class MainMenu extends BaseUIComponent {
     constructor(gameLoop: GameLoop) {
         super('main-menu');
         this.gameLoop = gameLoop;
-        // The panel style is now handled by .retro-console
         this.container.classList.remove('voxel-panel');
         this.container.style.width = 'auto';
     }
@@ -74,12 +73,27 @@ export class MainMenu extends BaseUIComponent {
                 <!-- Right: Monitor Port -->
                 <div class="monitor-port" style="flex-direction: column; padding: 20px; justify-content: flex-start; gap: 15px;">
                     <div style="width: 100%; max-width: 240px; z-index: 20;">
-                         <label class="console-label" for="mode-select" style="color: #0f0; text-shadow: 0 0 5px rgba(0,255,0,0.5);">Select Engagement:</label>
-                         <select id="mode-select" class="voxel-select" style="margin-bottom: 0; background: rgba(0,20,0,0.8); border-color: #0f0; color: #0f0;">
-                            <option value="classic">Classic (US Fleet)</option>
-                            <option value="russian">Russian (No Touching)</option>
-                            <option disabled="true" value="rogue">Rogue (Coming Soon?)</option>
-                        </select>
+                        <label class="console-label" style="color: #0f0; text-shadow: 0 0 5px rgba(0,255,0,0.5);">Select Engagement:</label>
+                        <div id="mode-dropdown" class="custom-dropdown">
+                            <div class="custom-dropdown-selected" id="dropdown-selected">
+                                <span id="dropdown-selected-text">✔ Classic (US Fleet)</span>
+                                <span class="custom-dropdown-arrow">▾</span>
+                            </div>
+                            <div class="custom-dropdown-options" id="dropdown-options">
+                                <div class="custom-dropdown-option option-classic active" data-value="classic">
+                                    <span class="option-check">✔</span>
+                                    <span>Classic (US Fleet)</span>
+                                </div>
+                                <div class="custom-dropdown-option option-russian" data-value="russian">
+                                    <span class="option-check">❄</span>
+                                    <span>Russian (No Touching)</span>
+                                </div>
+                                <div class="custom-dropdown-option option-rogue" data-value="rogue">
+                                    <span class="option-check">☠</span>
+                                    <span>Rogue <em>(Coming Soon)</em></span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <div id="mtg-card-anchor" class="mtg-card-container" style="margin-top: 0; transform: scale(0.85); flex: 0;">
@@ -90,9 +104,61 @@ export class MainMenu extends BaseUIComponent {
         `;
 
         const newGameBtn = this.container.querySelector('#btn-new-game') as HTMLButtonElement;
-        const modeSelect = this.container.querySelector('#mode-select') as HTMLSelectElement;
         const autoBattlerToggle = this.container.querySelector('#auto-battler-toggle') as HTMLInputElement;
         const cardAnchor = this.container.querySelector('#mtg-card-anchor') as HTMLElement;
+
+        // --- Custom Dropdown Logic ---
+        let selectedMode = 'classic';
+
+        const dropdownEl = this.container.querySelector('#mode-dropdown') as HTMLElement;
+        const selectedEl = this.container.querySelector('#dropdown-selected') as HTMLElement;
+        const selectedTextEl = this.container.querySelector('#dropdown-selected-text') as HTMLElement;
+        const allOptions = this.container.querySelectorAll('.custom-dropdown-option') as NodeListOf<HTMLElement>;
+
+        const optionDisplay: Record<string, string> = {
+            classic: '✔ Classic (US Fleet)',
+            russian: '❄ Russian (No Touching)',
+            rogue: '☠ Rogue — Coming Soon',
+        };
+
+        const closeDropdown = () => dropdownEl.classList.remove('open');
+
+        selectedEl.addEventListener('click', (e) => {
+            e.stopPropagation();
+            dropdownEl.classList.toggle('open');
+        });
+
+        allOptions.forEach((opt) => {
+            opt.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const value = opt.dataset.value as string;
+                selectedMode = value;
+                selectedTextEl.textContent = optionDisplay[value];
+
+                allOptions.forEach(o => o.classList.remove('active'));
+                opt.classList.add('active');
+
+                closeDropdown();
+                updateCard(selectedMode);
+            });
+        });
+
+        // Close on outside click
+        document.addEventListener('click', closeDropdown);
+
+        // --- Rogue state ---
+        const updateRogueState = (mode: string) => {
+            const isRogue = mode === 'rogue';
+            if (isRogue) {
+                cardAnchor.classList.add('rogue-selected');
+                newGameBtn.classList.add('rogue-disabled');
+                newGameBtn.textContent = 'STAY TUNED';
+            } else {
+                cardAnchor.classList.remove('rogue-selected');
+                newGameBtn.classList.remove('rogue-disabled');
+                newGameBtn.textContent = 'ENGAGE';
+            }
+        };
 
         const updateCard = (mode: string) => {
             const meta = this.modeMetadata[mode];
@@ -121,27 +187,21 @@ export class MainMenu extends BaseUIComponent {
                     </div>
                 </div>
             `;
+
+            updateRogueState(mode);
         };
 
-        // Initial card update
-        updateCard(modeSelect.value);
-
-        modeSelect.addEventListener('change', () => {
-            updateCard(modeSelect.value);
-        });
+        // Initial card
+        updateCard(selectedMode);
 
         newGameBtn.addEventListener('click', () => {
-            const modeValue = modeSelect.value as string;
+            if (selectedMode === 'rogue') return;
             Config.autoBattler = autoBattlerToggle.checked;
             Config.saveConfig();
 
             let matchMode = MatchMode.Classic;
-
-            if (modeValue === 'russian') {
+            if (selectedMode === 'russian') {
                 matchMode = MatchMode.Russian;
-            } else if (modeValue === 'rogue') {
-                console.warn('Rogue mode placeholder selected. Defaulting to Classic.');
-                matchMode = MatchMode.Classic;
             }
 
             const match = new Match(matchMode, Config.board.width, Config.board.height);
