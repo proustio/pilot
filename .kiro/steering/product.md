@@ -24,6 +24,6 @@ Browser-based Battleships game with a Minecraft-style 3D voxel aesthetic, built 
 - Camera transitions between player/enemy boards per turn phase
 
 ## Design Priorities
-- **Maintainability through Modularity**: Prevent codebase rot by proactively decomposing large classes into smaller, responsibility-focused modules.
+- **Maintainability through Modularity**: Prevent codebase rot by proactively decomposing large classes and monolithic CSS files into smaller, responsibility-focused modules.
 - **Lightweight Performance**: Maintain fast-loading voxel assets and efficient instanced rendering.
 - **Architectural Extensibility**: Ensure the engine can easily accommodate new game modes (like the upcoming Rogue mode) by keeping core domain logic decoupled from presentation.

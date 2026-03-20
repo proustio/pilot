@@ -55,8 +55,14 @@ src/
 │       ├── pause/PauseMenu.ts     # Pause overlay with resume/save/quit
 │       └── settings/Settings.ts   # Toggle HUD elements, difficulty, day/night
 │
-├── main.ts                    # App bootstrap: wires all layers, starts render loop
-└── style.css                  # Global styles, theme variables, voxel UI classes
+├── main.ts                    # Application entry point: initializes Engine3D, GameLoop, UIManager
+├── style.css                  # Main CSS barrel (imports thematic styles)
+├── styles/                    # Modular CSS files
+│   ├── theme.css              # Theme variables (Day/Night) and base HTML/Body styles
+│   ├── components.css         # Shared UI components (panels, buttons, selects)
+│   ├── main-menu.css          # Main menu layout and card components
+│   ├── hud.css                # HUD layout, indicators, and switchboard
+│   └── dialogs.css            # Dialogs, overlays, and coordination indicators
 ```
 
 ## Architecture Rules
