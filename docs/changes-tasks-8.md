@@ -45,9 +45,9 @@
 - `src/presentation/3d/entities/ProjectileManager.ts`
 - `src/presentation/3d/entities/ImpactEffects.ts` [NEW]
 
-- [ ] **Create `ImpactEffects.ts`** — extract `applyImpactEffects()`, `addPersistentFireToShipCell()`, and `splitShipForBreaking()` into a new `ImpactEffects` class. It receives `ParticleSystem`, board-group refs, and `Config` via constructor.
-- [ ] **Slim `ProjectileManager.ts`** — keep marker construction (`addAttackMarker`), arc animation (`updateProjectiles`), and `FallingMarker` interface. Call `ImpactEffects` methods where needed.
-- [ ] **Acceptance**: `npm run dev` compiles cleanly; attack, hit, sunk, and replay visuals work identically.
+- [v] **Create `ImpactEffects.ts`** — extract `applyImpactEffects()`, `addPersistentFireToShipCell()`, and `splitShipForBreaking()` into a new `ImpactEffects` class. It receives `ParticleSystem`, board-group refs, and `Config` via constructor.
+- [v] **Slim `ProjectileManager.ts`** — keep marker construction (`addAttackMarker`), arc animation (`updateProjectiles`), and `FallingMarker` interface. Call `ImpactEffects` methods where needed.
+- [v] **Acceptance**: `npm run dev` compiles cleanly; attack, hit, sunk, and replay visuals work identically.
 
 ---
 
