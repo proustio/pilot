@@ -55,7 +55,7 @@ export class AudioEngine {
         osc.stop(this.ctx.currentTime + duration);
     }
 
-    private playNoise(duration: number, volStart: number = 0.5, volEnd: number = 0.01) {
+    private playNoise(duration: number, volStart: number = 0.5, volEnd: number = 0, filterType: BiquadFilterType = 'lowpass', filterFreq: number = 1000) {
         if (!this.ctx || this.masterVolume <= 0) return;
         this.resume();
 
@@ -71,8 +71,8 @@ export class AudioEngine {
         noise.buffer = buffer;
 
         const noiseFilter = this.ctx.createBiquadFilter();
-        noiseFilter.type = 'lowpass';
-        noiseFilter.frequency.value = 1000;
+        noiseFilter.type = filterType;
+        noiseFilter.frequency.value = filterFreq;
 
         const gainNode = this.ctx.createGain();
         const realVolStart = volStart * this.masterVolume;
@@ -104,14 +104,23 @@ export class AudioEngine {
     }
 
     public playKill() {
-        this.playTone(200, 20, 0.8, 'sawtooth', 0.8, 0.01);
-        this.playTone(100, 10, 0.8, 'square', 0.6, 0.01);
-        this.playNoise(0.8, 1.0, 0.01);
+        // BA: Sharp initial punch (High freq transient dropping fast)
+        this.playTone(400, 60, 0.1, 'sine', 1.0, 0);
+        this.playNoise(0.1, 0.8, 0, 'highpass', 1000); // Sharp slap
 
+        // BOOOM: Deep body and sub (Layered for thickness)
+        this.playTone(60, 30, 0.8, 'sine', 1.2, 0);
+        this.playTone(80, 20, 0.6, 'sawtooth', 0.5, 0); // Grit in the middle
+
+        // CRACKLE: Mechanical stress / debris
         setTimeout(() => {
-            this.playTone(150, 20, 0.6, 'sawtooth', 0.6, 0.01);
-            this.playNoise(0.6, 0.8, 0.01);
-        }, 100);
+            this.playNoise(0.4, 0.6, 0, 'bandpass', 3500);
+            this.playTone(150, 40, 0.4, 'square', 0.3, 0); // Added metallic stress
+        }, 60);
+
+        // RUMBLE: Massive tail
+        this.playNoise(2.5, 0.7, 0, 'lowpass', 150);
+        this.playNoise(1.8, 0.4, 0, 'lowpass', 400); // Thicker rumble
     }
 
     public playPop(frequency: number = 400) {

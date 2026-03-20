@@ -139,13 +139,13 @@
 
 **Files:** `src/infrastructure/audio/AudioEngine.ts`
 
-- [ ] **Redesign `playKill()`** using layered Web Audio API nodes to approximate a real naval explosion:
+- [x] **Redesign `playKill()`** using layered Web Audio API nodes to approximate a real naval explosion:
   1. **Low-frequency boom**: White noise burst through a lowpass filter (cutoff ~120 Hz), `duration: 1.2s`, fade from `1.0` to `0`.
   2. **Mid shockwave**: Sine tone starting at `80 Hz` dropping to `20 Hz` over `0.5s`, high gain.
   3. **High crackle**: Short white noise burst (cutoff ~4000 Hz bandpass), `0.3s`, appearing ~`50ms` after the initial boom via `setTimeout`.
   4. **Rumble tail**: Lowpass noise at ~`300 Hz`, long fade `1.5s`, quieter (`volStart: 0.3`).
-- [ ] All layers must respect `this.masterVolume`.
-- [ ] **Acceptance**: Kill sound is clearly more impactful and authentic than the current sawtooth-oscillator approximation.
+- [x] All layers must respect `this.masterVolume`.
+- [x] **Acceptance**: Kill sound is clearly more impactful and authentic than the current sawtooth-oscillator approximation.
 
 ---
 
