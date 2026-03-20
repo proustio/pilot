@@ -13,7 +13,7 @@ export class MainMenu extends BaseUIComponent {
             features: ['Standard 10x10 Grid', 'US Navy Fleet (5 ships)', 'Classic Placement rules'],
             flavor: '"Old school tactics for a new age of voxel warfare."',
             stats: '😌😌😌',
-            image: '/assets/classic_mode_voxel_1773933296004.png',
+            image: '/assets/classic-battleships.png',
             class: 'classic'
         },
         'russian': {
@@ -23,7 +23,7 @@ export class MainMenu extends BaseUIComponent {
             features: ['Strict Non-Touching Adjacency', 'Russian Fleet (10 ships)', 'Maximum Tactical Precision'],
             flavor: '"In the cold north, even a single cell of contact is a fatal error."',
             stats: '🥵🥵🥵🥵',
-            image: '/assets/russian_mode_voxel_1773933312011.png',
+            image: '/assets/russian-battleships.png',
             class: 'russian'
         },
         'rogue': {
@@ -33,7 +33,7 @@ export class MainMenu extends BaseUIComponent {
             features: ['Variable Weaponry', 'Dynamic Moving Targets', 'Permadeath Elements'],
             flavor: '"The rules of engagement have changed. Adapt or be deleted."',
             stats: '☠️☠️☠️☠️☠️',
-            image: '/assets/rogue_mode_voxel_1773933331120.png',
+            image: '/assets/rogue-battleships.png',
             class: 'rogue'
         }
     };
@@ -43,7 +43,7 @@ export class MainMenu extends BaseUIComponent {
         this.gameLoop = gameLoop;
         // The panel style is now handled by .retro-console
         this.container.classList.remove('voxel-panel');
-        this.container.style.width = 'auto'; 
+        this.container.style.width = 'auto';
     }
 
     protected render(): void {
