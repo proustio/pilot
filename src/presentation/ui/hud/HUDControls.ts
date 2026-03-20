@@ -168,11 +168,7 @@ export function bindHUDControls(container: HTMLElement): void {
         if (frameEl) frameEl.textContent = `${d.frameTime.toFixed(1)}ms`;
 
         if (ramEl) {
-            const mem = (performance as any).memory;
-            if (mem) {
-                const usedMB = (mem.usedJSHeapSize / (1024 * 1024)).toFixed(1);
-                ramEl.textContent = `${usedMB} MB`;
-            }
+            ramEl.textContent = d.ram === 'N/A' ? 'N/A' : `${d.ram} MB`;
         }
 
         if (zoomEl && d.zoom !== undefined) {

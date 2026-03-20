@@ -113,11 +113,15 @@ const init = () => {
 
             framesRendered++;
             if (time - lastFpsUpdateTime >= 1000) {
-                const fps = Math.round((framesRendered * 1000) / (time - lastFpsUpdateTime));
+                const fpsValue = Math.round((framesRendered * 1000) / (time - lastFpsUpdateTime));
+                const mem = (performance as any).memory;
+                const ramMB = mem ? (mem.usedJSHeapSize / (1024 * 1024)).toFixed(1) : 'N/A';
+
                 document.dispatchEvent(new CustomEvent('UPDATE_GEEK_STATS', {
                     detail: {
-                        fps,
+                        fps: fpsValue,
                         frameTime: lastFrameTimeMs,
+                        ram: ramMB,
                         matchStartTime,
                         zoom: engine.orbitControls.getDistance(),
                         cameraPos: engine.camera.position,
