@@ -5,7 +5,111 @@
 
 ---
 
+## 0. Prerequisite — Decompose Large Files
+
+> **Rationale**: Several files have grown past 500 lines and mix unrelated responsibilities. Splitting them now reduces merge conflicts and makes the Sprint 8 feature work cleaner.
+
+---
+
+### 0.1 — Decompose `GameLoop.ts` (505 → ~3 files)
+
+**Current structure** (single class, 505 lines):
+| Responsibility | Lines | Target file |
+|---|---|---|
+| State machine, enums, listener registration, transitionTo | 1-191 | `GameLoop.ts` (keep, ~190 lines) |
+| Match init, loading, ship/attack replay | 193-305 | `MatchSetup.ts` (~115 lines) |
+| Turn execution (enemy, auto-player, onGridClick) | 307-505 | `TurnExecutor.ts` (~200 lines) |
+
+**Files:**
+- `src/application/game-loop/GameLoop.ts`
+- `src/application/game-loop/MatchSetup.ts` [NEW]
+- `src/application/game-loop/TurnExecutor.ts` [NEW]
+
+- [ ] **Create `MatchSetup.ts`** — extract `startNewMatch()`, `loadMatch()`, `replayShips()`, `replayAttacks()` into a standalone class or set of functions that accept `Match`, listener arrays, and AI engines as parameters.
+- [ ] **Create `TurnExecutor.ts`** — extract `handleEnemyTurn()`, `handleAutoPlayerTurn()`, and the `PLAYER_TURN` / `SETUP_BOARD` branch of `onGridClick()` into a class that receives the GameLoop state it needs (match, isAnimating, isPaused, listeners, AI engines) via constructor injection.
+- [ ] **Slim `GameLoop.ts`** — keep only: `GameState` enum, type aliases, constructor (event listeners), `transitionTo()`, listener registration methods, `triggerAutoSave()`, `hasUnsavedProgress()`. Delegate to `MatchSetup` and `TurnExecutor` internally.
+- [ ] **Update existing tests** — `GameLoop.preservation.test.ts` and `GameLoop.replayAttacks.test.ts` should pass without changes (public API unchanged).
+- [ ] **Acceptance**: `npm run dev` compiles cleanly; existing tests pass; `GameLoop` public API signature unchanged.
+
+---
+
+### 0.2 — Decompose `ProjectileManager.ts` (521 → 2 files)
+
+**Current structure** (single class, 521 lines):
+| Responsibility | Lines | Target file |
+|---|---|---|
+| Marker creation + bezier arc + update loop | 1-300 | `ProjectileManager.ts` (keep, ~300 lines) |
+| Impact effects, voxel destruction, sinking, persistent fire, ship breaking | 302-521 | `ImpactEffects.ts` (~220 lines) |
+
+**Files:**
+- `src/presentation/3d/entities/ProjectileManager.ts`
+- `src/presentation/3d/entities/ImpactEffects.ts` [NEW]
+
+- [ ] **Create `ImpactEffects.ts`** — extract `applyImpactEffects()`, `addPersistentFireToShipCell()`, and `splitShipForBreaking()` into a new `ImpactEffects` class. It receives `ParticleSystem`, board-group refs, and `Config` via constructor.
+- [ ] **Slim `ProjectileManager.ts`** — keep marker construction (`addAttackMarker`), arc animation (`updateProjectiles`), and `FallingMarker` interface. Call `ImpactEffects` methods where needed.
+- [ ] **Acceptance**: `npm run dev` compiles cleanly; attack, hit, sunk, and replay visuals work identically.
+
+---
+
+### 0.3 — Decompose `HUD.ts` (468 → 3 files)
+
+**Current structure** (single class, 468 lines):
+| Responsibility | Lines | Target file |
+|---|---|---|
+| Core class, render template, mount, update | 1-52, 370-468 | `HUD.ts` (keep, ~170 lines) |
+| Switch/button wiring, LED toggling, event binding | 188-367 | `HUDControls.ts` (~180 lines) |
+| updateCounters, updateStats, win-probability | 393-462 | `HUDStats.ts` (~70 lines) |
+
+**Files:**
+- `src/presentation/ui/hud/HUD.ts`
+- `src/presentation/ui/hud/HUDControls.ts` [NEW]
+- `src/presentation/ui/hud/HUDStats.ts` [NEW]
+
+- [ ] **Create `HUDControls.ts`** — export a function `bindHUDControls(container: HTMLElement)` that wires all switchboard button handlers (peek, geek-stats, auto-battler, day/night, cam-reset, speed, FPS, settings, mouse-coords). Returns cleanup handle if needed.
+- [ ] **Create `HUDStats.ts`** — export helper functions `renderFleetIcons(container, ships)`, `updateGameStats(container, match)`, and `calculateWinProbability(playerBoard, enemyBoard)`.
+- [ ] **Slim `HUD.ts`** — keep render template, `mount()`, `update()`, and delegate to `HUDControls.bindHUDControls()` and `HUDStats` helpers.
+- [ ] **Acceptance**: `npm run dev` compiles cleanly; all HUD buttons, LEDs, stat displays function identically.
+
+---
+
+### 0.4 — Modularize `style.css` (1599 → 5 files + barrel)
+
+**Current structure** (single file, 1599 lines):
+| Section | Lines | Target file |
+|---|---|---|
+| Theme variables (day/night), base body/canvas/ui-layer | 1-214 | `styles/theme.css` |
+| Shared components (voxel-panel, retro-panel, voxel-btn, voxel-select) | 216-349 | `styles/components.css` |
+| Custom dropdown + MTG card + retro console + engage btn | 350-763 | `styles/main-menu.css` |
+| HUD layout, turn indicator, fleet, mini-board, stats, switchboard, geek stats | 764-1403 | `styles/hud.css` |
+| Save/Load dialog, confirmations, settings, pause, sliders, mouse coords | 1404-1600 | `styles/dialogs.css` |
+
+**Strategy**: Vite natively resolves CSS `@import` at build time, so no runtime cost.
+
+**Files:**
+- `src/styles/theme.css` [NEW]
+- `src/styles/components.css` [NEW]
+- `src/styles/main-menu.css` [NEW]
+- `src/styles/hud.css` [NEW]
+- `src/styles/dialogs.css` [NEW]
+- `src/style.css` [MODIFY] — becomes a ~6-line barrel:
+  ```css
+  @import './styles/theme.css';
+  @import './styles/components.css';
+  @import './styles/main-menu.css';
+  @import './styles/hud.css';
+  @import './styles/dialogs.css';
+  ```
+
+- [ ] **Create `src/styles/` directory** and the five CSS files by moving the corresponding sections.
+- [ ] **Replace `src/style.css` contents** with the `@import` barrel shown above.
+- [ ] **No import path changes needed** — `index.html` still loads `src/style.css`; Vite inlines the imports at build time.
+- [ ] **Acceptance**: `npm run dev` compiles cleanly; all visuals and responsive behavior are identical across both day and night modes. Verify by toggling day/night, opening settings, save/load dialog, and checking HUD switchboard.
+
+---
+
+
 ## 1. Visual Adjustments
+
 
 ### 1.1 — Thicker, Lower Fog of War
 
@@ -248,16 +352,20 @@
 
 | # | Task | Effort | Dependencies |
 |---|------|--------|-------------|
-| 1 | 1.1 Fog thickness & height | XS | — |
+| 0a | 0.1 Decompose GameLoop.ts | S | — |
+| 0b | 0.2 Decompose ProjectileManager.ts | S | — |
+| 0c | 0.3 Decompose HUD.ts | S | — |
+| 0d | 0.4 Modularize style.css | S | — |
+| 1 | 1.1 Fog thickness & height | XS | 0b (touches EntityManager, adjacent) |
 | 2 | 1.3 Kill sound redesign | XS | — |
-| 3 | 1.2 Burning hit-segment flames | S | 1.1 |
+| 3 | 1.2 Burning hit-segment flames | S | 1 |
 | 4 | 2.1 Rogue domain types | S | — |
-| 5 | 2.6 Alternative weapon stubs | S | 2.1 |
-| 6 | 2.5 Per-ship turn rotation | S | 2.1 |
-| 7 | 2.4 Ship movement mechanics | M | 2.1 |
-| 8 | 2.2 Single-side placement | M | 2.1 |
-| 9 | 2.3 Ship-tethered fog | M | 2.2, 2.4 |
-| 10 | 2.7 Rogue mode UI | S | 2.5, 2.6 |
+| 5 | 2.6 Alternative weapon stubs | S | 4 |
+| 6 | 2.5 Per-ship turn rotation | S | 0a, 4 |
+| 7 | 2.4 Ship movement mechanics | M | 4 |
+| 8 | 2.2 Single-side placement | M | 0a, 4 |
+| 9 | 2.3 Ship-tethered fog | M | 8, 7 |
+| 10 | 2.7 Rogue mode UI | S | 0c, 0d, 5, 6 |
 | 11 | 3.1 Network adapter scaffold | M | — |
-| 12 | 3.2 Sync manager | M | 3.1 |
-| 13 | 3.3 Lobby UI | M | 3.1 |
+| 12 | 3.2 Sync manager | M | 11 |
+| 13 | 3.3 Lobby UI | M | 0d, 11 |
