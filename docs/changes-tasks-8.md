@@ -113,9 +113,9 @@
 
 ### 1.1 — Thicker, Lower Fog of War
 
-**Files:** `src/presentation/3d/entities/EntityManager.ts`
+**Files:** `src/presentation/3d/entities/BoardBuilder.ts`
 
-- [ ] **Increase fog voxel density**: In `createBoardMeshes()`, raise `numVoxels` per fog cloud from `100` to at least `200–250`.
+- [ ] **Increase fog voxel density**: In `BoardBuilder.build()`, raise `numVoxels` per fog cloud from `100` to at least `200–250`.
 - [ ] **Raise fog Y spread**: Change the `vy` spread from `(Math.random() - 0.5) * 0.4` to at least `(Math.random() - 0.5) * 0.9` so the cloud stands taller.
 - [ ] **Lower fog cloud position**: Change `fogCloud.position.set(worldX, 0.2, worldZ)` to `fogCloud.position.set(worldX, 0.0, worldZ)` (or slightly negative) so the cloud sits closer to/at water-surface level.
 - [ ] **Increase fog opacity & emissive**: In `fogMat`, bump `opacity` from `0.6` → `0.85` and `emissiveIntensity` from `0.6` → `1.0` to make the fog visually denser.
@@ -126,10 +126,11 @@
 ### 1.2 — Burning Flame on Hidden Hit Segments
 
 **Files:**
-- `src/presentation/3d/entities/EntityManager.ts`
+- `src/presentation/3d/entities/ImpactEffects.ts`
 - `src/presentation/3d/entities/ParticleSystem.ts`
+- `src/presentation/3d/entities/FogManager.ts`
 
-- [ ] **Track hit segment info on fog meshes**: When `applyImpactEffects()` processes a hit/sunk on the enemy board, store `{ hitCount }` in the corresponding `fogMeshes[idx].userData` so the flame can scale with damage.
+- [ ] **Track hit segment info on fog meshes**: When `ImpactEffects.applyImpactEffects()` processes a hit/sunk on the enemy board, store `{ hitCount }` in the corresponding fog data in `FogManager` so the flame can scale with damage.
 - [ ] **Create a `spawnFogFlame()` method in `ParticleSystem`**: A small, continuous looping particle emitter (orange/red voxels, small scale `0.04–0.08`, upward Y drift, fast fade-out, 10–15 particles). The emitter should live as long as the fog mesh exists.
   - Internally track `activeFogFlames: { mesh: THREE.InstancedMesh, fogIdx: number, intensity: number }[]`.
   - Each frame in `ParticleSystem.update()`, re-emit particles from live flame sources.
@@ -199,12 +200,13 @@
 ### 2.3 — Ship-Tethered Dynamic Fog of War
 
 **Files:**
+- `src/presentation/3d/entities/FogManager.ts`
 - `src/presentation/3d/entities/EntityManager.ts`
 
 > In Rogue mode, fog wraps each ship at a 7-cell radius instead of covering all enemy cells statically.
 
-- [ ] **Add `rogueMode: boolean` flag to `EntityManager`** (passed from `Config`).
-- [ ] **In Rogue mode, skip per-cell static fog creation** in `createBoardMeshes()`.
+- [ ] **Add `rogueMode: boolean` flag to `FogManager`** (passed from `Config`).
+- [ ] **In Rogue mode, skip per-cell static fog creation** in `BoardBuilder.build()`.
 - [ ] **Create `updateRogueFog(ships: Ship[])` method**:
   - For each cell on the board, compute the minimum Chebyshev distance to any ship cell.
   - If `distance <= Config.rogue.fogRadius`, hide fog mesh (fade out opacity).
@@ -283,8 +285,9 @@
 **Files:**
 - `src/presentation/ui/menu/MainMenu.ts`
 - `src/presentation/ui/hud/HUD.ts`
+- `src/presentation/ui/hud/HUDControls.ts`
 - `src/presentation/ui/UIManager.ts`
-- `src/style.css`
+- `src/styles/*.css`
 
 - [ ] **Unlock Rogue in `MainMenu`**: The existing Rogue dropdown entry is disabled — wire it to set `MatchMode.Rogue` when starting a new game (fire it via the existing mode-selection event).
 - [ ] **In `HUD.ts`**: Listen to `ACTIVE_SHIP_CHANGED`; display the active ship's name and remaining move count in the turn indicator panel.
@@ -334,7 +337,7 @@
 ### 3.3 — Lobby & Invite UI
 
 **New file:** `src/presentation/ui/menu/LobbyMenu.ts`  
-**Modified:** `src/style.css`, `src/presentation/ui/UIManager.ts`
+**Modified:** `src/styles/*.css`, `src/presentation/ui/UIManager.ts`
 
 - [ ] **`LobbyMenu`** (extends `BaseUIComponent`), rendered in `#ui-layer`:
   - "Create Room" button — generates a short room code (UUID prefix) and displays it.
