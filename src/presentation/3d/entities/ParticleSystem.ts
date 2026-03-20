@@ -37,10 +37,10 @@ export class ParticleSystem {
 
 
     // Materials
-    private fireMat = new THREE.MeshStandardMaterial({ color: 0xff4500, emissive: 0xff0000, roughness: 0.4 });
-    private secondaryFireMat = new THREE.MeshStandardMaterial({ color: 0xffa500, emissive: 0xff8c00, roughness: 0.4 });
-    private greySmokeMat = new THREE.MeshStandardMaterial({ color: 0x888888, transparent: true, opacity: 0.8 });
-    private blackSmokeMat = new THREE.MeshStandardMaterial({ color: 0x222222, transparent: true, opacity: 0.9 });
+    public fireMat = new THREE.MeshStandardMaterial({ color: 0xff4500, emissive: 0xff0000, roughness: 0.4 });
+    public secondaryFireMat = new THREE.MeshStandardMaterial({ color: 0xffa500, emissive: 0xff8c00, roughness: 0.4 });
+    public greySmokeMat = new THREE.MeshStandardMaterial({ color: 0xa0a0a0, transparent: true, opacity: 0.8 });
+    public blackSmokeMat = new THREE.MeshStandardMaterial({ color: 0x3b3b38, transparent: true, opacity: 0.9 });
     private splashMatWhite = new THREE.MeshStandardMaterial({ color: 0xffffff, transparent: true, opacity: 0.7, roughness: 0.2 });
     private splashMatBlue = new THREE.MeshStandardMaterial({ color: 0x4fa4ff, transparent: true, opacity: 0.8, roughness: 0.2 });
     private shipVoxelMat = new THREE.MeshStandardMaterial({ color: 0x888888, roughness: 0.7 });
@@ -148,7 +148,9 @@ export class ParticleSystem {
     }
 
     public spawnSmoke(x: number, y: number, z: number, color: string, group: THREE.Object3D, intensity: number = 1.0) {
-        const mat = this.greySmokeMat.clone();
+        // Use blackSmokeMat as base for dark colors to get higher opacity (0.9 vs 0.8)
+        const isDark = color === this.blackSmokeMat.color.getStyle();
+        const mat = (isDark ? this.blackSmokeMat : this.greySmokeMat).clone();
         mat.color.set(color);
         const mesh = new THREE.Mesh(this.smokeGeo, mat);
 
@@ -220,10 +222,11 @@ export class ParticleSystem {
         });
     }
 
-    public addEmitter(x: number, y: number, z: number, hasFire: boolean, group: THREE.Object3D, color: string = '#222222', intensity: number = 1.0, id?: string) {
+    public addEmitter(x: number, y: number, z: number, hasFire: boolean, group: THREE.Object3D, color?: string, intensity: number = 1.0, id?: string) {
+        const emitterColor = color || this.blackSmokeMat.color.getStyle();
         // If ID exists and already present, skip to preserve original (user requirement "sections remain as-is")
         if (id && this.emitters.some(e => e.id === id)) return;
-        this.emitters.push({ x, y, z, color, hasFire, nextSpawn: 0, group, intensity, id });
+        this.emitters.push({ x, y, z, color: emitterColor, hasFire, nextSpawn: 0, group, intensity, id });
     }
 
     public updateEmittersByIdPrefix(prefix: string, intensity: number) {

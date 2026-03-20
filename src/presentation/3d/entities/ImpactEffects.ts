@@ -115,7 +115,7 @@ export class ImpactEffects {
             this.particleSystem.addEmitter(
                 worldX, 0.4, worldZ, 
                 true, targetGroup, 
-                result === 'sunk' ? '#3b3b38' : '#a0a0a0', 
+                result === 'sunk' ? this.particleSystem.blackSmokeMat.color.getStyle() : this.particleSystem.greySmokeMat.color.getStyle(), 
                 intensity, 
                 `ship-flame-${shipId}-${cellX}-${cellZ}`
             );
@@ -180,7 +180,7 @@ export class ImpactEffects {
                 const sx = minX + (isHorizontal ? s : 0);
                 const sz = minZ + (!isHorizontal ? s : 0);
                 // Sunk ships burn at max intensity (2.0) with black smoke
-                this.addPersistentFireToShipCell(shipGroup, sx, sz, boardOffset, 2.0, '#3b3b38');
+                this.addPersistentFireToShipCell(shipGroup, sx, sz, boardOffset, 2.0, this.particleSystem.blackSmokeMat.color.getStyle());
             }
         } else {
             for (let s = 0; s < shipLength; s++) {
@@ -195,7 +195,7 @@ export class ImpactEffects {
                     this.particleSystem.spawnExplosion(ex, 0.4, ez, targetGroup);
                     this.particleSystem.spawnVoxelExplosion(ex, 0.4, ez, 10, targetGroup);
                     addRipple(ex, ez, !isPlayer);
-                    this.addPersistentFireToShipCell(shipGroup, sx, sz, boardOffset, 2.0, '#3b3b38');
+                    this.addPersistentFireToShipCell(shipGroup, sx, sz, boardOffset, 2.0, this.particleSystem.blackSmokeMat.color.getStyle());
                 }, delay * 1000);
             }
         }
@@ -206,8 +206,9 @@ export class ImpactEffects {
         cellX: number, cellZ: number,
         boardOffset: number,
         intensity: number = 1.0,
-        color: string = '#a0a0a0'
+        color?: string
     ): void {
+        const smokeColor = color || this.particleSystem.greySmokeMat.color.getStyle();
         const targetWorldX = cellX - boardOffset + 0.5;
         const targetWorldZ = cellZ - boardOffset + 0.5;
 
@@ -234,7 +235,7 @@ export class ImpactEffects {
         this.particleSystem.addEmitter(
             lX, 0.4, lZ, 
             true, targetFireGroup, 
-            color, 
+            smokeColor, 
             intensity, 
             `ship-flame-${shipId}-${cellX}-${cellZ}-ship`
         );
