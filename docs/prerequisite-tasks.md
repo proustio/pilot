@@ -14,19 +14,19 @@
 - `src/application/game-loop/MatchSetup.ts`
 - `src/main.ts`
 
-- [ ] **`GameLoop` constructor**: Accept `config: typeof Config` and `storage: typeof Storage` as params. Store as `private config` and `private storage`. Remove top-level `import { Config }` and `import { Storage }`.
-- [ ] **Replace all static references** in `GameLoop.ts`:
+- [x] **`GameLoop` constructor**: Accept `config: typeof Config` and `storage: typeof Storage` as params. Store as `private config` and `private storage`. Remove top-level `import { Config }` and `import { Storage }`.
+- [x] **Replace all static references** in `GameLoop.ts`:
   - `Config.aiDifficulty` → `this.config.aiDifficulty`
   - `Config.autoBattler` → `this.config.autoBattler`
   - `Config.timing.*` → `this.config.timing.*`
   - `Storage.saveGame(...)` → `this.storage.saveGame(...)`
   - `Storage.loadGame(...)` → `this.storage.loadGame(...)`
   - `Storage.clearSession()` → `this.storage.clearSession()`
-- [ ] **`TurnExecutorState` interface**: Add `config` field. `TurnExecutor` reads config from `this.s.config` instead of importing `Config` directly. Remove top-level Config import.
-- [ ] **`MatchSetupState` interface**: Add `config` field. `MatchSetup` reads config from `this.state.config` instead of importing `Config` directly. Remove top-level Config import.
-- [ ] **`main.ts`**: Update `new GameLoop()` → `new GameLoop(Config, Storage)`.
-- [ ] **Update tests**: `application/game-loop/__tests__/GameLoop.preservation.test.ts` and `GameLoop.replayAttacks.test.ts` — pass `Config` and `Storage` into `GameLoop` constructor.
-- [ ] **Acceptance**: `npm run build` passes. `npm run test` passes. No `infrastructure/` imports remain in `application/`.
+- [x] **`TurnExecutorState` interface**: Add `config` field. `TurnExecutor` reads config from `this.s.config` instead of importing `Config` directly. Remove top-level Config import.
+- [x] **`MatchSetupState` interface**: Add `config` field. `MatchSetup` reads config from `this.state.config` instead of importing `Config` directly. Remove top-level Config import.
+- [x] **`main.ts`**: Update `new GameLoop()` → `new GameLoop(Config, Storage)`.
+- [x] **Update tests**: `application/game-loop/__tests__/GameLoop.preservation.test.ts` and `GameLoop.replayAttacks.test.ts` — pass `Config` and `Storage` into `GameLoop` constructor.
+- [x] **Acceptance**: `npm run build` passes. `npm run test` passes. No `infrastructure/` imports remain in `application/`.
 
 ---
 

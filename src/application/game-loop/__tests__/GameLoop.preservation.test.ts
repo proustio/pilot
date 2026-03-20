@@ -19,6 +19,7 @@ import { GameLoop, GameState } from '../GameLoop';
 import { Match, MatchMode } from '../../../domain/match/Match';
 import { CellState } from '../../../domain/board/Board';
 import { Config } from '../../../infrastructure/config/Config';
+import { Storage } from '../../../infrastructure/storage/Storage';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -31,7 +32,7 @@ import { Config } from '../../../infrastructure/config/Config';
  */
 function createStartedGameLoop(): { gameLoop: GameLoop; match: Match } {
     Config.autoBattler = true;
-    const gameLoop = new GameLoop();
+    const gameLoop = new GameLoop(Config, Storage);
     const match = new Match(MatchMode.Classic, 10, 10);
     gameLoop.startNewMatch(match);
     // Reset autoBattler so onGridClick manual attacks are accepted
@@ -81,7 +82,7 @@ describe('Preservation — startNewMatch() fires zero attack callbacks', () => {
      */
     it('never invokes attackResultListeners for Classic mode match', () => {
         Config.autoBattler = true;
-        const gameLoop = new GameLoop();
+        const gameLoop = new GameLoop(Config, Storage);
         const match = new Match(MatchMode.Classic, 10, 10);
 
         const spy = vi.fn();
@@ -96,7 +97,7 @@ describe('Preservation — startNewMatch() fires zero attack callbacks', () => {
 
     it('never invokes attackResultListeners for Russian mode match', () => {
         Config.autoBattler = true;
-        const gameLoop = new GameLoop();
+        const gameLoop = new GameLoop(Config, Storage);
         const match = new Match(MatchMode.Russian, 10, 10);
 
         const spy = vi.fn();
@@ -112,7 +113,7 @@ describe('Preservation — startNewMatch() fires zero attack callbacks', () => {
         // Simulate property-based testing by running many independent instances
         for (let trial = 0; trial < 20; trial++) {
             Config.autoBattler = true;
-            const gameLoop = new GameLoop();
+            const gameLoop = new GameLoop(Config, Storage);
             const mode = trial % 2 === 0 ? MatchMode.Classic : MatchMode.Russian;
             const match = new Match(mode, 10, 10);
 

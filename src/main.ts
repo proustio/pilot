@@ -22,7 +22,7 @@ const init = () => {
             entityManager
         );
 
-        const gameLoop = new GameLoop();
+        const gameLoop = new GameLoop(Config, Storage);
 
         interactionManager.setGameLoop(gameLoop);
 

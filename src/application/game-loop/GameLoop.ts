@@ -1,8 +1,6 @@
 import { Match } from '../../domain/match/Match';
 import { Ship, Orientation } from '../../domain/fleet/Ship';
 import { AIEngine, AIDifficulty } from '../ai/AIEngine';
-import { Config } from '../../infrastructure/config/Config';
-import { Storage } from '../../infrastructure/storage/Storage';
 import { MatchSetup, MatchSetupState } from './MatchSetup';
 import { TurnExecutor, TurnExecutorState } from './TurnExecutor';
 
@@ -37,12 +35,18 @@ export class GameLoop {
     private matchSetup: MatchSetup;
     private turnExecutor: TurnExecutor;
 
-    constructor() {
+    private config: any;
+    private storage: any;
+
+    constructor(config: any, storage: any) {
+        this.config = config;
+        this.storage = storage;
+
         this.aiEngine = new AIEngine();
         this.playerAIEngine = new AIEngine();
 
-        this.aiEngine.setDifficulty(Config.aiDifficulty as AIDifficulty);
-        this.playerAIEngine.setDifficulty(Config.aiDifficulty as AIDifficulty);
+        this.aiEngine.setDifficulty(this.config.aiDifficulty as AIDifficulty);
+        this.playerAIEngine.setDifficulty(this.config.aiDifficulty as AIDifficulty);
 
         // Build a shared-state view that both helpers read/write through.
         // Using `this` directly keeps all state in one place; the interfaces
@@ -71,14 +75,14 @@ export class GameLoop {
         document.addEventListener('SET_GAME_SPEED', (e: Event) => {
             const ce = e as CustomEvent;
             if (ce.detail?.speed) {
-                Config.timing.gameSpeedMultiplier = parseFloat(ce.detail.speed);
+                this.config.timing.gameSpeedMultiplier = parseFloat(ce.detail.speed);
             }
         });
 
         document.addEventListener('TOGGLE_AUTO_BATTLER', (e: Event) => {
             const ce = e as CustomEvent;
             if (ce.detail !== undefined) {
-                if (Config.autoBattler && this.currentState === GameState.PLAYER_TURN && !this.isAnimating) {
+                if (this.config.autoBattler && this.currentState === GameState.PLAYER_TURN && !this.isAnimating) {
                     this.turnExecutor.handleAutoPlayerTurn();
                 }
             }
@@ -102,7 +106,7 @@ export class GameLoop {
             const slotId = ce.detail?.slotId;
             const viewState = ce.detail?.viewState;
             if (slotId && this.match) {
-                Storage.saveGame(slotId, this.match, viewState);
+                this.storage.saveGame(slotId, this.match, viewState);
             }
         });
 
@@ -110,7 +114,7 @@ export class GameLoop {
             const ce = e as CustomEvent;
             const slotId = ce.detail?.slotId;
             if (slotId) {
-                const match = Storage.loadGame(slotId);
+                const match = this.storage.loadGame(slotId);
                 if (match) {
                     sessionStorage.setItem('battleships_autoload', slotId.toString());
                     window.location.reload();
@@ -170,12 +174,12 @@ export class GameLoop {
         this.triggerAutoSave();
 
         if (newState === GameState.GAME_OVER) {
-            Storage.clearSession();
+            this.storage.clearSession();
         }
 
         if (newState === GameState.ENEMY_TURN) {
             this.turnExecutor.handleEnemyTurn();
-        } else if (newState === GameState.PLAYER_TURN && Config.autoBattler) {
+        } else if (newState === GameState.PLAYER_TURN && this.config.autoBattler) {
             this.turnExecutor.handleAutoPlayerTurn();
         }
     }

@@ -15,10 +15,12 @@ import { describe, it, expect, vi } from 'vitest';
 import { GameLoop } from '../GameLoop';
 import { Match, MatchMode } from '../../../domain/match/Match';
 import { CellState } from '../../../domain/board/Board';
+import { Config } from '../../../infrastructure/config/Config';
+import { Storage } from '../../../infrastructure/storage/Storage';
 
 describe('GameLoop.loadMatch() — attack replay bug condition', () => {
     it('fires onAttackResult callbacks for every Hit/Miss/Sunk cell in both boards on load', () => {
-        const gameLoop = new GameLoop();
+        const gameLoop = new GameLoop(Config, Storage);
         const match = new Match(MatchMode.Classic, 10, 10);
 
         // Set up player board attack state (enemy fired these):
