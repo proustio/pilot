@@ -35,6 +35,12 @@ export class EntityManager {
     private enemyRippleIndex: number = 0;
 
     private particleSystem: ParticleSystem;
+    
+    // Temp objects for crumbling effect to avoid GC pressure
+    private _crumbleDummy = new THREE.Object3D();
+    private _crumbleWorldPos = new THREE.Vector3();
+    private _crumbleBoardPos = new THREE.Vector3();
+    private _crumbleInvMatrix = new THREE.Matrix4();
 
     constructor(scene: THREE.Scene) {
         this.scene = scene;
@@ -647,6 +653,37 @@ export class EntityManager {
                                 child.userData.halfB.rotation.x = breakAngle;
                             }
                         }
+
+                        // Voxel Crumbling Effect (touches the bottom floor at y=0 in masterBoardGroup space)
+                        const invMasterMatrix = this._crumbleInvMatrix.copy(this.masterBoardGroup.matrixWorld).invert();
+                        child.updateMatrixWorld(true);
+
+                        child.traverse((node) => {
+                            if (node instanceof THREE.InstancedMesh) {
+                                let meshUpdated = false;
+                                for (let i = 0; i < node.count; i++) {
+                                    node.getMatrixAt(i, this._crumbleDummy.matrix);
+                                    this._crumbleDummy.matrix.decompose(this._crumbleDummy.position, this._crumbleDummy.quaternion, this._crumbleDummy.scale);
+                                    
+                                    if (this._crumbleDummy.scale.x > 0.001) {
+                                        // Calculate position in masterBoardGroup space
+                                        this._crumbleWorldPos.copy(this._crumbleDummy.position).applyMatrix4(node.matrixWorld);
+                                        this._crumbleBoardPos.copy(this._crumbleWorldPos).applyMatrix4(invMasterMatrix);
+                                        
+                                        // If it touches the bottom (y=0), crumble it
+                                        if (this._crumbleBoardPos.y < 0.01) {
+                                            this._crumbleDummy.scale.set(0, 0, 0);
+                                            this._crumbleDummy.updateMatrix();
+                                            node.setMatrixAt(i, this._crumbleDummy.matrix);
+                                            meshUpdated = true;
+                                        }
+                                    }
+                                }
+                                if (meshUpdated) {
+                                    node.instanceMatrix.needsUpdate = true;
+                                }
+                            }
+                        });
                     }
                 }
             });
