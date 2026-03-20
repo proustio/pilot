@@ -115,11 +115,11 @@
 
 **Files:** `src/presentation/3d/entities/BoardBuilder.ts`
 
-- [ ] **Increase fog voxel density**: In `BoardBuilder.build()`, raise `numVoxels` per fog cloud from `100` to at least `200–250`.
-- [ ] **Raise fog Y spread**: Change the `vy` spread from `(Math.random() - 0.5) * 0.4` to at least `(Math.random() - 0.5) * 0.9` so the cloud stands taller.
-- [ ] **Lower fog cloud position**: Change `fogCloud.position.set(worldX, 0.2, worldZ)` to `fogCloud.position.set(worldX, 0.0, worldZ)` (or slightly negative) so the cloud sits closer to/at water-surface level.
-- [ ] **Increase fog opacity & emissive**: In `fogMat`, bump `opacity` from `0.6` → `0.85` and `emissiveIntensity` from `0.6` → `1.0` to make the fog visually denser.
-- [ ] **Acceptance**: Fog should visually obscure ships from the default camera angle without requiring a top-down view.
+- [x] **Increase fog voxel density**: In `BoardBuilder.build()`, raise `numVoxels` per fog cloud from `100` to at least `200–250`.
+- [x] **Raise fog Y spread**: Change the `vy` spread from `(Math.random() - 0.5) * 0.4` to at least `(Math.random() - 0.5) * 0.9` so the cloud stands taller.
+- [x] **Lower fog cloud position**: Change `fogCloud.position.set(worldX, 0.2, worldZ)` to `fogCloud.position.set(worldX, 0.0, worldZ)` (or slightly negative) so the cloud sits closer to/at water-surface level.
+- [x] **Increase fog opacity & emissive**: In `fogMat`, bump `opacity` from `0.6` → `0.85` and `emissiveIntensity` from `0.6` → `1.0` to make the fog visually denser.
+- [x] **Acceptance**: Fog should visually obscure ships from the default camera angle without requiring a top-down view.
 
 ---
 

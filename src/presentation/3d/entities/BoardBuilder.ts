@@ -252,9 +252,9 @@ export class BoardBuilder {
         const fogMat = new THREE.MeshStandardMaterial({
             color: 0x000080,
             emissive: 0x4169E1,
-            emissiveIntensity: 0.6,
+            emissiveIntensity: 1.0,
             transparent: true,
-            opacity: 0.6,
+            opacity: 0.85,
             roughness: 0.2,
             metalness: 0.8
         });
@@ -279,15 +279,15 @@ export class BoardBuilder {
                 enemyGridTiles.push(etile);
 
                 // Fog cloud
-                const numVoxels = 100;
+                const numVoxels = 250;
                 const fogCloud = new THREE.InstancedMesh(fogVoxelGeo, fogMat, numVoxels);
-                fogCloud.position.set(worldX, 0.2, worldZ);
+                fogCloud.position.set(worldX, 0.0, worldZ);
 
                 const dummy = new THREE.Object3D();
                 const voxelData = [];
                 for (let i = 0; i < numVoxels; i++) {
                     const vx = (Math.random() - 0.5) * 0.95;
-                    const vy = (Math.random() - 0.5) * 0.4;
+                    const vy = (Math.random() - 0.5) * 0.9;
                     const vz = (Math.random() - 0.5) * 0.95;
                     dummy.position.set(vx, vy, vz);
                     dummy.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
