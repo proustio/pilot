@@ -23,6 +23,7 @@ export class ShipFactory {
         shipGroup.userData = {
             isShip: true,
             isSinking: false,
+            ship: ship, // Store reference to domain object
             shipOrientation: orientation,
             coversCell: (tx: number, tz: number) => {
                 if (orientation === Orientation.Horizontal) {

@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { Orientation } from '../../../domain/fleet/Ship';
+import { Ship, Orientation } from '../../../domain/fleet/Ship';
 import { ParticleSystem } from './ParticleSystem';
 import { Config } from '../../../infrastructure/config/Config';
 
@@ -54,7 +54,7 @@ export class ImpactEffects {
         let voxelsRemoved = 0;
         let shipFound: THREE.Object3D | null = null;
 
-        targetGroup.children.forEach((child: THREE.Object3D) => {
+        for (const child of targetGroup.children) {
             if (child.userData.isShip && child.userData.instancedMesh && child.userData.coversCell(cellX, cellZ)) {
                 shipFound = child;
                 const im = child.userData.instancedMesh as THREE.InstancedMesh;
@@ -91,13 +91,36 @@ export class ImpactEffects {
                 if (result === 'sunk') {
                     this.handleSinking(child, cellX, cellZ, boardOffset, isReplay, isPlayer, addRipple);
                 } else if (result === 'hit') {
-                    this.addPersistentFireToShipCell(child as THREE.Group, cellX, cellZ, boardOffset);
+                    const hCount = (child.userData.ship as Ship)?.segments.filter((s: boolean) => !s).length || 1;
+                    const intens = 0.5 + (hCount - 1) * 0.4;
+                    this.addPersistentFireToShipCell(child as THREE.Group, cellX, cellZ, boardOffset, intens);
                 }
             }
-        });
+        }
 
-        if (!shipFound && (result === 'hit' || result === 'sunk')) {
-            this.particleSystem.addEmitter(worldX, 0.4, worldZ, false, targetGroup, true);
+        if (result === 'hit' || result === 'sunk') {
+            const ship = shipFound?.userData?.ship as Ship | undefined;
+            let intensity = 1.0;
+            let shipId = 'unknown';
+
+            if (ship) {
+                shipId = ship.id;
+                // Hit count (segments that are false)
+                const hitCount = ship.segments.filter((s: boolean) => !s).length;
+                // Start tiny (0.5) and grow by 0.4 per hit
+                intensity = 0.5 + (hitCount - 1) * 0.4;
+                
+                // Update all existing flames for this specific ship to the new intensity
+                this.particleSystem.updateEmittersByIdPrefix(`ship-flame-${shipId}`, intensity);
+            }
+
+            // Always add a persistent emitter to the board group at the hit cell
+            this.particleSystem.addEmitter(
+                worldX, 0.4, worldZ, 
+                true, targetGroup, true, 
+                intensity, 
+                `ship-flame-${shipId}-${cellX}-${cellZ}`
+            );
         }
 
         if (voxelsRemoved > 0 && !isReplay) {
@@ -158,7 +181,8 @@ export class ImpactEffects {
             for (let s = 0; s < shipLength; s++) {
                 const sx = minX + (isHorizontal ? s : 0);
                 const sz = minZ + (!isHorizontal ? s : 0);
-                this.addPersistentFireToShipCell(shipGroup, sx, sz, boardOffset);
+                // Sunk ships burn at max intensity (2.1-ish for Carrier)
+                this.addPersistentFireToShipCell(shipGroup, sx, sz, boardOffset, 2.0);
             }
         } else {
             for (let s = 0; s < shipLength; s++) {
@@ -173,7 +197,7 @@ export class ImpactEffects {
                     this.particleSystem.spawnExplosion(ex, 0.4, ez, targetGroup);
                     this.particleSystem.spawnVoxelExplosion(ex, 0.4, ez, 10, targetGroup);
                     addRipple(ex, ez, !isPlayer);
-                    this.addPersistentFireToShipCell(shipGroup, sx, sz, boardOffset);
+                    this.addPersistentFireToShipCell(shipGroup, sx, sz, boardOffset, 2.0);
                 }, delay * 1000);
             }
         }
@@ -182,7 +206,8 @@ export class ImpactEffects {
     private addPersistentFireToShipCell(
         shipGroup: THREE.Group,
         cellX: number, cellZ: number,
-        boardOffset: number
+        boardOffset: number,
+        intensity: number = 1.0
     ): void {
         const targetWorldX = cellX - boardOffset + 0.5;
         const targetWorldZ = cellZ - boardOffset + 0.5;
@@ -202,11 +227,17 @@ export class ImpactEffects {
         }
 
         const lX = targetWorldX - shipGroup.position.x
-            - (targetFireGroup === shipGroup ? 0 : shipGroup.userData.pivotPos.x);
+            - (targetFireGroup === shipGroup ? 0 : shipGroup.userData.pivotPos?.x || 0);
         const lZ = targetWorldZ - shipGroup.position.z
-            - (targetFireGroup === shipGroup ? 0 : shipGroup.userData.pivotPos.z);
+            - (targetFireGroup === shipGroup ? 0 : shipGroup.userData.pivotPos?.z || 0);
 
-        this.particleSystem.addEmitter(lX, 0.4, lZ, true, targetFireGroup);
+        const shipId = shipGroup.userData.ship?.id || 'unknown';
+        this.particleSystem.addEmitter(
+            lX, 0.4, lZ, 
+            true, targetFireGroup, true, 
+            intensity, 
+            `ship-flame-${shipId}-${cellX}-${cellZ}-ship`
+        );
     }
 
     private splitShipForBreaking(shipGroup: THREE.Group, pivotCellX: number, pivotCellZ: number): void {

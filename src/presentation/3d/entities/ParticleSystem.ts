@@ -11,12 +11,14 @@ interface Particle {
 }
 
 interface Emitter {
+    id?: string;
     x: number;
     y: number;
     z: number;
     isBlack: boolean;
     hasFire: boolean;
     nextSpawn: number;
+    intensity: number;
     group: THREE.Object3D;
 }
 
@@ -145,9 +147,11 @@ export class ParticleSystem {
         }
     }
     
-    public spawnSmoke(x: number, y: number, z: number, isBlack: boolean, group: THREE.Object3D) {
+    public spawnSmoke(x: number, y: number, z: number, isBlack: boolean, group: THREE.Object3D, intensity: number = 1.0) {
         const mesh = new THREE.Mesh(this.smokeGeo, isBlack ? this.blackSmokeMat : this.greySmokeMat);
         
+        // Scale smoke based on intensity
+        mesh.scale.setScalar(0.5 + intensity * 0.5);
         mesh.position.set(
             x + (Math.random() - 0.5) * 0.3,
             y,
@@ -176,10 +180,12 @@ export class ParticleSystem {
         });
     }
 
-    public spawnFire(x: number, y: number, z: number, group: THREE.Object3D) {
+    public spawnFire(x: number, y: number, z: number, group: THREE.Object3D, intensity: number = 1.0) {
         const isSecondary = Math.random() > 0.4;
         const mesh = new THREE.Mesh(this.fireGeo, isSecondary ? this.secondaryFireMat : this.fireMat);
         
+        // Scale fire based on intensity
+        mesh.scale.setScalar(0.6 + intensity * 0.6);
         mesh.position.set(
             x + (Math.random() - 0.5) * 0.2,
             y,
@@ -209,8 +215,18 @@ export class ParticleSystem {
         });
     }
     
-    public addEmitter(x: number, y: number, z: number, hasFire: boolean, group: THREE.Object3D, isBlack: boolean = true) {
-        this.emitters.push({ x, y, z, isBlack, hasFire, nextSpawn: 0, group });
+    public addEmitter(x: number, y: number, z: number, hasFire: boolean, group: THREE.Object3D, isBlack: boolean = true, intensity: number = 1.0, id?: string) {
+        // If ID exists, check if we should update instead of add? 
+        // For now, allow duplicates or handle it in ImpactEffects.
+        this.emitters.push({ x, y, z, isBlack, hasFire, nextSpawn: 0, group, intensity, id });
+    }
+
+    public updateEmittersByIdPrefix(prefix: string, intensity: number) {
+        for (const emitter of this.emitters) {
+            if (emitter.id && emitter.id.startsWith(prefix)) {
+                emitter.intensity = intensity;
+            }
+        }
     }
     
     public update() {
@@ -218,12 +234,13 @@ export class ParticleSystem {
         for (const emitter of this.emitters) {
             if (now > emitter.nextSpawn) {
                 if (emitter.hasFire) {
-                    this.spawnFire(emitter.x, emitter.y, emitter.z, emitter.group);
-                    this.spawnSmoke(emitter.x, emitter.y + 0.2, emitter.z, true, emitter.group);
-                    emitter.nextSpawn = now + 150; // Fire/Black smoke is frequent
+                    this.spawnFire(emitter.x, emitter.y, emitter.z, emitter.group, emitter.intensity);
+                    this.spawnSmoke(emitter.x, emitter.y + 0.2, emitter.z, true, emitter.group, emitter.intensity);
+                    // Spawn frequency scales with intensity
+                    emitter.nextSpawn = now + (200 / emitter.intensity);
                 } else {
-                    this.spawnSmoke(emitter.x, emitter.y, emitter.z, emitter.isBlack, emitter.group);
-                    emitter.nextSpawn = now + (emitter.isBlack ? 300 : 700); // Black smoke is thicker/faster
+                    this.spawnSmoke(emitter.x, emitter.y, emitter.z, emitter.isBlack, emitter.group, emitter.intensity);
+                    emitter.nextSpawn = now + ((emitter.isBlack ? 400 : 800) / emitter.intensity);
                 }
             }
         }

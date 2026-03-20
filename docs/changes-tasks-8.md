@@ -123,21 +123,15 @@
 
 ---
 
-### 1.2 — Burning Flame on Hidden Hit Segments
+### 1.2 — Persistent Flames on Hit Cells
 
 **Files:**
 - `src/presentation/3d/entities/ImpactEffects.ts`
 - `src/presentation/3d/entities/ParticleSystem.ts`
-- `src/presentation/3d/entities/FogManager.ts`
 
-- [ ] **Track hit segment info on fog meshes**: When `ImpactEffects.applyImpactEffects()` processes a hit/sunk on the enemy board, store `{ hitCount }` in the corresponding fog data in `FogManager` so the flame can scale with damage.
-- [ ] **Create a `spawnFogFlame()` method in `ParticleSystem`**: A small, continuous looping particle emitter (orange/red voxels, small scale `0.04–0.08`, upward Y drift, fast fade-out, 10–15 particles). The emitter should live as long as the fog mesh exists.
-  - Internally track `activeFogFlames: { mesh: THREE.InstancedMesh, fogIdx: number, intensity: number }[]`.
-  - Each frame in `ParticleSystem.update()`, re-emit particles from live flame sources.
-- [ ] **Spawn flame on fog mesh on hit**: In the projectile landing block (`m.result === 'hit' || 'sunk'`), if the fog mesh at `fogIdx` is still present, call `particleSystem.spawnFogFlame(worldX, 0.2, worldZ, hitCount)`.
-- [ ] **Scale flame intensity with damage**: `hitCount` should multiply particle count and emissive brightness.
-- [ ] **Clean up flame on fog removal**: When `clearFogCell()` or the projectile landing removes a fog mesh, call `particleSystem.removeFogFlame(fogIdx)` to stop that emitter.
-- [ ] **Acceptance**: After hitting a fog-covered cell, a small flame is visible through/above the fog cloud, growing visibly with each additional hit on the same ship.
+- [x] **Apply persistent fire to hit cell**: In `ImpactEffects.applyImpactEffects()`, ensure a fire/smoke emitter is added to the board group (`enemyBoardGroup` or `playerBoardGroup`) at the hit cell's world coordinates.
+- [x] **Ensure permanence**: These emitters should remain active until the end of the match (no cleanup on fog removal).
+- [x] **Acceptance**: Every hit on the board is marked by a persistent flame/smoke effect that stays in place regardless of fog or ship state.
 
 ---
 
