@@ -8,31 +8,31 @@ export class MainMenu extends BaseUIComponent {
     private modeMetadata: Record<string, any> = {
         'classic': {
             name: 'US Fleet Engagement',
-            mana: '2WW',
+            mana: 'classic',
             type: 'Tactical Standard',
             features: ['Standard 10x10 Grid', 'US Navy Fleet (5 ships)', 'Classic Placement rules'],
             flavor: '"Old school tactics for a new age of voxel warfare."',
-            stats: '2 / 3',
+            stats: '😌😌😌',
             image: '/assets/classic_mode_voxel_1773933296004.png',
             class: 'classic'
         },
         'russian': {
             name: 'Siberian Blockade',
-            mana: '3UU',
+            mana: 'russian',
             type: 'Advanced Strategic',
             features: ['Strict Non-Touching Adjacency', 'Russian Fleet (10 ships)', 'Maximum Tactical Precision'],
             flavor: '"In the cold north, even a single cell of contact is a fatal error."',
-            stats: '4 / 5',
+            stats: '🥵🥵🥵🥵',
             image: '/assets/russian_mode_voxel_1773933312011.png',
             class: 'russian'
         },
         'rogue': {
             name: 'Void Fleet Incursion',
-            mana: '5RR',
+            mana: 'rogue',
             type: 'Experimental Rogue',
             features: ['Variable Weaponry', 'Dynamic Moving Targets', 'Permadeath Elements'],
             flavor: '"The rules of engagement have changed. Adapt or be deleted."',
-            stats: '5 / 4',
+            stats: '☠️☠️☠️☠️☠️',
             image: '/assets/rogue_mode_voxel_1773933331120.png',
             class: 'rogue'
         }

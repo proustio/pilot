@@ -12,4 +12,5 @@ We will make both visual, functional and maybe even some structural changes.
 5. [v] kills on a ship should break the ship in a V shape, with the last hit section being the pivot.
 6. [v] add a button to reset camera angle to default.
 7. [v] adjust sound level in settings.
-8. [] selected game mod should have a dedicated sub-panel, it should look like magic the gathering card - a small image, mode name, brief description metioning major features.
+8. [v] selected game mod should have a dedicated sub-panel, it should look like magic the gathering card - a small image, mode name, brief description metioning major features.
+9. [] ships should not pass through the bottom of their side. parts that touch the bottom should cruumble instead of passing through.

@@ -427,8 +427,10 @@ canvas {
 }
 
 .mtg-card-mana {
-  font-family: serif;
-  font-size: 1rem;
+  font-family: var(--font-family);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  color: #555;
 }
 
 .mtg-card-image-container {
