@@ -109,15 +109,13 @@ export class ImpactEffects {
                 const hitCount = ship.segments.filter((s: boolean) => !s).length;
                 // Start tiny (0.5) and grow by 0.4 per hit
                 intensity = 0.5 + (hitCount - 1) * 0.4;
-                
-                // Update all existing flames for this specific ship to the new intensity
-                this.particleSystem.updateEmittersByIdPrefix(`ship-flame-${shipId}`, intensity);
             }
 
             // Always add a persistent emitter to the board group at the hit cell
             this.particleSystem.addEmitter(
                 worldX, 0.4, worldZ, 
-                true, targetGroup, true, 
+                true, targetGroup, 
+                result === 'sunk' ? '#3b3b38' : '#a0a0a0', 
                 intensity, 
                 `ship-flame-${shipId}-${cellX}-${cellZ}`
             );
@@ -181,8 +179,8 @@ export class ImpactEffects {
             for (let s = 0; s < shipLength; s++) {
                 const sx = minX + (isHorizontal ? s : 0);
                 const sz = minZ + (!isHorizontal ? s : 0);
-                // Sunk ships burn at max intensity (2.1-ish for Carrier)
-                this.addPersistentFireToShipCell(shipGroup, sx, sz, boardOffset, 2.0);
+                // Sunk ships burn at max intensity (2.0) with black smoke
+                this.addPersistentFireToShipCell(shipGroup, sx, sz, boardOffset, 2.0, '#3b3b38');
             }
         } else {
             for (let s = 0; s < shipLength; s++) {
@@ -197,7 +195,7 @@ export class ImpactEffects {
                     this.particleSystem.spawnExplosion(ex, 0.4, ez, targetGroup);
                     this.particleSystem.spawnVoxelExplosion(ex, 0.4, ez, 10, targetGroup);
                     addRipple(ex, ez, !isPlayer);
-                    this.addPersistentFireToShipCell(shipGroup, sx, sz, boardOffset, 2.0);
+                    this.addPersistentFireToShipCell(shipGroup, sx, sz, boardOffset, 2.0, '#3b3b38');
                 }, delay * 1000);
             }
         }
@@ -207,7 +205,8 @@ export class ImpactEffects {
         shipGroup: THREE.Group,
         cellX: number, cellZ: number,
         boardOffset: number,
-        intensity: number = 1.0
+        intensity: number = 1.0,
+        color: string = '#a0a0a0'
     ): void {
         const targetWorldX = cellX - boardOffset + 0.5;
         const targetWorldZ = cellZ - boardOffset + 0.5;
@@ -234,7 +233,8 @@ export class ImpactEffects {
         const shipId = shipGroup.userData.ship?.id || 'unknown';
         this.particleSystem.addEmitter(
             lX, 0.4, lZ, 
-            true, targetFireGroup, true, 
+            true, targetFireGroup, 
+            color, 
             intensity, 
             `ship-flame-${shipId}-${cellX}-${cellZ}-ship`
         );
