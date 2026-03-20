@@ -25,11 +25,11 @@
 - `src/application/game-loop/MatchSetup.ts` [NEW]
 - `src/application/game-loop/TurnExecutor.ts` [NEW]
 
-- [ ] **Create `MatchSetup.ts`** — extract `startNewMatch()`, `loadMatch()`, `replayShips()`, `replayAttacks()` into a standalone class or set of functions that accept `Match`, listener arrays, and AI engines as parameters.
-- [ ] **Create `TurnExecutor.ts`** — extract `handleEnemyTurn()`, `handleAutoPlayerTurn()`, and the `PLAYER_TURN` / `SETUP_BOARD` branch of `onGridClick()` into a class that receives the GameLoop state it needs (match, isAnimating, isPaused, listeners, AI engines) via constructor injection.
-- [ ] **Slim `GameLoop.ts`** — keep only: `GameState` enum, type aliases, constructor (event listeners), `transitionTo()`, listener registration methods, `triggerAutoSave()`, `hasUnsavedProgress()`. Delegate to `MatchSetup` and `TurnExecutor` internally.
-- [ ] **Update existing tests** — `GameLoop.preservation.test.ts` and `GameLoop.replayAttacks.test.ts` should pass without changes (public API unchanged).
-- [ ] **Acceptance**: `npm run dev` compiles cleanly; existing tests pass; `GameLoop` public API signature unchanged.
+- [v] **Create `MatchSetup.ts`** — extract `startNewMatch()`, `loadMatch()`, `replayShips()`, `replayAttacks()` into a standalone class or set of functions that accept `Match`, listener arrays, and AI engines as parameters.
+- [v] **Create `TurnExecutor.ts`** — extract `handleEnemyTurn()`, `handleAutoPlayerTurn()`, and the `PLAYER_TURN` / `SETUP_BOARD` branch of `onGridClick()` into a class that receives the GameLoop state it needs (match, isAnimating, isPaused, listeners, AI engines) via constructor injection.
+- [v] **Slim `GameLoop.ts`** — keep only: `GameState` enum, type aliases, constructor (event listeners), `transitionTo()`, listener registration methods, `triggerAutoSave()`, `hasUnsavedProgress()`. Delegate to `MatchSetup` and `TurnExecutor` internally.
+- [v] **Update existing tests** — `GameLoop.preservation.test.ts` and `GameLoop.replayAttacks.test.ts` should pass without changes (public API unchanged).
+- [v] **Acceptance**: `npm run dev` compiles cleanly; existing tests pass; `GameLoop` public API signature unchanged.
 
 ---
 
