@@ -24,16 +24,6 @@ We will make both visual, functional and maybe even some structural changes.
     * burning should become more intense as more segments are hit
     * ship killed sound is bad, generate a more authentic explosion sound
 
-2. implement rogue mode
-    * support single-side game where both players place their ships on the same side
-    * add alternative usage for fog of war - it should now wrap every ship at a distance of 7 cells and disappear and reappear as ships move.
-    * add ability for the ships to move (5-ship.length) cells per turn
-    * add alternative attacks: laying mines, sonar pings, dispatching warplanes, just ramming other vessels, etc.
-    * allow each ship to either: attack, move or turn once per turn.
-    * rotate currently active ship so that each player turn he plays another ship. starting from the smaller vessels to the larger.
-
-3. add multiplayer pvp
-    * networking
-    * sync mechanism
-    * UI for lobby, invites, etc.
+2. [v] Implement Rogue Mode (Moving to `docs/change-summary-9.md`)
+3. [v] Add Multiplayer PvP (Moving to `docs/change-summary-10.md`)
 
