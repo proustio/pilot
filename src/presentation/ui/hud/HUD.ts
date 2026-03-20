@@ -135,7 +135,7 @@ export class HUD extends BaseUIComponent {
         this.enemyFleetIcons = this.container.querySelector('#enemy-fleet-icons') as HTMLElement;
 
         // Delegate control binding to HUDControls.ts
-        bindHUDControls(this.container, this.gameLoop);
+        bindHUDControls(this.container);
 
         this.updateStats();
         this.updateCounters();

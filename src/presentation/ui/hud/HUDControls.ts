@@ -1,11 +1,10 @@
 import { Config } from '../../../infrastructure/config/Config';
-import { GameLoop, GameState } from '../../../application/game-loop/GameLoop';
 
 /**
  * Binds all switchboard button event listeners (Peek, Geek Stats, Auto-Battler, Day/Night, Cam-Reset, Speed, FPS, Settings).
  * Also handles Mouse Coord hover tooltips and Geek Stats live updates via CustomEvents.
  */
-export function bindHUDControls(container: HTMLElement, gameLoop: GameLoop): void {
+export function bindHUDControls(container: HTMLElement): void {
     // 1. Settings button
     const settingsBtn = container.querySelector('#hud-btn-settings') as HTMLButtonElement;
     if (settingsBtn) {
