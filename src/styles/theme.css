@@ -1,0 +1,214 @@
+/* =============================================
+   THEME SYSTEM — Light (Day) & Dark (Night)
+   ============================================= */
+
+:root {
+  --font-family: 'JetBrains Mono', Courier, monospace;
+}
+
+/* --- Fixed HUD Visuals (Maintains Dark Jarvis Style Always) --- */
+:root {
+  /* Mini Board */
+  --mini-board-bg: rgba(0, 0, 10, 0.7);
+  --mini-board-border: #4169E1;
+  --mini-board-title: #FFD700;
+  --mini-grid-bg: rgba(0, 0, 50, 0.3);
+  --mini-cell-bg: #4169E1;
+  --mini-cell-fog: rgba(65, 105, 225, 0.2);
+  --mini-cell-miss: rgba(255, 255, 255, 0.3);
+
+  /* Geek Stats */
+  --geek-bg: rgba(0, 0, 10, 0.7);
+  --geek-border: #4169E1;
+  --geek-text: #FFFFFF;
+  --geek-title: #FFD700;
+  --geek-label: #4169E1;
+  --geek-value: #FFD700;
+  --geek-online: #228B22;
+}
+
+/* --- LIGHT (Day) Theme - Bright Tech --- */
+body.day-mode {
+  --color-bg: #bebebe;
+  /* Very light slate blue/white */
+  --color-text: #000080;
+  /* Navy Blue */
+  --color-primary: #FFD700;
+  /* Gold */
+  --color-secondary: #228B22;
+  /* Forest Green */
+  --color-danger: #DC143C;
+  /* Crimson */
+  --color-highlight: #4169E1;
+  /* Royal Blue */
+
+  --panel-border-glow: 0 0 10px rgba(65, 105, 225, 0.3), inset 0 0 5px rgba(65, 105, 225, 0.1);
+  --panel-danger-glow: 0 0 10px rgba(220, 20, 60, 0.4), inset 0 0 5px rgba(220, 20, 60, 0.1);
+
+  /* Panels */
+  --panel-bg: rgba(255, 255, 255, 0.85);
+  /* Frost glass */
+  --panel-border: #4169E1;
+  /* Royal Blue */
+  --panel-shadow-light: rgba(255, 255, 255, 0.9);
+  --panel-shadow-dark: rgba(0, 0, 128, 0.2);
+  --panel-text: #000080;
+  /* Navy Blue */
+
+  /* Buttons */
+  --btn-bg: rgba(255, 255, 255, 0.9);
+  --btn-bg-hover: rgba(240, 248, 255, 1.0);
+  /* Alice Blue */
+  --btn-border: #000080;
+  /* Navy */
+  --btn-shadow-light: rgba(255, 215, 0, 0.5);
+  /* Gold glow */
+  --btn-shadow-dark: rgba(0, 0, 128, 0.3);
+  --btn-text: #000080;
+  /* Navy */
+
+  /* Select */
+  --select-bg: rgba(255, 255, 255, 0.9);
+  --select-text: #000080;
+  /* Navy */
+  --select-border: #000080;
+  /* Navy */
+
+  /* HUD */
+  --hud-fleet-bg: rgba(255, 255, 255, 0.85);
+  --hud-fleet-border: #4169E1;
+  --hud-stats-bg: rgba(255, 255, 255, 0.85);
+  --hud-stats-border: #4169E1;
+  --hud-stats-text: #DC143C;
+
+  /* Save Slots */
+  --slot-empty: #4169E1;
+  --slot-date: #000080;
+  --slot-turns: #DC143C;
+
+  /* Confirm Overlay */
+  --overlay-bg: rgba(240, 244, 248, 0.85);
+}
+
+/* --- DARK (Night) Theme - Jarvis Hologram --- */
+body.night-mode {
+  --color-bg: #000000;
+  --color-text: #FFFFFF;
+  --color-primary: #FFD700;
+  /* Gold */
+  --color-secondary: #228B22;
+  /* Forest Green */
+  --color-danger: #FF2400;
+  /* Scarlet */
+  --color-highlight: #4169E1;
+  /* Royal Blue */
+
+  --panel-border-glow: 0 0 10px rgba(255, 215, 0, 0.6), inset 0 0 10px rgba(255, 215, 0, 0.2);
+  --panel-danger-glow: 0 0 10px rgba(255, 36, 0, 0.6), inset 0 0 10px rgba(255, 36, 0, 0.2);
+
+  /* Panels */
+  --panel-bg: rgba(0, 0, 10, 0.7);
+  /* Deep dark navy base */
+  --panel-border: #FFD700;
+  --panel-shadow-light: rgba(65, 105, 225, 0.2);
+  --panel-shadow-dark: rgba(0, 0, 0, 0.9);
+  --panel-text: #FFFFFF;
+
+  /* Buttons */
+  --btn-bg: rgba(0, 0, 30, 0.8);
+  --btn-bg-hover: rgba(0, 0, 80, 0.9);
+  --btn-border: #FFD700;
+  --btn-shadow-light: rgba(255, 215, 0, 0.3);
+  --btn-shadow-dark: rgba(0, 0, 0, 0.8);
+  --btn-text: #FFD700;
+
+  /* Select */
+  --select-bg: rgba(0, 0, 30, 0.8);
+  --select-text: #FFFFFF;
+  --select-border: #FFD700;
+
+  /* HUD */
+  --hud-fleet-bg: rgba(0, 0, 10, 0.7);
+  --hud-fleet-border: #4169E1;
+  --hud-stats-bg: rgba(0, 0, 10, 0.7);
+  --hud-stats-border: #4169E1;
+  --hud-stats-text: #FFD700;
+
+  /* Save Slots */
+  --slot-empty: #4169E1;
+  --slot-date: #FFD700;
+  --slot-turns: #FF2400;
+
+  /* Confirm Overlay */
+  --overlay-bg: rgba(0, 0, 0, 0.85);
+}
+
+body,
+html {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-family);
+  user-select: none;
+}
+
+#app {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+}
+
+/* UI overlays will reside above the canvas (z-index > 1) */
+.ui-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+}
+
+.ui-interactive {
+  pointer-events: auto;
+}
+
+/* Interactivity Guard - Blocks HUD during animations or camera movement */
+.interactivity-blocked .hud-top-bar,
+.interactivity-blocked .hud-bottom-bar,
+.interactivity-blocked #unified-board-anchor,
+.interactivity-blocked #geek-stats {
+  pointer-events: none !important;
+  opacity: 0.7;
+  filter: grayscale(0.5);
+  transition: opacity 0.3s, filter 0.3s;
+}
+
+/* Menu/Dialogs should NOT be blocked even if global block is on */
+#main-menu, 
+#pause-menu, 
+#settings-modal, 
+.save-load-dialog {
+  pointer-events: auto !important;
+  opacity: 1 !important;
+  filter: none !important;
+}

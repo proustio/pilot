@@ -100,10 +100,10 @@
   @import './styles/dialogs.css';
   ```
 
-- [ ] **Create `src/styles/` directory** and the five CSS files by moving the corresponding sections.
-- [ ] **Replace `src/style.css` contents** with the `@import` barrel shown above.
-- [ ] **No import path changes needed** — `index.html` still loads `src/style.css`; Vite inlines the imports at build time.
-- [ ] **Acceptance**: `npm run dev` compiles cleanly; all visuals and responsive behavior are identical across both day and night modes. Verify by toggling day/night, opening settings, save/load dialog, and checking HUD switchboard.
+- [x] **Create `src/styles/` directory** and the five CSS files by moving the corresponding sections.
+- [x] **Replace `src/style.css` contents** with the `@import` barrel shown above.
+- [x] **No import path changes needed** — `index.html` still loads `src/style.css`; Vite inlines the imports at build time.
+- [x] **Acceptance**: `npm run dev` compiles cleanly; all visuals and responsive behavior are identical across both day and night modes. Verify by toggling day/night, opening settings, save/load dialog, and checking HUD switchboard.
 
 ---
 
