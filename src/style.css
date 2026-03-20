@@ -6,15 +6,26 @@
   --font-family: 'JetBrains Mono', Courier, monospace;
 }
 
-/* Base Palette (English Civil War + Jarvis Vibe):
-  Gold: #FFD700
-  White: #FFFFFF
-  Scarlet: #FF2400
-  Crimson: #DC143C
-  Royal/Navy Blue: #000080 (Base), #4169E1 (Highlight)
-  Forest Green: #228B22
-  Black: #000000
-*/
+/* --- Fixed HUD Visuals (Maintains Dark Jarvis Style Always) --- */
+:root {
+  /* Mini Board */
+  --mini-board-bg: rgba(0, 0, 10, 0.7);
+  --mini-board-border: #4169E1;
+  --mini-board-title: #FFD700;
+  --mini-grid-bg: rgba(0, 0, 50, 0.3);
+  --mini-cell-bg: #4169E1;
+  --mini-cell-fog: rgba(65, 105, 225, 0.2);
+  --mini-cell-miss: rgba(255, 255, 255, 0.3);
+
+  /* Geek Stats */
+  --geek-bg: rgba(0, 0, 10, 0.7);
+  --geek-border: #4169E1;
+  --geek-text: #FFFFFF;
+  --geek-title: #FFD700;
+  --geek-label: #4169E1;
+  --geek-value: #FFD700;
+  --geek-online: #228B22;
+}
 
 /* --- LIGHT (Day) Theme - Bright Tech --- */
 body.day-mode {
@@ -70,28 +81,6 @@ body.day-mode {
   --hud-stats-border: #4169E1;
   --hud-stats-text: #DC143C;
 
-  /* Mini Board */
-  --mini-board-bg: rgba(255, 255, 255, 0.85);
-  --mini-board-border: #4169E1;
-  --mini-board-title: #000080;
-  /* Navy */
-  --mini-grid-bg: rgba(65, 105, 225, 0.1);
-  --mini-cell-bg: #4169E1;
-  --mini-cell-fog: rgba(65, 105, 225, 0.2);
-  --mini-cell-miss: rgba(0, 0, 128, 0.2);
-
-  /* Geek Stats */
-  --geek-bg: rgba(255, 255, 255, 0.85);
-  --geek-border: #4169E1;
-  --geek-text: #000080;
-  --geek-title: #DC143C;
-  /* Crimson */
-  --geek-label: #4169E1;
-  /* Royal Blue */
-  --geek-value: #000080;
-  /* Navy */
-  --geek-online: #228B22;
-
   /* Save Slots */
   --slot-empty: #4169E1;
   --slot-date: #000080;
@@ -144,24 +133,6 @@ body.night-mode {
   --hud-stats-bg: rgba(0, 0, 10, 0.7);
   --hud-stats-border: #4169E1;
   --hud-stats-text: #FFD700;
-
-  /* Mini Board */
-  --mini-board-bg: rgba(0, 0, 10, 0.7);
-  --mini-board-border: #4169E1;
-  --mini-board-title: #FFD700;
-  --mini-grid-bg: rgba(0, 0, 50, 0.3);
-  --mini-cell-bg: #4169E1;
-  --mini-cell-fog: rgba(65, 105, 225, 0.2);
-  --mini-cell-miss: rgba(255, 255, 255, 0.3);
-
-  /* Geek Stats */
-  --geek-bg: rgba(0, 0, 10, 0.7);
-  --geek-border: #4169E1;
-  --geek-text: #FFFFFF;
-  --geek-title: #FFD700;
-  --geek-label: #4169E1;
-  --geek-value: #FFD700;
-  --geek-online: #228B22;
 
   /* Save Slots */
   --slot-empty: #4169E1;
@@ -833,7 +804,7 @@ canvas {
 .mini-board-title {
   font-size: 0.75rem;
   font-weight: bold;
-  color: var(--color-text);
+  color: #FFFFFF;
   text-shadow: 0 0 5px var(--mini-board-title);
   margin-bottom: 2px;
   text-transform: uppercase;

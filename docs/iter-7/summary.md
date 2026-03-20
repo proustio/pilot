@@ -15,6 +15,6 @@ We will make both visual, functional and maybe even some structural changes.
 8. [v] selected game mod should have a dedicated sub-panel, it should look like magic the gathering card - a small image, mode name, brief description metioning major features.
 9. [v] ships should not pass through the bottom of their side. parts that touch the bottom should crumble instead of passing through to the other side. here's an example of how my sank ship breaks through the bottom to the other side:
 ![sank ship fallen through example](sank-ship-pass-through-bottom.png)
-10. [] text font and color on minimap and geek stats should always remain like it is on the first image (dark background). It should not change based on theme.
+10. [v] text font and color on minimap and geek stats should always remain like it is on the first image (dark background). It should not change based on theme.
 ![minimap and geek stats on black background](minimap-and-geekstats-dark.png)
 ![minimap and geek stats on white background](minimap-and-geekstats-light.png)
