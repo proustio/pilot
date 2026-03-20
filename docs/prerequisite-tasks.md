@@ -42,9 +42,9 @@
 
 **Current problem**: `updateAnimation()` iterates 100 fog cells × 250 voxels = **25,000** `Object3D` matrix recompositions every frame on the CPU. Also allocates `new THREE.Object3D()` inside the loop body each frame. Each fog InstancedMesh then uploads its instance matrix to the GPU (100 uploads/frame).
 
-- [ ] **Move fog bobbing/rotation to a custom vertex shader**: Pass `time` as a uniform; compute per-instance displacement in the vertex shader using instance ID + seeded noise. Remove `updateAnimation()` entirely.
-- [ ] **Alternative (simpler)**: Use `setAttribute` with a custom `aPhase`/`aSpeed` buffer attribute instead of storing `voxelData` in `userData`. Vertex shader reads those attributes for per-voxel animation.
-- [ ] **Fallback (minimal change)**: Reuse the `dummy` object across frames (move to class field), throttle fog updates to every 3rd frame, skip fog cells not in camera frustum.
+- [-] **Move fog bobbing/rotation to a custom vertex shader**: Pass `time` as a uniform; compute per-instance displacement in the vertex shader using instance ID + seeded noise. Remove `updateAnimation()` entirely.
+- [x] **Alternative (simpler)**: Use `setAttribute` with a custom `aPhase`/`aSpeed` buffer attribute instead of storing `voxelData` in `userData`. Vertex shader reads those attributes for per-voxel animation.
+- [-] **Fallback (minimal change)**: Reuse the `dummy` object across frames (move to class field), throttle fog updates to every 3rd frame, skip fog cells not in camera frustum.
 
 | Tradeoff | Detail |
 |---|---|

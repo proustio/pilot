@@ -156,7 +156,7 @@ export class EntityManager {
 
     // ───── Update Loop ─────
 
-    public update() {
+    public update(camera: THREE.Camera) {
         // Board rotation lerp
         const actualFlipSpeed = Config.timing.boardFlipSpeed * Config.timing.gameSpeedMultiplier;
         this.masterBoardGroup.rotation.x += (this.targetRotationX - this.masterBoardGroup.rotation.x) * actualFlipSpeed;
@@ -166,7 +166,7 @@ export class EntityManager {
         this.time += waterTimeIncrement;
 
         // Fog animation
-        this.fogManager.updateAnimation(this.time);
+        this.fogManager.updateAnimation(this.time, camera);
 
         // Water uniforms
         this.updateWater(this.playerWaterUniforms, waterTimeIncrement);

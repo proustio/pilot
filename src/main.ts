@@ -134,7 +134,7 @@ const init = () => {
 
             if (!gameLoop.isPaused) {
                 interactionManager.update();
-                entityManager.update();
+                entityManager.update(engine.camera);
                 uiManager.update();
             }
 
