@@ -35,6 +35,12 @@ export class EntityManager {
     private enemyRippleIndex: number = 0;
 
     private particleSystem: ParticleSystem;
+    
+    // Temp objects for crumbling effect to avoid GC pressure
+    private _crumbleDummy = new THREE.Object3D();
+    private _crumbleWorldPos = new THREE.Vector3();
+    private _crumbleBoardPos = new THREE.Vector3();
+    private _crumbleInvMatrix = new THREE.Matrix4();
 
     constructor(scene: THREE.Scene) {
         this.scene = scene;
@@ -633,6 +639,51 @@ export class EntityManager {
 
                         child.rotation.z = sinkProgress * targetZ;
                         child.rotation.x = sinkProgress * targetX;
+
+                        // V-Shape Breaking Animation
+                        if (child.userData.isBroken && child.userData.halfA && child.userData.halfB) {
+                            const breakAngle = sinkProgress * 0.4; // Tweak for V-shape intensity
+                            const isHorizontal = child.userData.shipOrientation === Orientation.Horizontal;
+                            
+                            if (isHorizontal) {
+                                child.userData.halfA.rotation.z = breakAngle;
+                                child.userData.halfB.rotation.z = -breakAngle;
+                            } else {
+                                child.userData.halfA.rotation.x = -breakAngle;
+                                child.userData.halfB.rotation.x = breakAngle;
+                            }
+                        }
+
+                        // Voxel Crumbling Effect (touches the bottom floor at y=0 in masterBoardGroup space)
+                        const invMasterMatrix = this._crumbleInvMatrix.copy(this.masterBoardGroup.matrixWorld).invert();
+                        child.updateMatrixWorld(true);
+
+                        child.traverse((node) => {
+                            if (node instanceof THREE.InstancedMesh) {
+                                let meshUpdated = false;
+                                for (let i = 0; i < node.count; i++) {
+                                    node.getMatrixAt(i, this._crumbleDummy.matrix);
+                                    this._crumbleDummy.matrix.decompose(this._crumbleDummy.position, this._crumbleDummy.quaternion, this._crumbleDummy.scale);
+                                    
+                                    if (this._crumbleDummy.scale.x > 0.001) {
+                                        // Calculate position in masterBoardGroup space
+                                        this._crumbleWorldPos.copy(this._crumbleDummy.position).applyMatrix4(node.matrixWorld);
+                                        this._crumbleBoardPos.copy(this._crumbleWorldPos).applyMatrix4(invMasterMatrix);
+                                        
+                                        // If it touches the bottom (y=0), crumble it
+                                        if (this._crumbleBoardPos.y < 0.01) {
+                                            this._crumbleDummy.scale.set(0, 0, 0);
+                                            this._crumbleDummy.updateMatrix();
+                                            node.setMatrixAt(i, this._crumbleDummy.matrix);
+                                            meshUpdated = true;
+                                        }
+                                    }
+                                }
+                                if (meshUpdated) {
+                                    node.instanceMatrix.needsUpdate = true;
+                                }
+                            }
+                        });
                     }
                 }
             });
@@ -664,10 +715,20 @@ export class EntityManager {
         shipGroup.visible = isPlayer;
 
         // Base dark metal colors
-        const hullColor = new THREE.Color(0x111111); // Black/Dark Grey
-        const deckColor = new THREE.Color(0x222222);
-        const bridgeColor = new THREE.Color(0x1a1a1a);
-        const darkAccent = new THREE.Color(0x050505);
+        let hullColor = new THREE.Color(0x111111); // Black/Dark Grey
+        let deckColor = new THREE.Color(0x222222);
+        let bridgeColor = new THREE.Color(0x1a1a1a);
+        let darkAccent = new THREE.Color(0x050505);
+
+        if (!isPlayer) {
+            // Invert colors for enemy ships (Light Tech Vibe)
+            const invert = (c: THREE.Color) => new THREE.Color(1 - c.r, 1 - c.g, 1 - c.b);
+            hullColor = invert(hullColor);
+            deckColor = invert(deckColor);
+            bridgeColor = invert(bridgeColor);
+            darkAccent = invert(darkAccent);
+        }
+
 
         // Neon Accents (Glow colors assigned to edges/accents)
         const accentColor = isPlayer ? new THREE.Color(0xFFD700) : new THREE.Color(0xFF2400); // Gold vs Scarlet
@@ -836,8 +897,17 @@ export class EntityManager {
         shipGroup.add(instancedMesh);
 
         const turretCount = ship.size <= 2 ? 1 : ship.size <= 4 ? 2 : 3;
-        const turretBaseMat = new THREE.MeshStandardMaterial({ color: 0x2a2a2a, roughness: 0.6 });
-        const barrelMat = new THREE.MeshStandardMaterial({ color: 0x555555, roughness: 0.5 });
+        let turretBaseColor = new THREE.Color(0x2a2a2a);
+        let barrelColor = new THREE.Color(0x555555);
+
+        if (!isPlayer) {
+            turretBaseColor = new THREE.Color(1 - turretBaseColor.r, 1 - turretBaseColor.g, 1 - turretBaseColor.b);
+            barrelColor = new THREE.Color(1 - barrelColor.r, 1 - barrelColor.g, 1 - barrelColor.b);
+        }
+
+        const turretBaseMat = new THREE.MeshStandardMaterial({ color: turretBaseColor, roughness: 0.6 });
+        const barrelMat = new THREE.MeshStandardMaterial({ color: barrelColor, roughness: 0.5 });
+
 
         const shipLen = ship.size;
 
@@ -1045,13 +1115,12 @@ export class EntityManager {
             this.particleSystem.spawnExplosion(worldX, 0.4, worldZ, targetGroup);
         }
 
-        // Add persistent smoke/fire emitter
-        this.particleSystem.addEmitter(worldX, 0.4, worldZ, result === 'sunk', targetGroup);
-
         let voxelsRemoved = 0;
+        let shipFound: THREE.Object3D | null = null;
 
         targetGroup.children.forEach((child: THREE.Object3D) => {
             if (child.userData.isShip && child.userData.instancedMesh && child.userData.coversCell(cellX, cellZ)) {
+                shipFound = child;
                 const im = child.userData.instancedMesh as THREE.InstancedMesh;
                 const dummy = new THREE.Object3D();
                 let updated = false;
@@ -1092,9 +1161,32 @@ export class EntityManager {
                         const maxLean = Config.visual.sinkingMaxAngle;
                         child.userData.sinkAngleX = (Math.random() - 0.5) * maxLean * 2;
                         child.userData.sinkAngleZ = (Math.random() - 0.5) * maxLean * 2;
+                        
+                        // Break the ship!
+                        this.splitShipForBreaking(child as THREE.Group, cellX, cellZ);
                     }
 
                     child.visible = true; // Reveal if it was a hidden enemy ship
+
+                    const shipGroup = child as THREE.Group;
+                    const isHorizontal = shipGroup.userData.shipOrientation === Orientation.Horizontal;
+
+                    let minX = cellX, maxX = cellX, minZ = cellZ, maxZ = cellZ;
+                    // Find bounds of the ship to set all sections on fire
+                    for (let dx = -5; dx <= 5; dx++) {
+                        if (shipGroup.userData.coversCell(cellX + dx, cellZ)) {
+                            minX = Math.min(minX, cellX + dx);
+                            maxX = Math.max(maxX, cellX + dx);
+                        }
+                    }
+                    for (let dz = -5; dz <= 5; dz++) {
+                        if (shipGroup.userData.coversCell(cellX, cellZ + dz)) {
+                            minZ = Math.min(minZ, cellZ + dz);
+                            maxZ = Math.max(maxZ, cellZ + dz);
+                        }
+                    }
+
+                    const shipLength = Math.max(maxX - minX, maxZ - minZ) + 1;
 
                     if (isReplay) {
                         // Immediately sink partially
@@ -1102,46 +1194,137 @@ export class EntityManager {
                         child.rotation.z = child.userData.sinkAngleZ;
                         child.rotation.x = child.userData.sinkAngleX;
 
+                        // Add fire to all sections for replayed sunk ships
+                        for (let s = 0; s < shipLength; s++) {
+                            const sx = minX + (isHorizontal ? s : 0);
+                            const sz = minZ + (!isHorizontal ? s : 0);
+                            this.addPersistentFireToShipCell(shipGroup, sx, sz, boardOffset);
+                        }
                     } else {
-                        // Setup sequential segment explosions
-                        const shipGroup = child as THREE.Group;
-                        const isHorizontal = shipGroup.userData.coversCell(cellX + 1, cellZ) ||
-                            shipGroup.userData.coversCell(cellX - 1, cellZ) ||
-                            shipGroup.userData.shipOrientation === Orientation.Horizontal;
-
-                        let minX = cellX, maxX = cellX, minZ = cellZ, maxZ = cellZ;
-                        for (let dx = -5; dx <= 5; dx++) {
-                            if (shipGroup.userData.coversCell(cellX + dx, cellZ)) {
-                                minX = Math.min(minX, cellX + dx);
-                                maxX = Math.max(maxX, cellX + dx);
-                            }
-                        }
-                        for (let dz = -5; dz <= 5; dz++) {
-                            if (shipGroup.userData.coversCell(cellX, cellZ + dz)) {
-                                minZ = Math.min(minZ, cellZ + dz);
-                                maxZ = Math.max(maxZ, cellZ + dz);
-                            }
-                        }
-
-                        const shipLength = Math.max(maxX - minX, maxZ - minZ) + 1;
+                        // Setup sequential segment explosions and fire
                         for (let s = 0; s < shipLength; s++) {
                             const delay = s * 0.2 + (Math.random() * 0.1);
-                            const ex = (minX + (isHorizontal ? s : 0)) - boardOffset + 0.5;
-                            const ez = (minZ + (!isHorizontal ? s : 0)) - boardOffset + 0.5;
+                            const sx = minX + (isHorizontal ? s : 0);
+                            const sz = minZ + (!isHorizontal ? s : 0);
+                            
+                            const ex = sx - boardOffset + 0.5;
+                            const ez = sz - boardOffset + 0.5;
 
                             setTimeout(() => {
                                 this.particleSystem.spawnExplosion(ex, 0.4, ez, targetGroup);
                                 this.particleSystem.spawnVoxelExplosion(ex, 0.4, ez, 10, targetGroup);
                                 this.addRipple(ex, ez, !isPlayer);
+                                
+                                // Add persistent fire to the ship section
+                                this.addPersistentFireToShipCell(shipGroup, sx, sz, boardOffset);
                             }, delay * 1000);
                         }
                     }
+                } else if (result === 'hit') {
+                    // Just a hit: add fire to this section only
+                    this.addPersistentFireToShipCell(child as THREE.Group, cellX, cellZ, boardOffset);
                 }
             }
         });
 
+        // If it was a hit/sunk but no ship found (rare edge case with markers), 
+        // still add a smoke emitter to the board
+        if (!shipFound && (result === 'hit' || result === 'sunk')) {
+            this.particleSystem.addEmitter(worldX, 0.4, worldZ, false, targetGroup, true);
+        }
+
         if (voxelsRemoved > 0 && !isReplay) {
             this.particleSystem.spawnVoxelExplosion(worldX, 0.4, worldZ, voxelsRemoved, targetGroup);
         }
+    }
+
+    private addPersistentFireToShipCell(shipGroup: THREE.Group, cellX: number, cellZ: number, boardOffset: number) {
+        const targetWorldX = cellX - boardOffset + 0.5;
+        const targetWorldZ = cellZ - boardOffset + 0.5;
+        
+        let targetGroup: THREE.Object3D = shipGroup;
+
+        // If broken, find which half to attach to
+        if (shipGroup.userData.isBroken && shipGroup.userData.halfA && shipGroup.userData.halfB) {
+            const isHorizontal = shipGroup.userData.shipOrientation === Orientation.Horizontal;
+            const pivot = shipGroup.userData.pivotPos;
+            const currentPos = new THREE.Vector2(targetWorldX - shipGroup.position.x, targetWorldZ - shipGroup.position.z);
+            
+            const isPartA = isHorizontal ? currentPos.x < pivot.x : currentPos.y < pivot.z;
+            targetGroup = isPartA ? shipGroup.userData.halfA : shipGroup.userData.halfB;
+        }
+
+        const lX = targetWorldX - shipGroup.position.x - (targetGroup === shipGroup ? 0 : shipGroup.userData.pivotPos.x);
+        const lZ = targetWorldZ - shipGroup.position.z - (targetGroup === shipGroup ? 0 : shipGroup.userData.pivotPos.z);
+        this.particleSystem.addEmitter(lX, 0.4, lZ, true, targetGroup);
+    }
+
+    private splitShipForBreaking(shipGroup: THREE.Group, pivotCellX: number, pivotCellZ: number) {
+        if (shipGroup.userData.isBroken) return;
+        shipGroup.userData.isBroken = true;
+        
+        const boardOffset = Config.board.width / 2;
+        const px = pivotCellX - boardOffset + 0.5 - shipGroup.position.x;
+        const pz = pivotCellZ - boardOffset + 0.5 - shipGroup.position.z;
+        const pivotPos = new THREE.Vector3(px, 0, pz);
+        shipGroup.userData.pivotPos = pivotPos;
+
+        const halfA = new THREE.Group();
+        const halfB = new THREE.Group();
+        halfA.position.copy(pivotPos);
+        halfB.position.copy(pivotPos);
+        
+        shipGroup.add(halfA);
+        shipGroup.add(halfB);
+        shipGroup.userData.halfA = halfA;
+        shipGroup.userData.halfB = halfB;
+
+        const isHorizontal = shipGroup.userData.shipOrientation === Orientation.Horizontal;
+
+        const children = [...shipGroup.children];
+        children.forEach(child => {
+            if (child === halfA || child === halfB) return;
+
+            if (child instanceof THREE.InstancedMesh) {
+                const imA = child.clone();
+                const imB = child.clone();
+                
+                imA.position.sub(pivotPos);
+                imB.position.sub(pivotPos);
+                
+                halfA.add(imA);
+                halfB.add(imB);
+                
+                const dummy = new THREE.Object3D();
+                for (let i = 0; i < child.count; i++) {
+                    child.getMatrixAt(i, dummy.matrix);
+                    dummy.matrix.decompose(dummy.position, dummy.quaternion, dummy.scale);
+                    
+                    const voxelLocalX = dummy.position.x + child.position.x;
+                    const voxelLocalZ = dummy.position.z + child.position.z;
+                    
+                    const isPartA = isHorizontal ? voxelLocalX < px : voxelLocalZ < pz;
+                    
+                    if (isPartA) {
+                        dummy.scale.set(0, 0, 0);
+                        dummy.updateMatrix();
+                        imB.setMatrixAt(i, dummy.matrix);
+                    } else {
+                        dummy.scale.set(0, 0, 0);
+                        dummy.updateMatrix();
+                        imA.setMatrixAt(i, dummy.matrix);
+                    }
+                }
+                imA.instanceMatrix.needsUpdate = true;
+                imB.instanceMatrix.needsUpdate = true;
+                shipGroup.remove(child);
+            } else {
+                // Turrets / other groups
+                const isPartA = isHorizontal ? child.position.x < px : child.position.z < pz;
+                child.position.sub(pivotPos);
+                if (isPartA) halfA.add(child);
+                else halfB.add(child);
+            }
+        });
     }
 }

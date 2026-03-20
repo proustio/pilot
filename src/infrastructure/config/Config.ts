@@ -27,6 +27,9 @@ export const Config = {
 
     autoBattler: false,
     aiDifficulty: 'normal',
+    audio: {
+        masterVolume: 0.5
+    },
 
     loadConfig() {
         try {
@@ -52,6 +55,9 @@ export const Config = {
                 if (parsedConfig.aiDifficulty !== undefined) {
                     this.aiDifficulty = parsedConfig.aiDifficulty;
                 }
+                if (parsedConfig.audio?.masterVolume !== undefined) {
+                    this.audio.masterVolume = parsedConfig.audio.masterVolume;
+                }
             }
         } catch (e) {
             console.error('Failed to load user config', e);
@@ -70,7 +76,10 @@ export const Config = {
                     fpsCap: this.visual.fpsCap
                 },
                 autoBattler: this.autoBattler,
-                aiDifficulty: this.aiDifficulty
+                aiDifficulty: this.aiDifficulty,
+                audio: {
+                    masterVolume: this.audio.masterVolume
+                }
             };
             localStorage.setItem('battleships_config', JSON.stringify(configToSave));
         } catch (e) {
