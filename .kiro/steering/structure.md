@@ -15,7 +15,10 @@ src/
 │
 ├── application/               # Orchestration and use cases
 │   ├── ai/AIEngine.ts         # AI opponent (Easy=random, Normal=hunt/target, Hard=heatmap)
-│   └── game-loop/GameLoop.ts  # State machine (MAIN_MENU → SETUP_BOARD → PLAYER_TURN ↔ ENEMY_TURN → GAME_OVER)
+│   └── game-loop/
+│       ├── GameLoop.ts        # State machine (MAIN_MENU → SETUP_BOARD → PLAYER_TURN ↔ ENEMY_TURN → GAME_OVER)
+│       ├── MatchSetup.ts      # Match initialization, loading, and replay logic
+│       └── TurnExecutor.ts    # Turn handling for AI, auto-player, and player interaction
 │
 ├── infrastructure/            # External concerns
 │   ├── config/Config.ts       # Runtime config (visual settings, timing, game speed)
@@ -25,8 +28,13 @@ src/
 │   ├── 3d/
 │   │   ├── Engine3D.ts        # Three.js scene, camera, renderer, orbit controls, lighting
 │   │   ├── entities/
-│   │   │   ├── EntityManager.ts   # Board meshes, ship placement, attack markers, board flip
-│   │   │   └── ParticleSystem.ts  # Explosion and splash voxel particles
+│   │   │   ├── EntityManager.ts   # Scene orchestration, water, and sinking updates
+│   │   │   ├── BoardBuilder.ts    # Procedural generation of board meshes and materials
+│   │   │   ├── ShipFactory.ts     # Voxel ship creation and instancing
+│   │   │   ├── ProjectileManager.ts # Projectile creation and arc animation
+│   │   │   ├── ImpactEffects.ts   # Visual effects for hits, explosions, and breaking/sinking
+│   │   │   ├── FogManager.ts      # Enemy board fog-of-war logic
+│   │   │   └── ParticleSystem.ts  # Voxel-based particle effects
 │   │   ├── interaction/
 │   │   │   └── InteractionManager.ts  # Raycasting, hover highlights, click dispatch
 │   │   └── materials/
@@ -37,7 +45,9 @@ src/
 │       │   ├── BaseUIComponent.ts # Abstract base: mount/unmount/show/hide lifecycle
 │       │   └── SaveLoadDialog.ts  # Save/load slot picker
 │       ├── hud/
-│       │   ├── HUD.ts             # Turn indicator, fleet status, game stats, geek stats
+│       │   ├── HUD.ts             # Main HUD coordinator (template & lifecycle)
+│       │   ├── HUDControls.ts     # Switchboard event bindings and button logic
+│       │   ├── HUDStats.ts        # Fleet icons and game statistics display
 │       │   └── UnifiedBoardUI.ts  # Mini-map board grids
 │       ├── menu/
 │       │   ├── MainMenu.ts        # New game / load game entry
@@ -45,8 +55,14 @@ src/
 │       ├── pause/PauseMenu.ts     # Pause overlay with resume/save/quit
 │       └── settings/Settings.ts   # Toggle HUD elements, difficulty, day/night
 │
-├── main.ts                    # App bootstrap: wires all layers, starts render loop
-└── style.css                  # Global styles, theme variables, voxel UI classes
+├── main.ts                    # Application entry point: initializes Engine3D, GameLoop, UIManager
+├── style.css                  # Main CSS barrel (imports thematic styles)
+├── styles/                    # Modular CSS files
+│   ├── theme.css              # Theme variables (Day/Night) and base HTML/Body styles
+│   ├── components.css         # Shared UI components (panels, buttons, selects)
+│   ├── main-menu.css          # Main menu layout and card components
+│   ├── hud.css                # HUD layout, indicators, and switchboard
+│   └── dialogs.css            # Dialogs, overlays, and coordination indicators
 ```
 
 ## Architecture Rules

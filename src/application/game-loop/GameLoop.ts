@@ -1,10 +1,10 @@
 import { Match } from '../../domain/match/Match';
 import { Ship, Orientation } from '../../domain/fleet/Ship';
-import { CellState } from '../../domain/board/Board';
 import { AIEngine, AIDifficulty } from '../ai/AIEngine';
 import { Config } from '../../infrastructure/config/Config';
-import { Storage, ViewState } from '../../infrastructure/storage/Storage';
-import { getCoords } from '../../domain/board/BoardUtils';
+import { Storage } from '../../infrastructure/storage/Storage';
+import { MatchSetup, MatchSetupState } from './MatchSetup';
+import { TurnExecutor, TurnExecutorState } from './TurnExecutor';
 
 export enum GameState {
     MAIN_MENU = 'MAIN_MENU',
@@ -34,43 +34,56 @@ export class GameLoop {
     private attackResultListeners: AttackResultListener[] = [];
     private onAnimationsComplete: (() => void) | null = null;
 
+    private matchSetup: MatchSetup;
+    private turnExecutor: TurnExecutor;
 
     constructor() {
         this.aiEngine = new AIEngine();
         this.playerAIEngine = new AIEngine();
 
-        // Apply initial config difficulty
         this.aiEngine.setDifficulty(Config.aiDifficulty as AIDifficulty);
         this.playerAIEngine.setDifficulty(Config.aiDifficulty as AIDifficulty);
 
-        // Listen for AI difficulty changes
+        // Build a shared-state view that both helpers read/write through.
+        // Using `this` directly keeps all state in one place; the interfaces
+        // just document which fields each helper touches.
+        const sharedState = this as unknown as MatchSetupState & TurnExecutorState;
+
+        this.matchSetup = new MatchSetup(sharedState);
+        this.turnExecutor = new TurnExecutor(sharedState);
+
+        this.registerEventListeners();
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Event wiring
+    // ─────────────────────────────────────────────────────────────────────────
+
+    private registerEventListeners(): void {
         document.addEventListener('SET_AI_DIFFICULTY', (e: Event) => {
-            const customEvent = e as CustomEvent;
-            if (customEvent.detail && customEvent.detail.difficulty) {
-                this.aiEngine.setDifficulty(customEvent.detail.difficulty as AIDifficulty);
-                this.playerAIEngine.setDifficulty(customEvent.detail.difficulty as AIDifficulty);
+            const ce = e as CustomEvent;
+            if (ce.detail?.difficulty) {
+                this.aiEngine.setDifficulty(ce.detail.difficulty as AIDifficulty);
+                this.playerAIEngine.setDifficulty(ce.detail.difficulty as AIDifficulty);
             }
         });
 
-        // Listen for Game Speed changes
         document.addEventListener('SET_GAME_SPEED', (e: Event) => {
-            const customEvent = e as CustomEvent;
-            if (customEvent.detail && customEvent.detail.speed) {
-                Config.timing.gameSpeedMultiplier = parseFloat(customEvent.detail.speed);
+            const ce = e as CustomEvent;
+            if (ce.detail?.speed) {
+                Config.timing.gameSpeedMultiplier = parseFloat(ce.detail.speed);
             }
         });
 
-        // Listen for Auto-Battler toggling
         document.addEventListener('TOGGLE_AUTO_BATTLER', (e: Event) => {
-            const customEvent = e as CustomEvent;
-            if (customEvent.detail !== undefined) {
+            const ce = e as CustomEvent;
+            if (ce.detail !== undefined) {
                 if (Config.autoBattler && this.currentState === GameState.PLAYER_TURN && !this.isAnimating) {
-                    this.handleAutoPlayerTurn();
+                    this.turnExecutor.handleAutoPlayerTurn();
                 }
             }
         });
 
-        // Listen for Ship Rotation requested by key
         document.addEventListener('keydown', (e: KeyboardEvent) => {
             if (e.key.toLowerCase() === 'r' && this.currentState === GameState.SETUP_BOARD) {
                 this.currentPlacementOrientation = this.currentPlacementOrientation === Orientation.Horizontal
@@ -79,25 +92,15 @@ export class GameLoop {
             }
         });
 
-        // Listen for Pause/Resume
-        document.addEventListener('PAUSE_GAME', () => {
-            this.isPaused = true;
-        });
+        document.addEventListener('PAUSE_GAME', () => { this.isPaused = true; });
+        document.addEventListener('RESUME_GAME', () => { this.isPaused = false; });
 
-        document.addEventListener('RESUME_GAME', () => {
-            this.isPaused = false;
-        });
+        document.addEventListener('TRIGGER_AUTO_SAVE', () => { this.triggerAutoSave(); });
 
-        // Listen for internal state request to trigger session auto save
-        document.addEventListener('TRIGGER_AUTO_SAVE', () => {
-            this.triggerAutoSave();
-        });
-
-        // Listen for Save/Load events
         document.addEventListener('SAVE_GAME', (e: Event) => {
             const ce = e as CustomEvent;
             const slotId = ce.detail?.slotId;
-            const viewState: ViewState | undefined = ce.detail?.viewState;
+            const viewState = ce.detail?.viewState;
             if (slotId && this.match) {
                 Storage.saveGame(slotId, this.match, viewState);
             }
@@ -109,8 +112,6 @@ export class GameLoop {
             if (slotId) {
                 const match = Storage.loadGame(slotId);
                 if (match) {
-                    // Reload to get a clean 3D state, then auto-load
-                    // Store the slot to load in sessionStorage so the reload can pick it up
                     sessionStorage.setItem('battleships_autoload', slotId.toString());
                     window.location.reload();
                 } else {
@@ -119,7 +120,6 @@ export class GameLoop {
             }
         });
 
-        // Listen for 3D animation completion
         document.addEventListener('GAME_ANIMATIONS_COMPLETE', () => {
             if (this.onAnimationsComplete) {
                 const callback = this.onAnimationsComplete;
@@ -129,10 +129,10 @@ export class GameLoop {
         });
     }
 
+    // ─────────────────────────────────────────────────────────────────────────
+    // Public API (unchanged from before)
+    // ─────────────────────────────────────────────────────────────────────────
 
-    /**
-     * Returns true if the current match has any progress worth saving.
-     */
     public hasUnsavedProgress(): boolean {
         if (!this.match) return false;
         const hasShots = this.match.playerBoard.shotsFired > 0 || this.match.enemyBoard.shotsFired > 0;
@@ -140,36 +140,26 @@ export class GameLoop {
         return hasShots || hasShipsPlaced;
     }
 
-    /**
-     * Subscribe to state transition events (for UI / 3D to react)
-     */
-    public onStateChange(listener: StateChangeListener) {
+    public onStateChange(listener: StateChangeListener): void {
         this.listeners.push(listener);
     }
 
-    public onShipPlaced(listener: ShipPlacedListener) {
+    public onShipPlaced(listener: ShipPlacedListener): void {
         this.shipPlacedListeners.push(listener);
     }
 
-    public onAttackResult(listener: AttackResultListener) {
+    public onAttackResult(listener: AttackResultListener): void {
         this.attackResultListeners.push(listener);
     }
 
-    /**
-     * Triggers an auto-save for the current session.
-     */
-    public triggerAutoSave() {
+    public triggerAutoSave(): void {
         if (!this.match || !this.hasUnsavedProgress()) return;
-
         document.dispatchEvent(new CustomEvent('SAVE_GAME', {
             detail: { slotId: 'session' }
         }));
     }
 
-    /**
-     * Executes a state transition and notifies all subscribers.
-     */
-    public transitionTo(newState: GameState) {
+    public transitionTo(newState: GameState): void {
         if (this.currentState === newState) return;
 
         const oldState = this.currentState;
@@ -184,322 +174,35 @@ export class GameLoop {
         }
 
         if (newState === GameState.ENEMY_TURN) {
-            this.handleEnemyTurn();
+            this.turnExecutor.handleEnemyTurn();
         } else if (newState === GameState.PLAYER_TURN && Config.autoBattler) {
-            this.handleAutoPlayerTurn();
+            this.turnExecutor.handleAutoPlayerTurn();
         }
     }
 
-    public startNewMatch(match: Match) {
-        this.match = match;
-        this.aiEngine.reset();
-        this.playerAIEngine.reset();
+    // ─────────────────────────────────────────────────────────────────────────
+    // Match lifecycle — delegated to MatchSetup
+    // ─────────────────────────────────────────────────────────────────────────
 
-        this.playerShipsToPlace = match.getRequiredFleet();
-
-        if (Config.autoBattler) {
-            const playerShips = match.getRequiredFleet();
-            for (const ship of playerShips) {
-                let placed = false;
-                let attempts = 0;
-                while (!placed && attempts < 1000) {
-                    const x = Math.floor(Math.random() * match.playerBoard.width);
-                    const z = Math.floor(Math.random() * match.playerBoard.height);
-                    const orient = Math.random() > 0.5 ? Orientation.Horizontal : Orientation.Vertical;
-
-                    if (match.validatePlacement(match.playerBoard, ship, x, z, orient)) {
-                        placed = match.playerBoard.placeShip(ship, x, z, orient);
-                        if (placed) {
-                            this.shipPlacedListeners.forEach(l => l(ship, x, z, orient, true));
-                        }
-                    }
-                    attempts++;
-                }
-            }
-            this.playerShipsToPlace = [];
-        }
-
-        const enemyShips = match.getRequiredFleet();
-        for (const ship of enemyShips) {
-            let placed = false;
-            let attempts = 0;
-            while (!placed && attempts < 1000) {
-                const x = Math.floor(Math.random() * match.enemyBoard.width);
-                const z = Math.floor(Math.random() * match.enemyBoard.height);
-                const orient = Math.random() > 0.5 ? Orientation.Horizontal : Orientation.Vertical;
-
-                if (match.validatePlacement(match.enemyBoard, ship, x, z, orient)) {
-                    placed = match.enemyBoard.placeShip(ship, x, z, orient);
-                    if (placed) {
-                        this.shipPlacedListeners.forEach(l => l(ship, x, z, orient, false));
-                    }
-                }
-                attempts++;
-            }
-        }
-
-        if (this.playerShipsToPlace.length === 0) {
-            this.transitionTo(GameState.PLAYER_TURN);
-        } else {
-            this.transitionTo(GameState.SETUP_BOARD);
-        }
+    public startNewMatch(match: Match): void {
+        this.matchSetup.startNewMatch(match);
     }
 
-    /**
-     * Resumes an existing match.
-     */
-    public loadMatch(match: Match) {
-        this.match = match;
-
-        this.replayShips(match);
-
-        this.replayAttacks(match);
-
-        this.transitionTo(GameState.PLAYER_TURN);
+    public loadMatch(match: Match): void {
+        this.matchSetup.loadMatch(match);
     }
 
-    /**
-     * Fires onShipPlaced for every already-placed ship in both boards.
-     * This makes EntityManager spawn the 3D meshes for a loaded game.
-     */
-    private replayShips(match: Match) {
-        for (const ship of match.playerBoard.ships) {
-            if (ship.isPlaced) {
-                this.shipPlacedListeners.forEach(l => l(ship, ship.headX, ship.headZ, ship.orientation as Orientation, true));
-            }
-        }
-        for (const ship of match.enemyBoard.ships) {
-            if (ship.isPlaced) {
-                this.shipPlacedListeners.forEach(l => l(ship, ship.headX, ship.headZ, ship.orientation as Orientation, false));
-            }
-        }
-    }
+    // ─────────────────────────────────────────────────────────────────────────
+    // Input handler — routed by current state to TurnExecutor
+    // ─────────────────────────────────────────────────────────────────────────
 
-    /**
-     * Fires onAttackResult for every Hit/Miss/Sunk cell in both boards.
-     * Called after replayShips() so ships exist before markers reference them.
-     * isReplay=true lets the presentation layer place markers instantly (no arc animation).
-     */
-    private replayAttacks(match: Match) {
-        const resultMap: Record<number, string> = {
-            [CellState.Hit]: 'hit',
-            [CellState.Miss]: 'miss',
-            [CellState.Sunk]: 'sunk',
-        };
-
-        match.playerBoard.gridState.forEach((cell, index) => {
-            const result = resultMap[cell];
-            if (result) {
-                const { x, z } = getCoords(index, match.playerBoard.width);
-                this.attackResultListeners.forEach(l => l(x, z, result, false, true));
-            }
-        });
-
-        match.enemyBoard.gridState.forEach((cell, index) => {
-            const result = resultMap[cell];
-            if (result) {
-                const { x, z } = getCoords(index, match.enemyBoard.width);
-                this.attackResultListeners.forEach(l => l(x, z, result, true, true));
-            }
-        });
-    }
-
-    private handleEnemyTurn() {
-        if (!this.match) return;
-
-        const executeTurn = () => {
-            if (!this.match) return;
-
-            if (this.isPaused) {
-                setTimeout(executeTurn, 100);
-                return;
-            }
-
-            this.isAnimating = true;
-
-            const flipWait = Config.timing.boardFlipWaitMs / Config.timing.gameSpeedMultiplier;
-            setTimeout(() => {
-                setTimeout(() => {
-                    if (!this.match) return;
-
-                    if (this.isPaused) {
-                        this.isAnimating = false;
-                        executeTurn();
-                        return;
-                    }
-
-                    const target = this.aiEngine.computeNextMove(this.match.playerBoard, this.match);
-
-                    const result = this.match.playerBoard.receiveAttack(target.x, target.z);
-
-                    this.aiEngine.reportResult(target.x, target.z, result.toString(), this.match.playerBoard);
-
-                    this.attackResultListeners.forEach(l => l(target.x, target.z, result.toString(), false, false));
-
-                    const finalizeTurn = () => {
-                        if (this.isPaused) {
-                            setTimeout(finalizeTurn, 100);
-                            return;
-                        }
-
-                        let status: 'ongoing' | 'player_wins' | 'enemy_wins' = 'ongoing';
-                    try {
-                        status = this.match!.checkGameEnd();
-                    } catch (e: any) {
-                        if (e.message === 'Board has no ships') {
-                            document.dispatchEvent(new CustomEvent('EXIT_GAME'));
-                            return;
-                        }
-                        throw e;
-                    }
-                        this.isAnimating = false;
-                        if (status !== 'ongoing') {
-                            this.transitionTo(GameState.GAME_OVER);
-                        } else {
-                            this.transitionTo(GameState.PLAYER_TURN);
-                        }
-                    };
-
-                    this.onAnimationsComplete = finalizeTurn;
-
-
-                }, Config.timing.aiThinkingTimeMs / Config.timing.gameSpeedMultiplier);
-            }, flipWait);
-        };
-
-        executeTurn();
-    }
-
-    private handleAutoPlayerTurn() {
-        if (!this.match || this.isAnimating) return;
-
-        const executeTurn = () => {
-            if (!this.match) return;
-
-            if (this.isPaused) {
-                setTimeout(executeTurn, 100);
-                return;
-            }
-
-            this.isAnimating = true;
-
-            const flipWait = Config.timing.boardFlipWaitMs / Config.timing.gameSpeedMultiplier;
-            setTimeout(() => {
-                setTimeout(() => {
-                    if (!this.match) return;
-
-                    if (this.isPaused) {
-                        this.isAnimating = false;
-                        executeTurn();
-                        return;
-                    }
-
-                    const target = this.playerAIEngine.computeNextMove(this.match.enemyBoard, this.match);
-
-                    const result = this.match.enemyBoard.receiveAttack(target.x, target.z);
-
-                    this.playerAIEngine.reportResult(target.x, target.z, result.toString(), this.match.enemyBoard);
-
-                    this.attackResultListeners.forEach(l => l(target.x, target.z, result.toString(), true, false));
-
-                    const finalizeTurn = () => {
-                        if (this.isPaused) {
-                            setTimeout(finalizeTurn, 100);
-                            return;
-                        }
-
-                        let status: 'ongoing' | 'player_wins' | 'enemy_wins' = 'ongoing';
-                    try {
-                        status = this.match!.checkGameEnd();
-                    } catch (e: any) {
-                        if (e.message === 'Board has no ships') {
-                            document.dispatchEvent(new CustomEvent('EXIT_GAME'));
-                            return;
-                        }
-                        throw e;
-                    }
-                        this.isAnimating = false;
-                        if (status !== 'ongoing') {
-                            this.transitionTo(GameState.GAME_OVER);
-                        } else {
-                            this.transitionTo(GameState.ENEMY_TURN);
-                        }
-                    };
-
-                    this.onAnimationsComplete = finalizeTurn;
-
-
-                }, Config.timing.aiThinkingTimeMs / Config.timing.gameSpeedMultiplier);
-            }, flipWait);
-        };
-
-        executeTurn();
-    }
-
-    /**
-     * External input hook (from 3D interactions and UI)
-     */
-    public onGridClick(x: number, z: number, isPlayerSide?: boolean) {
+    public onGridClick(x: number, z: number, isPlayerSide?: boolean): void {
         if (!this.match || this.isPaused) return;
 
         if (this.currentState === GameState.SETUP_BOARD) {
-            // Only allow placement on player board during setup
-            if (isPlayerSide === false) return;
-            if (this.playerShipsToPlace.length === 0) return;
-
-            const nextShip = this.playerShipsToPlace[0];
-            const isValid = this.match.validatePlacement(this.match.playerBoard, nextShip, x, z, this.currentPlacementOrientation);
-
-            if (isValid) {
-                const placed = this.match.playerBoard.placeShip(nextShip, x, z, this.currentPlacementOrientation);
-                if (placed) {
-                    this.playerShipsToPlace.shift();
-                    this.shipPlacedListeners.forEach(l => l(nextShip, x, z, this.currentPlacementOrientation, true));
-
-                    this.triggerAutoSave();
-
-                    if (this.playerShipsToPlace.length === 0) {
-                        this.transitionTo(GameState.PLAYER_TURN);
-                    }
-                }
-            }
-
+            this.turnExecutor.onSetupBoardClick(x, z, isPlayerSide);
         } else if (this.currentState === GameState.PLAYER_TURN) {
-            if (this.isAnimating || Config.autoBattler) return;
-            
-            // Only allow attacks on enemy board during player turn
-            if (isPlayerSide === true) return;
-
-            const result = this.match.enemyBoard.receiveAttack(x, z);
-
-            if (result !== 'invalid') {
-                this.attackResultListeners.forEach(l => l(x, z, result, true, false));
-
-                this.isAnimating = true;
-
-                const finalizeTurn = () => {
-                    let status: 'ongoing' | 'player_wins' | 'enemy_wins' = 'ongoing';
-                    try {
-                        status = this.match!.checkGameEnd();
-                    } catch (e: any) {
-                        if (e.message === 'Board has no ships') {
-                            document.dispatchEvent(new CustomEvent('EXIT_GAME'));
-                            return;
-                        }
-                        throw e;
-                    }
-                    this.isAnimating = false;
-                    if (status !== 'ongoing') {
-                        this.transitionTo(GameState.GAME_OVER);
-                    } else {
-                        this.transitionTo(GameState.ENEMY_TURN);
-                    }
-                };
-
-                this.onAnimationsComplete = finalizeTurn;
-
-
-            }
+            this.turnExecutor.onPlayerTurnClick(x, z, isPlayerSide);
         }
     }
 }
