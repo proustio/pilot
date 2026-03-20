@@ -15,6 +15,7 @@ inclusion: always
 ## Dependencies
 - three.js 0.183.x — 3D rendering, shaders, instanced meshes, raycasting
 - @types/three — type definitions
+- Web Audio API — Layered procedural sound synthesis via `AudioEngine` (no audio file assets)
 - MagicaVoxel — Primary tool for creating and exporting voxel 3D models.
 
 ## UI
@@ -41,6 +42,7 @@ npm run preview  # Preview production build locally
 - **CSS Modularity**: Global styles are decomposed into thematic modules (`theme.css`, `components.css`, `hud.css`, etc.) and bundled via build-time `@import` statements in `style.css`.
 - **Visual Consistency**: Prefer referencing shared material properties or color constants from `ParticleSystem.ts` (e.g., `greySmokeMat`, `blackSmokeMat`) over hardcoded hex strings to ensure unified visual density and style.
 - **Authentic Audio**: Impactful sound effects (like ship kills) are built using layered Web Audio API nodes (boom, shockwave, crackle, rumble) to achieve a high-quality "cinematic" feel without large assets.
+- **InteractivityGuard**: A centralized static class (`presentation/InteractivityGuard.ts`) blocks all user input during camera transitions, turn animations, and menu overlays. Dispatches `INTERACTION_GUARD_STATE` CustomEvents and toggles the `.interactivity-blocked` CSS class on `<body>`.
 - **Performance Targets**: Keep draw calls < 100 by using `InstancedMesh` for repeated voxel geometry (ships, water blocks, particles). Use `requestAnimationFrame` for rendering, but decouple heavy simulations (like Hard AI) to prevent frame drops.
 - **AI Strategy**: The "Hard" AI difficulty uses a Monte Carlo approach to generate probabilistic heatmaps based on remaining fleet geometry.
 - **DDD Rationale**: Decoupling `domain/` and `application/` from Three.js/DOM allows for "headless" logic simulation (useful for AI training or unit testing).
