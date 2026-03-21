@@ -78,10 +78,10 @@
 
 **Current problem**: Using `PCFSoftShadowMap` (2-tap PCF, most expensive built-in shadow type) with a 1024×1024 shadow map and a large shadow camera frustum (50×50 units). DirectionalLight shadow renders a full shadow pass each frame.
 
-- [ ] **Switch to `PCFShadowMap`** (single-tap, ~30% cheaper).
-- [ ] **Reduce shadow map to 512×512** (quarter the fill for shadows).
-- [ ] **Add `Config.visual.shadowsEnabled` toggle** — allow disabling shadows entirely for low-end devices.
-- [ ] **Tighten shadow camera frustum** to actual board bounds (~12×12 instead of 50×50).
+- [x] **Switch to `PCFShadowMap`** (single-tap, ~30% cheaper).
+- [x] **Reduce shadow map to 512×512** (quarter the fill for shadows).
+- [x] **Add `Config.visual.shadowsEnabled` toggle** — allow disabling shadows entirely for low-end devices.
+- [x] **Tighten shadow camera frustum** to actual board bounds (~12×12 instead of 50×50).
 
 | Tradeoff | Detail |
 |---|---|

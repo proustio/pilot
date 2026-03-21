@@ -40,8 +40,8 @@ export class Engine3D {
     this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    this.renderer.shadowMap.enabled = true;
-    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    this.renderer.shadowMap.enabled = Config.visual.shadowsEnabled;
+    this.renderer.shadowMap.type = THREE.PCFShadowMap;
 
     this.container.appendChild(this.renderer.domElement);
 
@@ -130,16 +130,16 @@ export class Engine3D {
 
     this.dirLight = new THREE.DirectionalLight(0xFFD700, 0.8); // Gold directional light for highlights
     this.dirLight.position.set(10, 20, 10);
-    this.dirLight.castShadow = true;
+    this.dirLight.castShadow = Config.visual.shadowsEnabled;
 
-    this.dirLight.shadow.camera.top = 25;
-    this.dirLight.shadow.camera.bottom = -25;
-    this.dirLight.shadow.camera.left = -25;
-    this.dirLight.shadow.camera.right = 25;
+    this.dirLight.shadow.camera.top = 12;
+    this.dirLight.shadow.camera.bottom = -12;
+    this.dirLight.shadow.camera.left = -12;
+    this.dirLight.shadow.camera.right = 12;
     this.dirLight.shadow.camera.near = 0.5;
     this.dirLight.shadow.camera.far = 50;
-    this.dirLight.shadow.mapSize.width = 1024;
-    this.dirLight.shadow.mapSize.height = 1024;
+    this.dirLight.shadow.mapSize.width = 512;
+    this.dirLight.shadow.mapSize.height = 512;
 
     this.scene.add(this.dirLight);
 

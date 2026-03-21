@@ -22,7 +22,8 @@ export const Config = {
         showGeekStats: false,
         fpsCap: 60,
         sinkingFloor: -0.35,
-        sinkingMaxAngle: 0.25
+        sinkingMaxAngle: 0.25,
+        shadowsEnabled: true
     },
 
     autoBattler: false,
@@ -49,6 +50,9 @@ export const Config = {
                 if (parsedConfig.visual?.fpsCap !== undefined) {
                     this.visual.fpsCap = parsedConfig.visual.fpsCap;
                 }
+                if (parsedConfig.visual?.shadowsEnabled !== undefined) {
+                    this.visual.shadowsEnabled = parsedConfig.visual.shadowsEnabled;
+                }
                 if (parsedConfig.autoBattler !== undefined) {
                     this.autoBattler = parsedConfig.autoBattler;
                 }
@@ -73,7 +77,8 @@ export const Config = {
                 visual: {
                     isDayMode: this.visual.isDayMode,
                     showGeekStats: this.visual.showGeekStats,
-                    fpsCap: this.visual.fpsCap
+                    fpsCap: this.visual.fpsCap,
+                    shadowsEnabled: this.visual.shadowsEnabled
                 },
                 autoBattler: this.autoBattler,
                 aiDifficulty: this.aiDifficulty,
