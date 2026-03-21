@@ -9,6 +9,10 @@
   z-index: 100;
 }
 
+.custom-dropdown.open {
+  z-index: 1000;
+}
+
 .custom-dropdown-selected {
   display: flex;
   align-items: center;
