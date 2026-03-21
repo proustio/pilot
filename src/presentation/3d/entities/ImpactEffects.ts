@@ -80,6 +80,14 @@ export class ImpactEffects {
                                 updated = true;
                                 voxelsRemoved++;
                             }
+                        } else if (result === 'sunk') {
+                            if (Math.random() < 0.45) { // Damage the rest of the ship heavily
+                                dummy.scale.set(0, 0, 0);
+                                dummy.updateMatrix();
+                                im.setMatrixAt(i, dummy.matrix);
+                                updated = true;
+                                voxelsRemoved++;
+                            }
                         }
                     }
                 }

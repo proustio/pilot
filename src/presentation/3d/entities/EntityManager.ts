@@ -33,12 +33,6 @@ export class EntityManager {
 
     private wasBusy: boolean = false;
 
-    // Temp objects for crumbling effect to avoid GC pressure
-    private _crumbleDummy = new THREE.Object3D();
-    private _crumbleWorldPos = new THREE.Vector3();
-    private _crumbleBoardPos = new THREE.Vector3();
-    private _crumbleInvMatrix = new THREE.Matrix4();
-
     // Sub-managers
     private particleSystem: ParticleSystem;
     private fogManager: FogManager;
@@ -266,42 +260,9 @@ export class EntityManager {
                                 child.userData.halfB.rotation.x = breakAngle;
                             }
                         }
-
-                        // Voxel Crumbling Effect
-                        this.updateCrumbling(child);
                     }
                 }
             });
-        });
-    }
-
-    private updateCrumbling(child: THREE.Object3D) {
-        const invMasterMatrix = this._crumbleInvMatrix.copy(this.masterBoardGroup.matrixWorld).invert();
-        child.updateMatrixWorld(true);
-
-        child.traverse((node) => {
-            if (node instanceof THREE.InstancedMesh) {
-                let meshUpdated = false;
-                for (let i = 0; i < node.count; i++) {
-                    node.getMatrixAt(i, this._crumbleDummy.matrix);
-                    this._crumbleDummy.matrix.decompose(this._crumbleDummy.position, this._crumbleDummy.quaternion, this._crumbleDummy.scale);
-
-                    if (this._crumbleDummy.scale.x > 0.001) {
-                        this._crumbleWorldPos.copy(this._crumbleDummy.position).applyMatrix4(node.matrixWorld);
-                        this._crumbleBoardPos.copy(this._crumbleWorldPos).applyMatrix4(invMasterMatrix);
-
-                        if (this._crumbleBoardPos.y < 0.01) {
-                            this._crumbleDummy.scale.set(0, 0, 0);
-                            this._crumbleDummy.updateMatrix();
-                            node.setMatrixAt(i, this._crumbleDummy.matrix);
-                            meshUpdated = true;
-                        }
-                    }
-                }
-                if (meshUpdated) {
-                    node.instanceMatrix.needsUpdate = true;
-                }
-            }
         });
     }
 }

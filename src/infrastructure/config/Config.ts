@@ -21,7 +21,7 @@ export const Config = {
         isDayMode: new Date().getHours() >= 6 && new Date().getHours() < 18,
         showGeekStats: true,
         fpsCap: 30,
-        sinkingFloor: -0.25,
+        sinkingFloor: -0.08,
         sinkingMaxAngle: 0.25,
         shadowsEnabled: true,
         antialias: typeof navigator !== 'undefined' ? !/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) : true
