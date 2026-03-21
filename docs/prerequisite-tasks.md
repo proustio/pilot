@@ -94,9 +94,9 @@
 
 **Files:** `Engine3D.ts`, `Config.ts`
 
-- [ ] **Make `antialias` configurable** via `Config.visual.antialias`. Default `true` on desktop, `false` on mobile/low-end. Disabling AA typically doubles fill-rate throughput.
-- [ ] **Cap `pixelRatio` to 1.5** instead of 2 — retina screens render 4× pixels at ratio 2. Visually nearly indistinguishable at 1.5 but ~44% fewer pixels.
-- [ ] **Remove `FogExp2`** — the scene is small and fog adds minimal visual value versus its per-fragment cost. The board already has its own voxel-based fog.
+- [x] **Make `antialias` configurable** via `Config.visual.antialias`. Default `true` on desktop, `false` on mobile/low-end. Disabling AA typically doubles fill-rate throughput.
+- [x] **Cap `pixelRatio` to 1.5** instead of 2 — retina screens render 4× pixels at ratio 2. Visually nearly indistinguishable at 1.5 but ~44% fewer pixels.
+- [x] **Remove `FogExp2`** — the scene is small and fog adds minimal visual value versus its per-fragment cost. The board already has its own voxel-based fog.
 
 | Tradeoff | Detail |
 |---|---|

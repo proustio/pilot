@@ -10,8 +10,8 @@ export const Config = {
     },
     timing: {
         gameSpeedMultiplier: 1.0,
-        aiThinkingTimeMs: 1000,
-        turnDelayMs: 2000,
+        aiThinkingTimeMs: 2000,
+        turnDelayMs: 1000,
         boardFlipSpeed: 0.05,
         projectileSpeed: 0.04,
         cameraLerpSpeed: 0.05,
@@ -19,11 +19,12 @@ export const Config = {
     },
     visual: {
         isDayMode: new Date().getHours() >= 6 && new Date().getHours() < 18,
-        showGeekStats: false,
-        fpsCap: 60,
-        sinkingFloor: -0.35,
+        showGeekStats: true,
+        fpsCap: 30,
+        sinkingFloor: -0.25,
         sinkingMaxAngle: 0.25,
-        shadowsEnabled: true
+        shadowsEnabled: true,
+        antialias: typeof navigator !== 'undefined' ? !/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) : true
     },
 
     autoBattler: false,
@@ -53,6 +54,9 @@ export const Config = {
                 if (parsedConfig.visual?.shadowsEnabled !== undefined) {
                     this.visual.shadowsEnabled = parsedConfig.visual.shadowsEnabled;
                 }
+                if (parsedConfig.visual?.antialias !== undefined) {
+                    this.visual.antialias = parsedConfig.visual.antialias;
+                }
                 if (parsedConfig.autoBattler !== undefined) {
                     this.autoBattler = parsedConfig.autoBattler;
                 }
@@ -78,7 +82,8 @@ export const Config = {
                     isDayMode: this.visual.isDayMode,
                     showGeekStats: this.visual.showGeekStats,
                     fpsCap: this.visual.fpsCap,
-                    shadowsEnabled: this.visual.shadowsEnabled
+                    shadowsEnabled: this.visual.shadowsEnabled,
+                    antialias: this.visual.antialias
                 },
                 autoBattler: this.autoBattler,
                 aiDifficulty: this.aiDifficulty,

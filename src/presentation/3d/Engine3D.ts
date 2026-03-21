@@ -29,17 +29,15 @@ export class Engine3D {
 
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color('#00000a'); // Deep space/Jarvis hologram background
-    // Optional: Add some subtle space dust/grid fog to the background
-    this.scene.fog = new THREE.FogExp2(0x00000a, 0.02);
 
     const aspect = window.innerWidth / window.innerHeight;
     this.camera = new THREE.PerspectiveCamera(50, aspect, 0.1, 1000);
     this.camera.position.set(5, 10, 14);
     this.camera.lookAt(0, 0, 0);
 
-    this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    this.renderer = new THREE.WebGLRenderer({ antialias: Config.visual.antialias, alpha: true });
     this.renderer.setSize(window.innerWidth, window.innerHeight);
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
     this.renderer.shadowMap.enabled = Config.visual.shadowsEnabled;
     this.renderer.shadowMap.type = THREE.PCFShadowMap;
 
@@ -157,9 +155,6 @@ export class Engine3D {
     if (isDay) {
       // Light Mode - Bright Tech Jarvis Vibe
       this.scene.background = new THREE.Color('#f0f4f8');
-      if (this.scene.fog) {
-        (this.scene.fog as THREE.FogExp2).color.setHex(0xf0f4f8);
-      }
       this.ambientLight.color.setHex(0xffffff);
       this.ambientLight.intensity = 0.6;
 
@@ -170,9 +165,6 @@ export class Engine3D {
     } else {
       // Night Mode - Dark Hologram Jarvis Vibe
       this.scene.background = new THREE.Color('#00000a');
-      if (this.scene.fog) {
-        (this.scene.fog as THREE.FogExp2).color.setHex(0x00000a);
-      }
       this.ambientLight.color.setHex(0x4169E1);
       this.ambientLight.intensity = 0.3;
 
