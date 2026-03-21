@@ -11,11 +11,6 @@ export class FogManager {
         this.fogMeshes = new Array(Config.board.width * Config.board.height).fill(null);
     }
 
-    private dummy: THREE.Object3D = new THREE.Object3D();
-    private frameCounter: number = 0;
-    private frustum: THREE.Frustum = new THREE.Frustum();
-    private projScreenMatrix: THREE.Matrix4 = new THREE.Matrix4();
-
     public setFogMesh(index: number, mesh: THREE.InstancedMesh) {
         this.fogMeshes[index] = mesh;
     }
@@ -52,40 +47,14 @@ export class FogManager {
     /**
      * Animates all fog voxel clouds (bobbing, rotation).
      */
-    public updateAnimation(time: number, camera: THREE.Camera) {
-        this.frameCounter++;
-        if (this.frameCounter % 3 !== 0) return;
-
-        // Update frustum for culling
-        this.projScreenMatrix.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
-        this.frustum.setFromProjectionMatrix(this.projScreenMatrix);
-
-        const fogCloudTime = time * 2.0;
-        this.fogMeshes.forEach(mesh => {
-            if (mesh && mesh.userData.isFog) {
-                // Skip if not in camera frustum
-                if (!this.frustum.intersectsObject(mesh)) {
-                    return;
-                }
-
-                const im = mesh as THREE.InstancedMesh;
-                const vData = mesh.userData.voxelData;
-                for (let i = 0; i < im.count; i++) {
-                    const data = vData[i];
-                    this.dummy.position.copy(data.basePos);
-                    // Slow bobbing
-                    this.dummy.position.y += Math.sin(fogCloudTime * data.speed + data.phase) * 0.1;
-                    // Slow rotation
-                    this.dummy.rotation.set(
-                        Math.sin(fogCloudTime * 0.5 + data.phase),
-                        Math.cos(fogCloudTime * 0.4 + data.phase),
-                        Math.sin(fogCloudTime * 0.6 + data.phase)
-                    );
-                    this.dummy.updateMatrix();
-                    im.setMatrixAt(i, this.dummy.matrix);
-                }
-                im.instanceMatrix.needsUpdate = true;
+    public updateAnimation(time: number, _camera: THREE.Camera) {
+        // The vertex shader handles animation. We just need to update the shared material's uniform.
+        const firstMesh = this.fogMeshes.find(m => m !== null);
+        if (firstMesh) {
+            const material = (firstMesh as THREE.Mesh).material as THREE.Material;
+            if (material.userData.shader) {
+                material.userData.shader.uniforms.uFogTime.value = time;
             }
-        });
+        }
     }
 }

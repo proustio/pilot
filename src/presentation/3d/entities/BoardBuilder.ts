@@ -259,6 +259,104 @@ export class BoardBuilder {
             metalness: 0.8
         });
 
+        fogMat.onBeforeCompile = (shader) => {
+            shader.uniforms.uFogTime = { value: 0 };
+            fogMat.userData.shader = shader;
+
+            shader.vertexShader = `
+                uniform float uFogTime;
+                attribute vec3 aBasePos;
+                attribute float aScale;
+                attribute float aPhase;
+                attribute float aSpeed;
+
+                mat4 rotationXYZ(vec3 euler) {
+                    float cX = cos(euler.x); float sX = sin(euler.x);
+                    float cY = cos(euler.y); float sY = sin(euler.y);
+                    float cZ = cos(euler.z); float sZ = sin(euler.z);
+                    
+                    mat4 rotX = mat4(1.0, 0.0, 0.0, 0.0,
+                                     0.0, cX, sX, 0.0,
+                                     0.0, -sX, cX, 0.0,
+                                     0.0, 0.0, 0.0, 1.0);
+                                     
+                    mat4 rotY = mat4(cY, 0.0, -sY, 0.0,
+                                     0.0, 1.0, 0.0, 0.0,
+                                     sY, 0.0, cY, 0.0,
+                                     0.0, 0.0, 0.0, 1.0);
+                                     
+                    mat4 rotZ = mat4(cZ, sZ, 0.0, 0.0,
+                                     -sZ, cZ, 0.0, 0.0,
+                                     0.0, 0.0, 1.0, 0.0,
+                                     0.0, 0.0, 0.0, 1.0);
+                                     
+                    return rotZ * rotY * rotX;
+                }
+                
+                ${shader.vertexShader}
+            `;
+
+            shader.vertexShader = shader.vertexShader.replace(
+                `#include <beginnormal_vertex>`,
+                `
+                #include <beginnormal_vertex>
+                
+                // Use the cell's world position from modelMatrix to offset animation per-cell
+                float cellOffset = modelMatrix[3].x * 0.8 + modelMatrix[3].z * 1.2;
+                float fogCloudTime = uFogTime * 2.0;
+                
+                // Multiply by 2.0 to increase the maximum rotation angle to +/- 2 radians
+                vec3 fogRot = vec3(
+                    sin(fogCloudTime * 0.8 + aPhase + cellOffset) * 2.0,
+                    cos(fogCloudTime * 0.7 + aPhase + cellOffset) * 2.0,
+                    sin(fogCloudTime * 0.9 + aPhase + cellOffset) * 2.0
+                );
+                mat4 customRot = rotationXYZ(fogRot);
+                
+                objectNormal = (customRot * vec4(objectNormal, 0.0)).xyz;
+                `
+            );
+
+            shader.vertexShader = shader.vertexShader.replace(
+                `#include <begin_vertex>`,
+                `
+                #include <begin_vertex>
+                
+                transformed *= aScale;
+                transformed = (customRot * vec4(transformed, 1.0)).xyz;
+                
+                vec3 fogPos = aBasePos;
+                // Reuse the same cellOffset for vertical bobbing
+                float cellOffsetBob = modelMatrix[3].x * 0.8 + modelMatrix[3].z * 1.2;
+                // Halved amplitude from 0.4 to 0.2 to keep it wavy but not too tall
+                fogPos.y += sin(fogCloudTime * aSpeed + aPhase + cellOffsetBob) * 0.2;
+                transformed += fogPos;
+                `
+            );
+        };
+
+        const numVoxels = 250;
+        const aBasePos = new Float32Array(numVoxels * 3);
+        const aScale = new Float32Array(numVoxels);
+        const aPhase = new Float32Array(numVoxels);
+        const aSpeed = new Float32Array(numVoxels);
+        
+        for (let i = 0; i < numVoxels; i++) {
+            aBasePos[i * 3 + 0] = (Math.random() - 0.5) * 0.95;
+            // Compress the Y-axis distribution by half (0.9 -> 0.45)
+            aBasePos[i * 3 + 1] = (Math.random() - 0.5) * 0.45;
+            aBasePos[i * 3 + 2] = (Math.random() - 0.5) * 0.95;
+            
+            aScale[i] = 1.0 + Math.random() * 0.8;
+            aPhase[i] = Math.random() * Math.PI * 2;
+            aSpeed[i] = 0.5 + Math.random() * 1.5;
+        }
+        
+        fogVoxelGeo.setAttribute('aBasePos', new THREE.InstancedBufferAttribute(aBasePos, 3));
+        fogVoxelGeo.setAttribute('aScale', new THREE.InstancedBufferAttribute(aScale, 1));
+        fogVoxelGeo.setAttribute('aPhase', new THREE.InstancedBufferAttribute(aPhase, 1));
+        fogVoxelGeo.setAttribute('aSpeed', new THREE.InstancedBufferAttribute(aSpeed, 1));
+
         for (let z = 0; z < boardSize; z++) {
             for (let x = 0; x < boardSize; x++) {
                 const worldX = x - offset + 0.5;
@@ -279,29 +377,15 @@ export class BoardBuilder {
                 enemyGridTiles.push(etile);
 
                 // Fog cloud
-                const numVoxels = 250;
                 const fogCloud = new THREE.InstancedMesh(fogVoxelGeo, fogMat, numVoxels);
                 fogCloud.position.set(worldX, 0.0, worldZ);
 
-                const dummy = new THREE.Object3D();
-                const voxelData = [];
+                const identity = new THREE.Matrix4();
                 for (let i = 0; i < numVoxels; i++) {
-                    const vx = (Math.random() - 0.5) * 0.95;
-                    const vy = (Math.random() - 0.5) * 0.9;
-                    const vz = (Math.random() - 0.5) * 0.95;
-                    dummy.position.set(vx, vy, vz);
-                    dummy.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
-                    dummy.scale.setScalar(1.0 + Math.random() * 0.8);
-                    dummy.updateMatrix();
-                    fogCloud.setMatrixAt(i, dummy.matrix);
-
-                    voxelData.push({
-                        basePos: new THREE.Vector3(vx, vy, vz),
-                        phase: Math.random() * Math.PI * 2,
-                        speed: 0.5 + Math.random() * 1.5
-                    });
+                    fogCloud.setMatrixAt(i, identity);
                 }
-                fogCloud.userData = { isFog: true, voxelData: voxelData };
+                
+                fogCloud.userData = { isFog: true };
 
                 enemyBoardGroup.add(fogCloud);
                 fogManager.setFogMesh(z * boardSize + x, fogCloud);
