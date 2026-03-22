@@ -72,7 +72,13 @@ export class HUD extends BaseUIComponent {
                         <div class="stat-item win-prob-item">PROB: <span id="stat-prob">50%</span></div>
                     </div>
 
-                    <div class="hud-arsenal-panel retro-panel ${Config.rogueMode ? '' : 'hidden'}" id="arsenal-panel">
+                    <div id="rogue-action-bar" class="rogue-action-bar ${Config.rogueMode ? '' : 'hidden'}">
+                        <button id="btn-rogue-move" class="action-btn move-btn">MOVE (<span id="rogue-moves-count">0</span>)</button>
+                        <button id="btn-rogue-attack" class="action-btn attack-btn">ATTACK</button>
+                        <button id="btn-rogue-skip" class="action-btn skip-btn">SKIP</button>
+                    </div>
+
+                    <div class="hud-arsenal-panel retro-panel ${Config.rogueMode ? 'collapsed' : 'hidden'}" id="arsenal-panel">
                         <div class="sw-screw tl"></div><div class="sw-screw tr"></div>
                         <div class="sw-screw bl"></div><div class="sw-screw br"></div>
                         <div class="arsenal-title">SHIP SYSTEMS</div>
@@ -142,12 +148,6 @@ export class HUD extends BaseUIComponent {
                 </div>
             </div>
             <div id="mouse-coords" class="mouse-coords" style="display: none;">(0,0)</div>
-
-            <div id="rogue-action-bar" class="rogue-action-bar hidden">
-                <button id="btn-rogue-move" class="action-btn move-btn">Move (<span id="rogue-moves-count">0</span>)</button>
-                <button id="btn-rogue-attack" class="action-btn attack-btn">Attack</button>
-                <button id="btn-rogue-skip" class="action-btn skip-btn">Skip</button>
-            </div>
         `;
 
         this.turnIndicator = this.container.querySelector('#turn-indicator') as HTMLElement;
@@ -180,11 +180,19 @@ export class HUD extends BaseUIComponent {
 
         const moveBtn = this.container.querySelector('#btn-rogue-move');
         const attackBtn = this.container.querySelector('#btn-rogue-attack');
+        const arsenalPanel = this.container.querySelector('#arsenal-panel');
 
         const setActiveTab = (mode: 'move' | 'attack') => {
             (window as any).selectedRogueAction = mode;
             if (moveBtn) moveBtn.classList.toggle('active', mode === 'move');
             if (attackBtn) attackBtn.classList.toggle('active', mode === 'attack');
+            
+            // Slide out arsenal if attack is selected
+            if (arsenalPanel) {
+                if (mode === 'attack') arsenalPanel.classList.remove('collapsed');
+                else arsenalPanel.classList.add('collapsed');
+            }
+
             document.dispatchEvent(new CustomEvent('ROGUE_ACTION_MODE_CHANGED', { detail: { mode } }));
         };
 

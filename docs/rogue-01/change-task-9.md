@@ -14,6 +14,7 @@
 ### 9.1 — Add `Rogue` to `MatchMode` Enum + Domain Types
 
 **Files:**
+
 - `src/domain/match/Match.ts`
 - `src/domain/fleet/Ship.ts`
 - `src/infrastructure/config/Config.ts`
@@ -37,6 +38,7 @@
 ### 9.2 — Single-Side ("Same Board") Placement
 
 **Files:**
+
 - `src/domain/match/Match.ts`
 - `src/application/game-loop/GameLoop.ts`
 
@@ -50,6 +52,7 @@
 ### 9.3 — Ship-Tethered Dynamic Fog of War
 
 **Files:**
+
 - `src/presentation/3d/entities/FogManager.ts`
 - `src/presentation/3d/entities/EntityManager.ts`
 
@@ -71,6 +74,7 @@
 ### 9.4 — Ship Movement Mechanics
 
 **Files:**
+
 - `src/domain/board/Board.ts`
 - `src/domain/fleet/Ship.ts`
 - `src/domain/match/Match.ts`
@@ -97,6 +101,7 @@
 ### 9.5 — Per-Ship Turn Rotation (Smallest First)
 
 **Files:**
+
 - `src/application/game-loop/GameLoop.ts`
 
 - [x] **Add `activeRogueShipIndex: number`** to `GameLoop`.
@@ -127,13 +132,14 @@
 ### 9.7 — Rogue Mode UI Plumbing
 
 **Files:**
+
 - `src/presentation/ui/menu/MainMenu.ts`
 - `src/presentation/ui/hud/HUD.ts`
 - `src/presentation/ui/hud/HUDControls.ts`
 - `src/presentation/ui/UIManager.ts`
 - `src/styles/*.css`
 
-- [ ] **Unlock Rogue in `MainMenu`**: The existing Rogue dropdown entry is disabled — wire it to set `MatchMode.Rogue` when starting a new game (fire it via the existing mode-selection event).
-- [ ] **In `HUD.ts`**: Listen to `ACTIVE_SHIP_CHANGED`; display the active ship's name and remaining move count in the turn indicator panel.
-- [ ] **Add a Rogue action bar**: Minimal HTML injected by `HUD.ts` with three buttons — **Move**, **Attack**, **Skip** — visible only in Rogue mode. Buttons disable once the active ship has acted.
-- [ ] **Acceptance**: Rogue is selectable from the main menu and the HUD correctly tracks and displays the active ship.
+- [x] **Unlock Rogue in `MainMenu`**: The existing Rogue dropdown entry is disabled — wire it to set `MatchMode.Rogue` when starting a new game (fire it via the existing mode-selection event).
+- [x] **In `HUD.ts`**: Listen to `ACTIVE_SHIP_CHANGED`; display the active ship's name and remaining move count in the turn indicator panel.
+- [x] **Add a Rogue action bar**: Minimal HTML injected by `HUD.ts` with three buttons — **Move**, **Attack**, **Skip** — visible only in Rogue mode. Buttons disable once the active ship has acted.
+- [x] **Acceptance**: Rogue is selectable from the main menu and the HUD correctly tracks and displays the active ship.
