@@ -133,25 +133,67 @@ export class EntityManager {
     }
 
     /**
-     * Returns true if there are any active animations (projectiles, particles, sinking ships).
+     * Smoothly translates the ship's THREE.Group to new board coordinates via lerp in update().
+     */
+    public moveShip3D(ship: Ship, x: number, z: number, orientation: Orientation) {
+        let targetGroup: THREE.Group | undefined;
+        let parentGroup: THREE.Group | undefined;
+        
+        [this.playerBoardGroup, this.enemyBoardGroup].forEach(boardGroup => {
+            boardGroup.children.forEach((child: THREE.Object3D) => {
+                if (child.userData.isShip && child.userData.ship?.id === ship.id) {
+                    targetGroup = child as THREE.Group;
+                    parentGroup = boardGroup;
+                }
+            });
+        });
+
+        if (!targetGroup || !parentGroup) return;
+
+        // If orientation changed, we should rebuild the mesh because ShipFactory 
+        // bakes orientation into the Voxel Geometry, instead of rotating a shared mesh.
+        if (targetGroup.userData.shipOrientation !== orientation) {
+            const isPlayer = parentGroup === this.playerBoardGroup;
+            parentGroup.remove(targetGroup);
+            
+            // Create a new one at the exact same world position as previous so it can Lerp
+            const newShipGroup = ShipFactory.createShip(ship, ship.headX, ship.headZ, orientation, isPlayer, parentGroup);
+            newShipGroup.position.copy(targetGroup.position); 
+            targetGroup = newShipGroup;
+        }
+
+        const boardOffset = Config.board.width / 2;
+        const targetWorldX = x - boardOffset + 0.5;
+        const targetWorldZ = z - boardOffset + 0.5;
+
+        targetGroup.userData.targetPosition = new THREE.Vector3(targetWorldX, 0, targetWorldZ);
+    }
+
+    /**
+     * Returns true if there are any active animations (projectiles, particles, sinking ships, moving ships).
      */
     public isBusy(): boolean {
         if (this.projectileManager.hasFallingMarkers()) return true;
         if (this.particleSystem.hasActiveParticles()) return true;
 
-        let shipsSinking = false;
+        let isAnimating = false;
         const sinkFloor = Config.visual.sinkingFloor;
         [this.playerBoardGroup, this.enemyBoardGroup].forEach(group => {
             group.children.forEach((child: THREE.Object3D) => {
                 if (child.userData.isShip && child.userData.isSinking) {
                     if (child.position.y > sinkFloor) {
-                        shipsSinking = true;
+                        isAnimating = true;
+                    }
+                }
+                if (child.userData.isShip && child.userData.targetPosition) {
+                    if (child.position.distanceToSquared(child.userData.targetPosition) > 0.001) {
+                        isAnimating = true;
                     }
                 }
             });
         });
 
-        return shipsSinking;
+        return isAnimating;
     }
 
     // ───── Update Loop ─────
@@ -205,8 +247,8 @@ export class EntityManager {
         }
         this.wasBusy = currentBusy;
 
-        // Ship sinking animation
-        this.updateSinkingShips();
+        // Ship animations (sinking & movement)
+        this.updateShipAnimations();
     }
 
     // ───── Private Helpers ─────
@@ -241,14 +283,16 @@ export class EntityManager {
         }
     }
 
-    private updateSinkingShips() {
+    private updateShipAnimations() {
         const descentRate = 0.005 * Config.timing.gameSpeedMultiplier;
         const sinkFloor = Config.visual.sinkingFloor;
+        const moveLerpFactor = 0.1 * Config.timing.gameSpeedMultiplier;
 
         [this.playerBoardGroup, this.enemyBoardGroup].forEach(group => {
             group.children.forEach((child: THREE.Object3D) => {
-                if (child.userData.isShip && child.userData.isSinking) {
-                    if (child.position.y > sinkFloor) {
+                if (child.userData.isShip) {
+                    // Sinking logic
+                    if (child.userData.isSinking && child.position.y > sinkFloor) {
                         child.position.y -= descentRate;
                         const sinkProgress = Math.min(1.0, -child.position.y / Math.abs(sinkFloor));
 
@@ -270,6 +314,15 @@ export class EntityManager {
                                 child.userData.halfA.rotation.x = -breakAngle;
                                 child.userData.halfB.rotation.x = breakAngle;
                             }
+                        }
+                    }
+
+                    // Movement logic
+                    if (child.userData.targetPosition) {
+                        child.position.lerp(child.userData.targetPosition, moveLerpFactor);
+                        if (child.position.distanceToSquared(child.userData.targetPosition) < 0.001) {
+                            child.position.copy(child.userData.targetPosition);
+                            child.userData.targetPosition = null;
                         }
                     }
                 }

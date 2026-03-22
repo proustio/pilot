@@ -44,6 +44,10 @@ const init = () => {
             entityManager.addShip(ship, x, z, orientation, isPlayer);
         });
 
+        gameLoop.onShipMoved((ship, x, z, orientation) => {
+            entityManager.moveShip3D(ship, x, z, orientation);
+        });
+
         gameLoop.onAttackResult((x, z, result, isPlayer, isReplay) => {
             entityManager.addAttackMarker(x, z, result, isPlayer, isReplay);
         });

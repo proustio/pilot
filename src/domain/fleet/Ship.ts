@@ -79,4 +79,12 @@ export class Ship {
         this.orientation = orientation;
         this.isPlaced = true;
     }
+
+    /**
+     * Resets action flags for the start of a turn in Rogue Mode
+     */
+    public resetTurnAction() {
+        this.hasActedThisTurn = false;
+        this.movesRemaining = this.maxMoves;
+    }
 }

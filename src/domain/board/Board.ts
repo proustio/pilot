@@ -103,6 +103,44 @@ export class Board {
         return true;
     }
 
+    public moveShip(ship: Ship, newHeadX: number, newHeadZ: number, newOrientation: Orientation): boolean {
+        // Validation check for ship exists on board
+        if (!this.ships.includes(ship)) return false;
+
+        // Temporarily clear old cells so ship doesn't collide with itself
+        const oldCoords = ship.getOccupiedCoordinates();
+        oldCoords.forEach(coord => {
+            const mapKey = `${coord.x},${coord.z}`;
+            this.gridState[getIndex(coord.x, coord.z, this.width)] = CellState.Empty;
+            this.shipMap.delete(mapKey);
+        });
+
+        // Test placement
+        if (!this.canPlaceShip(ship.size, newHeadX, newHeadZ, newOrientation)) {
+            // Revert cells since invalid
+            oldCoords.forEach((coord, segmentIndex) => {
+                const mapKey = `${coord.x},${coord.z}`;
+                this.gridState[getIndex(coord.x, coord.z, this.width)] = CellState.Ship;
+                this.shipMap.set(mapKey, { ship, segmentIndex });
+            });
+            return false;
+        }
+
+        // Apply new placement
+        ship.headX = newHeadX;
+        ship.headZ = newHeadZ;
+        ship.orientation = newOrientation;
+
+        const newCoords = ship.getOccupiedCoordinates();
+        newCoords.forEach((coord, segmentIndex) => {
+            const mapKey = `${coord.x},${coord.z}`;
+            this.gridState[getIndex(coord.x, coord.z, this.width)] = CellState.Ship;
+            this.shipMap.set(mapKey, { ship, segmentIndex });
+        });
+
+        return true;
+    }
+
     public receiveAttack(x: number, z: number): AttackResult {
         if (this.isOutOfBounds(x, z)) return AttackResult.Invalid;
 

@@ -15,6 +15,7 @@ export enum GameState {
 type StateChangeListener = (newState: GameState, oldState: GameState) => void;
 type ShipPlacedListener = (ship: Ship, x: number, z: number, orientation: Orientation, isPlayer: boolean) => void;
 type AttackResultListener = (x: number, z: number, result: string, isPlayer: boolean, isReplay: boolean) => void;
+type ShipMovedListener = (ship: Ship, x: number, z: number, orientation: Orientation) => void;
 
 export class GameLoop {
     public currentState: GameState = GameState.MAIN_MENU;
@@ -30,6 +31,7 @@ export class GameLoop {
     private listeners: StateChangeListener[] = [];
     private shipPlacedListeners: ShipPlacedListener[] = [];
     private attackResultListeners: AttackResultListener[] = [];
+    private shipMovedListeners: ShipMovedListener[] = [];
     private onAnimationsComplete: (() => void) | null = null;
 
     private matchSetup: MatchSetup;
@@ -131,6 +133,24 @@ export class GameLoop {
                 callback();
             }
         });
+
+        document.addEventListener('ROGUE_MOVE_SHIP', (e: Event) => {
+            const ce = e as CustomEvent;
+            const { shipId, newX, newZ, newOrientation } = ce.detail;
+            if (!this.match || this.currentState !== GameState.PLAYER_TURN) return;
+
+            const ship = this.match.sharedBoard.ships.find(s => s.id === shipId);
+            if (!ship) return;
+
+            if (ship.movesRemaining > 0 && !ship.hasActedThisTurn) {
+                const moved = this.match.sharedBoard.moveShip(ship, newX, newZ, newOrientation as Orientation);
+                if (moved) {
+                    ship.movesRemaining--;
+                    ship.hasActedThisTurn = true;
+                    this.shipMovedListeners.forEach(listener => listener(ship, newX, newZ, newOrientation as Orientation));
+                }
+            }
+        });
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -154,6 +174,10 @@ export class GameLoop {
 
     public onAttackResult(listener: AttackResultListener): void {
         this.attackResultListeners.push(listener);
+    }
+
+    public onShipMoved(listener: ShipMovedListener): void {
+        this.shipMovedListeners.push(listener);
     }
 
     public triggerAutoSave(): void {

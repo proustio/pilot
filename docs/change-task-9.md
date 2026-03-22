@@ -77,20 +77,20 @@
 - `src/application/game-loop/GameLoop.ts`
 - `src/presentation/3d/entities/EntityManager.ts`
 
-- [ ] **`Board.moveShip(ship, newHeadX, newHeadZ, newOrientation): boolean`**:
+- [x] **`Board.moveShip(ship, newHeadX, newHeadZ, newOrientation): boolean`**:
   - Validates the new position doesn't collide with other ships or exceed board bounds.
   - Clears old ship cells in `gridState`, writes new cells.
   - Updates `ship.headX`, `ship.headZ`, `ship.orientation`.
   - Returns `true` on success, `false` on invalid.
-- [ ] **`Ship.resetTurnAction()`**: Resets `hasActedThisTurn = false` and `movesRemaining = maxMoves`.
-- [ ] **Add `ROGUE_MOVE_SHIP` CustomEvent handler in `GameLoop`**:
+- [x] **`Ship.resetTurnAction()`**: Resets `hasActedThisTurn = false` and `movesRemaining = maxMoves`.
+- [x] **Add `ROGUE_MOVE_SHIP` CustomEvent handler in `GameLoop`**:
   - Payload: `{ shipId, newX, newZ, newOrientation }`.
   - Validates `ship.movesRemaining > 0 && !ship.hasActedThisTurn`.
   - Calls `match.playerBoard.moveShip(...)`.
   - Decrements `ship.movesRemaining`, sets `ship.hasActedThisTurn = true`.
   - Fires `shipMovedListeners` for the presentation layer.
-- [ ] **`EntityManager.moveShip3D(ship)`**: Smoothly translates the ship's `THREE.Group` to new board coordinates via lerp in `update()`.
-- [ ] **Acceptance**: Player can select a ship and move it up to `5 - size` cells per turn in Rogue mode.
+- [x] **`EntityManager.moveShip3D(ship)`**: Smoothly translates the ship's `THREE.Group` to new board coordinates via lerp in `update()`.
+- [x] **Acceptance**: Player can select a ship and move it up to `5 - size` cells per turn in Rogue mode.
 
 ---
 
