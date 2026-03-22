@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { WaterShader } from '../materials/WaterShader';
 import { Config } from '../../../infrastructure/config/Config';
 import { FogManager } from './FogManager';
+import { ThemeManager } from '../../theme/ThemeManager';
 
 export interface BoardBuildResult {
     playerGridTiles: THREE.Object3D[];
@@ -30,10 +31,10 @@ export class BoardBuilder {
         const boardSize = Config.board.width;
         const offset = boardSize / 2;
 
-        const createWaterUniforms = (isEnemy: boolean) => ({
+        const createWaterUniforms = () => ({
             time: { value: 0 },
-            baseColor: { value: isEnemy ? new THREE.Color(0x8B0000) : new THREE.Color(0x000080) },
-            peakColor: { value: isEnemy ? new THREE.Color(0xDC143C) : new THREE.Color(0x4169E1) },
+            baseColor: { value: new THREE.Color() },
+            peakColor: { value: new THREE.Color() },
             opacity: { value: 0.85 },
             globalTurbulence: { value: 0.0 },
             rippleCenters: { value: [new THREE.Vector2(), new THREE.Vector2(), new THREE.Vector2(), new THREE.Vector2(), new THREE.Vector2()] },
@@ -215,7 +216,7 @@ export class BoardBuilder {
         // ───── Water Planes ─────
         const boardWaterGeo = new THREE.PlaneGeometry(boardSize, boardSize, 32, 32);
 
-        const playerWaterUniforms = createWaterUniforms(false);
+        const playerWaterUniforms = createWaterUniforms();
         const playerWaterMat = new THREE.ShaderMaterial({
             vertexShader: WaterShader.vertexShader,
             fragmentShader: WaterShader.fragmentShader,
@@ -229,7 +230,7 @@ export class BoardBuilder {
         playerWaterPlane.receiveShadow = true;
         playerBoardGroup.add(playerWaterPlane);
 
-        const enemyWaterUniforms = createWaterUniforms(true);
+        const enemyWaterUniforms = createWaterUniforms();
         const enemyWaterMat = new THREE.ShaderMaterial({
             vertexShader: WaterShader.vertexShader,
             fragmentShader: WaterShader.fragmentShader,
@@ -245,8 +246,8 @@ export class BoardBuilder {
 
         // ───── Grid Tiles + Fog ─────
         const tileGeometry = new THREE.BoxGeometry(0.95, 0.1, 0.95);
-        const tilePlayerMat = new THREE.MeshStandardMaterial({ color: 0x000080, emissive: 0x228B22, emissiveIntensity: 0.2, transparent: true, opacity: 0.1, depthWrite: false });
-        const tileEnemyMat = new THREE.MeshStandardMaterial({ color: 0x8B0000, emissive: 0xDC143C, emissiveIntensity: 0.2, transparent: true, opacity: 0.1, depthWrite: false });
+        const tilePlayerMat = new THREE.MeshStandardMaterial({ emissiveIntensity: 0.2, transparent: true, opacity: 0.1, depthWrite: false });
+        const tileEnemyMat = new THREE.MeshStandardMaterial({ emissiveIntensity: 0.2, transparent: true, opacity: 0.1, depthWrite: false });
 
         const fogVoxelGeo = new THREE.BoxGeometry(0.15, 0.15, 0.15);
         const fogMat = new THREE.MeshStandardMaterial({
@@ -393,15 +394,47 @@ export class BoardBuilder {
         }
 
         // ───── Grid Lines ─────
-        const pGrid = new THREE.GridHelper(boardSize, boardSize, 0x4169E1, 0x228B22);
+        const pGrid = new THREE.GridHelper(boardSize, boardSize);
         pGrid.position.y = 0.05;
         pGrid.material.transparent = true; pGrid.material.opacity = 0.4;
+        pGrid.material.depthWrite = false;
+        (pGrid.material as any).vertexColors = false;
         playerBoardGroup.add(pGrid);
 
-        const eGrid = new THREE.GridHelper(boardSize, boardSize, 0xDC143C, 0xFF2400);
+        const eGrid = new THREE.GridHelper(boardSize, boardSize);
         eGrid.position.y = 0.05;
         eGrid.material.transparent = true; eGrid.material.opacity = 0.4;
+        eGrid.material.depthWrite = false;
+        (eGrid.material as any).vertexColors = false;
         enemyBoardGroup.add(eGrid);
+
+        const updateBoardTheme = () => {
+            const tm = ThemeManager.getInstance();
+            const wc = tm.getWaterColors();
+
+            playerWaterUniforms.baseColor.value.copy(wc.primary);
+            playerWaterUniforms.peakColor.value.copy(wc.secondary);
+            enemyWaterUniforms.baseColor.value.copy(wc.primary);
+            enemyWaterUniforms.peakColor.value.copy(wc.secondary);
+
+            const pColor = tm.getPlayerShipColor();
+            const eColor = tm.getEnemyShipColor();
+            const bLinesColor = tm.getBoardLinesColor();
+
+            tilePlayerMat.color.copy(pColor);
+            tilePlayerMat.emissive.copy(pColor);
+            
+            tileEnemyMat.color.copy(eColor);
+            tileEnemyMat.emissive.copy(eColor);
+
+            (pGrid.material as any).color.copy(bLinesColor);
+            (pGrid.material as any).needsUpdate = true;
+            (eGrid.material as any).color.copy(bLinesColor);
+            (eGrid.material as any).needsUpdate = true;
+        };
+
+        document.addEventListener('THEME_CHANGED', updateBoardTheme);
+        updateBoardTheme(); // Run once to seed initial values
 
         return {
             playerGridTiles,

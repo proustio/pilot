@@ -105,6 +105,53 @@ export class Settings extends BaseUIComponent {
             </div>
 
             <div class="settings-row">
+                <label>Color Theme:</label>
+                <div id="theme-dropdown" class="custom-dropdown">
+                    <div class="custom-dropdown-selected" id="theme-selected">
+                        <span id="theme-selected-text">✔ ${Config.visual.colorScheme === 'default' ? 'Default (Emerald/Orange)' : Config.visual.colorScheme === 'grayscale' ? 'Grayscale (High Contrast)' : 'Custom'}</span>
+                        <span class="custom-dropdown-arrow">▾</span>
+                    </div>
+                    <div class="custom-dropdown-options" id="theme-options">
+                        <div class="custom-dropdown-option ${Config.visual.colorScheme === 'default' ? 'active' : ''}" data-value="default">
+                            <span class="option-check">${Config.visual.colorScheme === 'default' ? '✔' : '&nbsp;'}</span>
+                            <span class="option-text">Default (Emerald/Orange)</span>
+                        </div>
+                        <div class="custom-dropdown-option ${Config.visual.colorScheme === 'grayscale' ? 'active' : ''}" data-value="grayscale">
+                            <span class="option-check">${Config.visual.colorScheme === 'grayscale' ? '✔' : '&nbsp;'}</span>
+                            <span class="option-text">Grayscale (High Contrast)</span>
+                        </div>
+                        <div class="custom-dropdown-option ${Config.visual.colorScheme === 'custom' ? 'active' : ''}" data-value="custom">
+                            <span class="option-check">${Config.visual.colorScheme === 'custom' ? '✔' : '&nbsp;'}</span>
+                            <span class="option-text">Custom</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="custom-colors-container" style="display: ${Config.visual.colorScheme === 'custom' ? 'block' : 'none'}; margin-left: 20px; border-left: 2px solid var(--panel-border); padding-left: 10px; margin-bottom: 10px;">
+                <div class="settings-row" style="margin-bottom: 5px;">
+                    <label style="font-size: 0.9em;">Player Fleet:</label>
+                    <input type="color" id="color-player-ship" value="${Config.visual.customColors.playerShip}" style="background: transparent; border: 1px solid var(--panel-border); padding: 0;">
+                </div>
+                <div class="settings-row" style="margin-bottom: 5px;">
+                    <label style="font-size: 0.9em;">Enemy Fleet:</label>
+                    <input type="color" id="color-enemy-ship" value="${Config.visual.customColors.enemyShip}" style="background: transparent; border: 1px solid var(--panel-border); padding: 0;">
+                </div>
+                <div class="settings-row" style="margin-bottom: 5px;">
+                    <label style="font-size: 0.9em;">Water Primary:</label>
+                    <input type="color" id="color-water-primary" value="${Config.visual.customColors.waterPrimary}" style="background: transparent; border: 1px solid var(--panel-border); padding: 0;">
+                </div>
+                <div class="settings-row" style="margin-bottom: 5px;">
+                    <label style="font-size: 0.9em;">Water Sec.:</label>
+                    <input type="color" id="color-water-secondary" value="${Config.visual.customColors.waterSecondary}" style="background: transparent; border: 1px solid var(--panel-border); padding: 0;">
+                </div>
+                <div class="settings-row" style="margin-bottom: 5px;">
+                    <label style="font-size: 0.9em;">Board Lines:</label>
+                    <input type="color" id="color-board-lines" value="${Config.visual.customColors.boardLines}" style="background: transparent; border: 1px solid var(--panel-border); padding: 0;">
+                </div>
+            </div>
+
+            <div class="settings-row">
                 <label>Game Speed:</label>
                 <div id="game-speed-dropdown" class="custom-dropdown">
                     <div class="custom-dropdown-selected" id="game-speed-selected">
@@ -180,6 +227,36 @@ export class Settings extends BaseUIComponent {
                 this.updateDropdownVisuals('game-speed-dropdown', customEvent.detail.speed.toString());
             }
         });
+
+        const customContainer = this.container.querySelector('#custom-colors-container') as HTMLElement;
+
+        this.setupDropdown('theme-dropdown', (val) => {
+            const scheme = val as 'default' | 'grayscale' | 'custom';
+            Config.visual.colorScheme = scheme;
+            Config.saveConfig();
+            customContainer.style.display = scheme === 'custom' ? 'block' : 'none';
+            document.dispatchEvent(new CustomEvent('THEME_CHANGED'));
+        });
+
+        const setupColorPicker = (id: string, key: keyof typeof Config.visual.customColors) => {
+            const picker = this.container.querySelector(`#${id}`) as HTMLInputElement;
+            picker.addEventListener('input', (e) => {
+                Config.visual.customColors[key] = (e.target as HTMLInputElement).value;
+                if (Config.visual.colorScheme !== 'custom') {
+                    Config.visual.colorScheme = 'custom';
+                    this.updateDropdownVisuals('theme-dropdown', 'custom');
+                    customContainer.style.display = 'block';
+                }
+                Config.saveConfig();
+                document.dispatchEvent(new CustomEvent('THEME_CHANGED'));
+            });
+        };
+
+        setupColorPicker('color-player-ship', 'playerShip');
+        setupColorPicker('color-enemy-ship', 'enemyShip');
+        setupColorPicker('color-water-primary', 'waterPrimary');
+        setupColorPicker('color-water-secondary', 'waterSecondary');
+        setupColorPicker('color-board-lines', 'boardLines');
 
         const volumeSlider = this.container.querySelector('#sound-volume') as HTMLInputElement;
         const volumeValue = this.container.querySelector('#volume-value') as HTMLElement;

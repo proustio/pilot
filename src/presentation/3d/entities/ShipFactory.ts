@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { Ship, Orientation } from '../../../domain/fleet/Ship';
 import { Config } from '../../../infrastructure/config/Config';
+import { ThemeManager } from '../../theme/ThemeManager';
 
 /**
  * Constructs voxel ship models (hull, deck, bridge, turrets, wireframe overlay)
@@ -53,8 +54,9 @@ export class ShipFactory {
             bridgeColor = invert(bridgeColor);
             darkAccent = invert(darkAccent);
         }
-
-        const accentColor = isPlayer ? new THREE.Color(0xFFD700) : new THREE.Color(0xFF2400);
+        
+        const tm = ThemeManager.getInstance();
+        const accentColor = isPlayer ? tm.getPlayerShipColor() : tm.getEnemyShipColor();
 
         // ───── Voxel Hull ─────
         const voxelSize = 0.1;
@@ -63,7 +65,7 @@ export class ShipFactory {
         const length = orientation === Orientation.Horizontal ? ship.size : 1;
         const width = orientation === Orientation.Vertical ? ship.size : 1;
 
-        const voxelsData: { pos: THREE.Vector3, color: THREE.Color }[] = [];
+        const voxelsData: { pos: THREE.Vector3, color: THREE.Color, isAccent: boolean }[] = [];
 
         const L = ship.size * 10;
         const centerX = L / 2 - 0.5;
@@ -132,6 +134,7 @@ export class ShipFactory {
 
                     for (let ly = 1; ly <= maxLy; ly++) {
                         let color = hullColor;
+                        let isAccent = false;
                         if (ly === maxLy && !isEdge) {
                             color = deckColor;
                             if (isCarrier && !isEdge && shipWidthPos === Math.floor(center)) {
@@ -139,6 +142,7 @@ export class ShipFactory {
                             }
                         } else if (isEdge && ly > 1) {
                             color = accentColor;
+                            isAccent = true;
                         } else if (ly > 2 && !isEdge) {
                             color = bridgeColor;
                             if (ly === maxLy && (lx % 2 === 0)) color = darkAccent;
@@ -150,7 +154,8 @@ export class ShipFactory {
                                 ly * voxelSize,
                                 lz * voxelSize - (voxelSize / 2 * 9)
                             ),
-                            color
+                            color,
+                            isAccent
                         });
                     }
                 }
@@ -180,7 +185,7 @@ export class ShipFactory {
         const instancedLines = new THREE.InstancedMesh(
             new THREE.BoxGeometry(voxelSize * 1.01, voxelSize * 1.01, voxelSize * 1.01),
             new THREE.MeshBasicMaterial({
-                color: isPlayer ? 0xFFD700 : 0xFF2400,
+                color: accentColor,
                 wireframe: true,
                 transparent: true,
                 opacity: 0.2
@@ -193,8 +198,8 @@ export class ShipFactory {
             dummy.position.copy(vd.pos);
             dummy.updateMatrix();
             instancedLines.setMatrixAt(index, dummy.matrix);
-            if (vd.color.equals(accentColor)) {
-                instancedLines.setColorAt(index, new THREE.Color(isPlayer ? 0xFFD700 : 0xFF2400));
+            if (vd.isAccent) {
+                instancedLines.setColorAt(index, accentColor);
             } else {
                 instancedLines.setColorAt(index, new THREE.Color(0x000000));
                 dummy.scale.set(0, 0, 0);
@@ -205,6 +210,23 @@ export class ShipFactory {
 
         instancedLines.instanceMatrix.needsUpdate = true;
         if (instancedLines.instanceColor) instancedLines.instanceColor.needsUpdate = true;
+
+        const updateShipTheme = () => {
+            const currentAccent = isPlayer ? ThemeManager.getInstance().getPlayerShipColor() : ThemeManager.getInstance().getEnemyShipColor();
+            (instancedLines.material as THREE.MeshBasicMaterial).color.copy(currentAccent);
+
+            voxelsData.forEach((vd, index) => {
+                if (vd.isAccent) {
+                    instancedLines.setColorAt(index, currentAccent);
+                    instancedMesh.setColorAt(index, currentAccent);
+                }
+            });
+
+            if (instancedLines.instanceColor) instancedLines.instanceColor.needsUpdate = true;
+            if (instancedMesh.instanceColor) instancedMesh.instanceColor.needsUpdate = true;
+        };
+        
+        document.addEventListener('THEME_CHANGED', updateShipTheme);
 
         shipGroup.add(instancedLines);
 

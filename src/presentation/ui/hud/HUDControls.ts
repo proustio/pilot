@@ -133,9 +133,8 @@ export function bindHUDControls(container: HTMLElement): void {
             dayNightBtn.innerText = Config.visual.isDayMode ? '🌘' : '🌖';
             dayNightLed.classList.remove('on-gold', 'on-blue');
             dayNightLed.classList.add(Config.visual.isDayMode ? 'on-gold' : 'on-blue');
-            document.body.classList.remove('day-mode', 'night-mode');
-            document.body.classList.add(Config.visual.isDayMode ? 'day-mode' : 'night-mode');
             document.dispatchEvent(new CustomEvent('TOGGLE_DAY_NIGHT', { detail: { isDay: Config.visual.isDayMode } }));
+            document.dispatchEvent(new CustomEvent('THEME_CHANGED'));
         });
     }
 
