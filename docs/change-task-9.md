@@ -18,19 +18,19 @@
 - `src/domain/fleet/Ship.ts`
 - `src/infrastructure/config/Config.ts`
 
-- [ ] **Add `Rogue = 'rogue'`** to `MatchMode` enum in `Match.ts`.
-- [ ] **Update `getRequiredFleet()`** to return a Rogue fleet (same as Classic for now).
-- [ ] **Add movement fields to `Ship`**:
+- [x] **Add `Rogue = 'rogue'`** to `MatchMode` enum in `Match.ts`.
+- [x] **Update `getRequiredFleet()`** to return a Rogue fleet (same as Classic for now).
+- [x] **Add movement fields to `Ship`**:
   - `public movesRemaining: number = 0`
   - `public hasActedThisTurn: boolean = false`
   - `public readonly maxMoves: number` — computed as `5 - ship.size` in the constructor.
-- [ ] **Add `rogue` block to `Config.ts`**:
+- [x] **Add `rogue` block to `Config.ts`**:
   ```ts
   rogue: {
     fogRadius: 7,  // cells of personal fog halo around each ship
   }
   ```
-- [ ] **Acceptance**: `MatchMode.Rogue` compiles without errors; `Ship` carries movement state fields.
+- [x] **Acceptance**: `MatchMode.Rogue` compiles without errors; `Ship` carries movement state fields.
 
 ---
 

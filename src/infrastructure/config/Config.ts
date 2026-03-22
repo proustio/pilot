@@ -35,6 +35,10 @@ export const Config = {
         antialias: typeof navigator !== 'undefined' ? !/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) : true
     },
 
+    rogue: {
+        fogRadius: 7,  // cells of personal fog halo around each ship
+    },
+
     autoBattler: false,
     aiDifficulty: 'normal',
     audio: {

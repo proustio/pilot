@@ -4,7 +4,8 @@ import { getIndex } from '../board/BoardUtils';
 
 export enum MatchMode {
     Classic = 'classic',
-    Russian = 'russian'
+    Russian = 'russian',
+    Rogue = 'rogue'
 }
 
 export class Match {
@@ -24,7 +25,7 @@ export class Match {
      * Russian: 1x4, 2x3, 3x2, 4x1 (Total 10 ships, 20 hits)
      */
     public getRequiredFleet(): Ship[] {
-        if (this.mode === MatchMode.Classic) {
+        if (this.mode === MatchMode.Classic || this.mode === MatchMode.Rogue) {
             return [
                 new Ship('carrier', 5),
                 new Ship('battleship', 4),

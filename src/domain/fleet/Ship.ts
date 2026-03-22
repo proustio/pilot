@@ -15,12 +15,18 @@ export class Ship {
     
     // Will be populated once placed on a board
     public isPlaced: boolean = false;
+    
+    // Rogue Mode properties
+    public movesRemaining: number = 0;
+    public hasActedThisTurn: boolean = false;
+    public readonly maxMoves: number;
 
     constructor(id: string, size: number) {
         this.id = id;
         this.size = size;
         this.orientation = Orientation.Horizontal; // default
         this.segments = new Array(size).fill(true);
+        this.maxMoves = 5 - this.size;
     }
 
     /**
