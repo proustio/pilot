@@ -28,6 +28,8 @@ src/
 │
 ├── presentation/              # All rendering and UI
 │   ├── InteractivityGuard.ts  # Centralized input-blocking guard (camera, animations, menus)
+│   ├── theme/                 # Dynamic color management
+│   │   └── ThemeManager.ts    # Single source-of-truth for DOM CSS variables and 3D WebGL material hexes
 │   ├── 3d/
 │   │   ├── Engine3D.ts        # Three.js scene, camera, renderer, orbit controls, lighting
 │   │   ├── entities/
