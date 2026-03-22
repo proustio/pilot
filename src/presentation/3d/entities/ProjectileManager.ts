@@ -61,7 +61,8 @@ export class ProjectileManager {
             AudioEngine.getInstance().playShoot();
         }
 
-        const targetGroup = isPlayer ? this.enemyBoardGroup : this.playerBoardGroup;
+        const isRogue = Config.rogueMode;
+        const targetGroup = isRogue ? this.playerBoardGroup : (isPlayer ? this.enemyBoardGroup : this.playerBoardGroup);
 
         // ───── Missile Material ─────
         const activeMat = new THREE.MeshStandardMaterial({
@@ -168,12 +169,16 @@ export class ProjectileManager {
         }
 
         // ───── Live Shot Arc ─────
-        const sourceGroup = isPlayer ? this.playerBoardGroup : this.enemyBoardGroup;
+        const sourceGroup = isRogue ? this.playerBoardGroup : (isPlayer ? this.playerBoardGroup : this.enemyBoardGroup);
         let startPos = new THREE.Vector3((Math.random() - 0.5) * 10, 5, (Math.random() - 0.5) * 10);
 
         const friendlyShips: THREE.Group[] = [];
         sourceGroup.children.forEach((c: THREE.Object3D) => {
-            if (c.userData.isShip && !c.userData.isSinking) friendlyShips.push(c as THREE.Group);
+            // In Rogue mode, only player's ships launch for player turn, and vice versa
+            const isFriendly = isRogue ? (isPlayer ? !c.userData.isEnemy : c.userData.isEnemy) : true;
+            if (c.userData.isShip && !c.userData.isSinking && isFriendly) {
+                friendlyShips.push(c as THREE.Group);
+            }
         });
 
         if (friendlyShips.length > 0) {
@@ -252,7 +257,8 @@ export class ProjectileManager {
                     }
                 }
 
-                const targetGroup = m.isPlayer ? this.enemyBoardGroup : this.playerBoardGroup;
+                const isRogue = Config.rogueMode;
+                const targetGroup = isRogue ? this.playerBoardGroup : (m.isPlayer ? this.enemyBoardGroup : this.playerBoardGroup);
 
                 // Water splash + ripple
                 this.particleSystem.spawnSplash(m.worldX, 0.2, m.worldZ, targetGroup);

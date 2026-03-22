@@ -2,9 +2,11 @@ import { Engine3D } from './presentation/3d/Engine3D';
 import { EntityManager } from './presentation/3d/entities/EntityManager';
 import { InteractionManager } from './presentation/3d/interaction/InteractionManager';
 import { GameLoop } from './application/game-loop/GameLoop';
+import { MatchMode } from './domain/match/Match';
 import { UIManager } from './presentation/ui/UIManager';
 import { Config } from './infrastructure/config/Config';
 import { Storage, ViewState } from './infrastructure/storage/Storage';
+import { AudioEngine } from './infrastructure/audio/AudioEngine';
 import { ThemeManager } from './presentation/theme/ThemeManager';
 
 const init = () => {
@@ -56,6 +58,8 @@ const init = () => {
         let isRestoringState = false;
 
         gameLoop.onStateChange((newState) => {
+            const isRogue = gameLoop.match?.mode === MatchMode.Rogue;
+
             if (newState === 'SETUP_BOARD') {
                 matchStartTime = performance.now();
             }
@@ -68,22 +72,39 @@ const init = () => {
                     document.dispatchEvent(new CustomEvent('SET_CAMERA_TARGET', { detail: { x: 0, y: 12, z: 0.1 } }));
                 }
             } else if (newState === 'ENEMY_TURN') {
-                entityManager.showPlayerBoard();
+                entityManager.showPlayerBoard(); // Always show player (shared) board in Rogue
                 if (!engine.hasManualMovement) {
-                    document.dispatchEvent(new CustomEvent('SET_CAMERA_TARGET', { detail: { x: 0, y: 8, z: 12 } }));
+                    if (isRogue) {
+                        document.dispatchEvent(new CustomEvent('SET_CAMERA_TARGET', { detail: { x: 0, y: 14, z: 12 } }));
+                    } else {
+                        document.dispatchEvent(new CustomEvent('SET_CAMERA_TARGET', { detail: { x: 0, y: 8, z: 12 } }));
+                    }
+                }
+            } else if (newState === 'PLAYER_TURN') {
+                if (isRogue) {
+                    entityManager.showPlayerBoard();
+                    if (!engine.hasManualMovement) {
+                        document.dispatchEvent(new CustomEvent('SET_CAMERA_TARGET', { detail: { x: 0, y: 14, z: 6 } }));
+                    }
+                } else {
+                    entityManager.showEnemyBoard();
+                    if (!engine.hasManualMovement) {
+                        document.dispatchEvent(new CustomEvent('SET_CAMERA_TARGET', { detail: { x: 5, y: 10, z: 14 } }));
+                    }
                 }
             }
- else if (newState === 'PLAYER_TURN') {
-                entityManager.showEnemyBoard();
-                if (!engine.hasManualMovement) {
-                    document.dispatchEvent(new CustomEvent('SET_CAMERA_TARGET', { detail: { x: 5, y: 10, z: 14 } }));
-                }
-            }
-
         });
 
         const uiManager = new UIManager(gameLoop);
         (window as any).uiManager = uiManager;
+
+        // Global Audio Resume on first interaction
+        window.addEventListener('mousedown', () => {
+            AudioEngine.getInstance().resume();
+        }, { once: true });
+        window.addEventListener('keydown', () => {
+            AudioEngine.getInstance().resume();
+        }, { once: true });
 
         let currentFpsCap = Config.visual.fpsCap || 60;
         let frameInterval = 1000 / currentFpsCap;

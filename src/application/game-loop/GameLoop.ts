@@ -1,5 +1,6 @@
 import { Match, MatchMode } from '../../domain/match/Match';
 import { Ship, Orientation } from '../../domain/fleet/Ship';
+import { WeaponType } from '../../domain/board/Board';
 import { AIEngine, AIDifficulty } from '../ai/AIEngine';
 import { MatchSetup, MatchSetupState } from './MatchSetup';
 import { TurnExecutor, TurnExecutorState } from './TurnExecutor';
@@ -159,6 +160,76 @@ export class GameLoop {
                 if (moved) {
                     ship.movesRemaining--;
                     this.shipMovedListeners.forEach(listener => listener(ship, newX, newZ, newOrientation as Orientation));
+                }
+            }
+        });
+
+        document.addEventListener('ROGUE_USE_WEAPON', (e: Event) => {
+            const ce = e as CustomEvent;
+            const { weaponType, targetX, targetZ, directionX, directionZ, radius } = ce.detail;
+            
+            if (!this.match || this.currentState !== GameState.PLAYER_TURN || this.config.autoBattler) return;
+
+            const targetBoard = this.match.mode === MatchMode.Rogue ? this.match.sharedBoard : this.match.enemyBoard;
+
+            let turnHandledAsync = false;
+
+            if (weaponType === WeaponType.Mine) {
+                const placed = targetBoard.placeMine(targetX, targetZ);
+                if (!placed) return; // invalid placement, do not consume turn
+            } else if (weaponType === WeaponType.Sonar) {
+                const results = targetBoard.sonarPing(targetX, targetZ, radius || 2);
+                document.dispatchEvent(new CustomEvent('SONAR_RESULTS', { detail: { hits: results } }));
+                // Trigger visual feedback
+                this.isAnimating = true;
+                turnHandledAsync = true;
+                
+                const finalizeTurn = () => {
+                    this.isAnimating = false;
+                    if (this.match!.mode === MatchMode.Rogue) {
+                        this.advanceRogueShipTurn();
+                    } else {
+                        this.transitionTo(GameState.ENEMY_TURN);
+                    }
+                };
+                setTimeout(finalizeTurn, 1000); // Temporary visual delay for sonar
+                
+            } else if (weaponType === WeaponType.AirStrike) {
+                const results = targetBoard.dispatchAirStrike(targetX, targetZ, directionX || 1, directionZ || 0);
+                this.isAnimating = true;
+                turnHandledAsync = true;
+                
+                results.forEach(res => {
+                    if (res.result !== 'invalid') {
+                        this.attackResultListeners.forEach(l => l(res.x, res.z, res.result, true, false));
+                    }
+                });
+                
+                const finalizeTurn = () => {
+                    let status: 'ongoing' | 'player_wins' | 'enemy_wins' = 'ongoing';
+                    try {
+                        status = this.match!.checkGameEnd();
+                    } catch (e: any) { }
+                    this.isAnimating = false;
+                    if (status !== 'ongoing') {
+                        this.transitionTo(GameState.GAME_OVER);
+                    } else {
+                        if (this.match!.mode === MatchMode.Rogue) {
+                            this.advanceRogueShipTurn();
+                        } else {
+                            this.transitionTo(GameState.ENEMY_TURN);
+                        }
+                    }
+                };
+                
+                this.onAnimationsComplete = finalizeTurn;
+            }
+
+            if (!turnHandledAsync) {
+                if (this.match.mode === MatchMode.Rogue) {
+                    this.advanceRogueShipTurn();
+                } else {
+                    this.transitionTo(GameState.ENEMY_TURN);
                 }
             }
         });

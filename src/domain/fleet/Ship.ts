@@ -49,6 +49,11 @@ export class Ship {
         return coords;
     }
 
+    public occupies(x: number, z: number): boolean {
+        const coords = this.getOccupiedCoordinates();
+        return coords.some(c => c.x === x && c.z === z);
+    }
+
     /**
      * Hits a specific local segment (index 0 to size-1) on the ship.
      * @param index Local index of the segment

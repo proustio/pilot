@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { GameState } from '../../../application/game-loop/GameLoop';
 import { InteractivityGuard } from '../../InteractivityGuard';
 import { Orientation } from '../../../domain/fleet/Ship';
+import { MatchMode } from '../../../domain/match/Match';
 import { CellState } from '../../../domain/board/Board';
 import { Config } from '../../../infrastructure/config/Config';
 
@@ -239,7 +240,8 @@ export class InteractionManager {
         const isPlayerSide = pickedTile.userData.isPlayerSide;
 
         if (this.gameLoop && this.gameLoop.match && this.gameLoop.currentState === GameState.PLAYER_TURN) {
-          const targetBoard = isPlayerSide ? this.gameLoop.match.playerBoard : this.gameLoop.match.enemyBoard;
+          const isRogue = this.gameLoop.match.mode === MatchMode.Rogue;
+          const targetBoard = isRogue ? this.gameLoop.match.sharedBoard : (isPlayerSide ? this.gameLoop.match.playerBoard : this.gameLoop.match.enemyBoard);
           const index = z * targetBoard.width + x;
           const st = targetBoard.gridState[index];
           if (st === CellState.Hit || st === CellState.Miss || st === CellState.Sunk) {

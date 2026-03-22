@@ -114,13 +114,13 @@
 
 > The advanced arsenal should be fully implemented from the start of this sprint rather than just stubbed.
 
-- [ ] **Define `WeaponType` enum**: `Cannon` (existing), `Mine`, `Sonar`, `AirStrike`.
-- [ ] **Implement methods in `Board`**:
+- [x] **Define `WeaponType` enum**: `Cannon` (existing), `Mine`, `Sonar`, `AirStrike`.
+- [x] **Implement methods in `Board`**:
   - `placeMine(x, z): boolean` — logic to mark cell as `CellState.Mine` and handle triggering when a ship enters the cell.
   - `sonarPing(centerX, centerZ, radius): { x, z }[]` — functional scanning logic returning occupied cells.
   - `dispatchAirStrike(startX, startZ, directionX: -1|0|1, directionZ: -1|0|1): AttackResult[]` — full implementation of line attack logic.
-- [ ] **Add `ROGUE_USE_WEAPON` handler in `GameLoop`**: Routes to the appropriate `Board` implementation, processes state changes, and signals the presentation layer.
-- [ ] **Acceptance**: All advanced weapons (mines, sonar, air strikes) are fully implemented and affect gameplay correctly instead of returning stub results.
+- [x] **Add `ROGUE_USE_WEAPON` handler in `GameLoop`**: Routes to the appropriate `Board` implementation, processes state changes, and signals the presentation layer.
+- [x] **Acceptance**: All advanced weapons (mines, sonar, air strikes) are fully implemented and affect gameplay correctly instead of returning stub results.
 
 ---
 

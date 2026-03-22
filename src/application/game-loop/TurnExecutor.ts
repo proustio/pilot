@@ -243,9 +243,29 @@ export class TurnExecutor {
     public onPlayerTurnClick(x: number, z: number, isPlayerSide?: boolean): void {
         if (!this.s.match || this.s.isPaused) return;
         if (this.s.isAnimating || this.s.config.autoBattler) return;
-        if (isPlayerSide === true) return;
+        
+        const isRogue = this.s.match.mode === MatchMode.Rogue;
+        if (!isRogue && isPlayerSide === true) return;
 
-        const targetBoard = this.s.match.mode === MatchMode.Rogue ? this.s.match.sharedBoard : this.s.match.enemyBoard;
+        if (isRogue) {
+            const weapon = (window as any).selectedRogueWeapon || 'cannon';
+            if (weapon !== 'cannon') {
+                // Dispatch weapon event and let GameLoop handle it
+                document.dispatchEvent(new CustomEvent('ROGUE_USE_WEAPON', {
+                    detail: {
+                        weaponType: weapon,
+                        targetX: x,
+                        targetZ: z,
+                        radius: 2, // default for sonar
+                        directionX: 1, // default for airstrike
+                        directionZ: 0
+                    }
+                }));
+                return;
+            }
+        }
+
+        const targetBoard = isRogue ? this.s.match.sharedBoard : this.s.match.enemyBoard;
         const result = targetBoard.receiveAttack(x, z);
 
         if (result !== 'invalid') {

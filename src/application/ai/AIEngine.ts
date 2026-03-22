@@ -2,6 +2,7 @@ import { Board, CellState, AttackResult } from '../../domain/board/Board';
 import { Ship, Orientation } from '../../domain/fleet/Ship';
 import { MatchMode, Match } from '../../domain/match/Match';
 import { getIndex } from '../../domain/board/BoardUtils';
+import { Config } from '../../infrastructure/config/Config';
 
 export type AIDifficulty = 'easy' | 'normal' | 'hard';
 
@@ -83,6 +84,13 @@ export class AIEngine {
             const state = board.gridState[idx];
             
             if (state === CellState.Empty || state === CellState.Ship) {
+                // In Rogue mode, don't shoot own ships
+                if (Config.rogueMode) {
+                    const ship = board.ships.find(s => s.occupies(x, z));
+                    if (ship && ship.isEnemy) {
+                        continue; // skip own ship
+                    }
+                }
                 valid = true;
             }
         }
@@ -147,6 +155,10 @@ export class AIEngine {
                 const state = board.gridState[idx];
                 
                 if (state === CellState.Empty || state === CellState.Ship) {
+                    if (Config.rogueMode) {
+                        const ship = board.ships.find(s => s.occupies(x, z));
+                        if (ship && ship.isEnemy) continue; // Skip own ship in heat map
+                    }
                     if (heatMap[idx] > maxHeat) {
                         maxHeat = heatMap[idx];
                         bestTarget = { x, z };

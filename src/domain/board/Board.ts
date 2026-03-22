@@ -6,7 +6,15 @@ export enum CellState {
     Miss = 1,
     Ship = 2,
     Hit = 3,
-    Sunk = 4
+    Sunk = 4,
+    Mine = 5
+}
+
+export enum WeaponType {
+    Cannon = 'cannon',
+    Mine = 'mine',
+    Sonar = 'sonar',
+    AirStrike = 'airstrike'
 }
 
 export enum AttackResult {
@@ -52,7 +60,8 @@ export class Board {
                 return false;
             }
 
-            if (this.gridState[getIndex(currentX, currentZ, this.width)] !== CellState.Empty) {
+            const state = this.gridState[getIndex(currentX, currentZ, this.width)];
+            if (state !== CellState.Empty && state !== CellState.Mine) {
                 return false;
             }
         }
@@ -131,12 +140,27 @@ export class Board {
         ship.headZ = newHeadZ;
         ship.orientation = newOrientation;
 
+        let hitMine = false;
         const newCoords = ship.getOccupiedCoordinates();
         newCoords.forEach((coord, segmentIndex) => {
-            const mapKey = `${coord.x},${coord.z}`;
-            this.gridState[getIndex(coord.x, coord.z, this.width)] = CellState.Ship;
-            this.shipMap.set(mapKey, { ship, segmentIndex });
+            const idx = getIndex(coord.x, coord.z, this.width);
+            const state = this.gridState[idx];
+            if (state === CellState.Mine) {
+                hitMine = true;
+                ship.hitSegment(segmentIndex);
+                this.gridState[idx] = ship.isSunk() ? CellState.Sunk : CellState.Hit;
+            } else {
+                this.gridState[idx] = CellState.Ship;
+            }
+            this.shipMap.set(`${coord.x},${coord.z}`, { ship, segmentIndex });
         });
+
+        if (hitMine && ship.isSunk()) {
+            this.aliveShipsCount--;
+            newCoords.forEach((coord) => {
+                this.gridState[getIndex(coord.x, coord.z, this.width)] = CellState.Sunk;
+            });
+        }
 
         return true;
     }
@@ -151,7 +175,7 @@ export class Board {
             return AttackResult.Invalid;
         }
 
-        if (state === CellState.Empty) {
+        if (state === CellState.Empty || state === CellState.Mine) {
             this.shotsFired++;
             this.gridState[index] = CellState.Miss;
             return AttackResult.Miss;
@@ -195,5 +219,47 @@ export class Board {
             throw new Error('Board has no ships');
         }
         return this.aliveShipsCount === 0;
+    }
+
+    public placeMine(x: number, z: number): boolean {
+        if (this.isOutOfBounds(x, z)) return false;
+        const index = getIndex(x, z, this.width);
+        if (this.gridState[index] === CellState.Empty) {
+            this.gridState[index] = CellState.Mine;
+            return true;
+        }
+        return false;
+    }
+
+    public sonarPing(centerX: number, centerZ: number, radius: number): { x: number, z: number }[] {
+        const found: { x: number, z: number }[] = [];
+        for (let dx = -radius; dx <= radius; dx++) {
+            for (let dz = -radius; dz <= radius; dz++) {
+                const x = centerX + dx;
+                const z = centerZ + dz;
+                if (!this.isOutOfBounds(x, z)) {
+                    if (Math.abs(dx) + Math.abs(dz) <= radius) {
+                        const state = this.gridState[getIndex(x, z, this.width)];
+                        if (state === CellState.Ship || state === CellState.Hit || state === CellState.Sunk) {
+                            found.push({ x, z });
+                        }
+                    }
+                }
+            }
+        }
+        return found;
+    }
+
+    public dispatchAirStrike(startX: number, startZ: number, directionX: -1|0|1, directionZ: -1|0|1): { x: number, z: number, result: AttackResult }[] {
+        const results: { x: number, z: number, result: AttackResult }[] = [];
+        let cx = startX;
+        let cz = startZ;
+        while (!this.isOutOfBounds(cx, cz)) {
+            const res = this.receiveAttack(cx, cz);
+            results.push({ x: cx, z: cz, result: res });
+            cx += directionX;
+            cz += directionZ;
+        }
+        return results;
     }
 }

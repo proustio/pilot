@@ -1,5 +1,6 @@
 import { BaseUIComponent } from '../components/BaseUIComponent';
 import { GameLoop, GameState } from '../../../application/game-loop/GameLoop';
+import { MatchMode } from '../../../domain/match/Match';
 import { Config } from '../../../infrastructure/config/Config';
 import { UnifiedBoardUI } from './UnifiedBoardUI';
 import { bindHUDControls } from './HUDControls';
@@ -62,12 +63,24 @@ export class HUD extends BaseUIComponent {
                         <div class="sw-screw tl"></div><div class="sw-screw tr"></div>
                         <div class="sw-screw bl"></div><div class="sw-screw br"></div>
                     </div>
-                    <div id="game-stats" class="hud-game-stats retro-panel">
+                    <div id="game-stats" class="hud-game-stats retro-panel ${Config.rogueMode ? 'hidden' : ''}">
                         <div class="sw-screw tl"></div><div class="sw-screw tr"></div>
                         <div class="sw-screw bl"></div><div class="sw-screw br"></div>
                         <div class="stat-item">SHOTS: <span id="stat-shots">0</span></div>
                         <div class="stat-item">RATIO: <span id="stat-ratio">0%</span></div>
                         <div class="stat-item win-prob-item">PROB: <span id="stat-prob">50%</span></div>
+                    </div>
+
+                    <div class="hud-arsenal-panel retro-panel ${Config.rogueMode ? '' : 'hidden'}" id="arsenal-panel">
+                        <div class="sw-screw tl"></div><div class="sw-screw tr"></div>
+                        <div class="sw-screw bl"></div><div class="sw-screw br"></div>
+                        <div class="arsenal-title">SHIP SYSTEMS</div>
+                        <div class="arsenal-items">
+                            <button class="arsenal-btn active" data-weapon="cannon" title="Standard Cannon">💣</button>
+                            <button class="arsenal-btn" data-weapon="mine" title="Place Mine">⚓</button>
+                            <button class="arsenal-btn" data-weapon="sonar" title="Sonar Ping">📡</button>
+                            <button class="arsenal-btn" data-weapon="airstrike" title="Air Strike">✈️</button>
+                        </div>
                     </div>
                 </div>
                 
@@ -139,9 +152,40 @@ export class HUD extends BaseUIComponent {
 
         this.updateStats();
         this.updateCounters();
+        this.bindArsenalEvents();
+    }
+
+    private bindArsenalEvents(): void {
+        const arsenalPanel = this.container.querySelector('#arsenal-panel');
+        if (!arsenalPanel) return;
+
+        const buttons = arsenalPanel.querySelectorAll('.arsenal-btn');
+        buttons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                buttons.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                const weapon = (btn as HTMLElement).dataset.weapon;
+                (window as any).selectedRogueWeapon = weapon;
+            });
+        });
     }
 
     public update(state: GameState): void {
+        // Dynamic visibility for Rogue vs Classic panels
+        const isRogue = this.gameLoop.match?.mode === MatchMode.Rogue;
+        const arsenalPanel = this.container.querySelector('#arsenal-panel');
+        const statsPanel = this.container.querySelector('#game-stats');
+        
+        if (arsenalPanel && statsPanel) {
+            if (isRogue) {
+                arsenalPanel.classList.remove('hidden');
+                statsPanel.classList.add('hidden');
+            } else {
+                arsenalPanel.classList.add('hidden');
+                statsPanel.classList.remove('hidden');
+            }
+        }
+
         const indicator = this.turnIndicator;
         if (state === GameState.PLAYER_TURN) {
             indicator.innerText = "YOUR TURN";

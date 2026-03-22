@@ -6,11 +6,15 @@ export class AudioEngine {
     private masterVolume: number = Config.audio.masterVolume;
 
     private constructor() {
+        this.masterVolume = Config.audio.masterVolume;
+    }
+
+    private ensureContext() {
+        if (this.ctx) return;
         try {
             this.ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-            this.masterVolume = Config.audio.masterVolume;
         } catch (e) {
-            console.warn('AudioContext not supported or blocked', e);
+            console.warn('AudioContext not supported', e);
         }
     }
 
@@ -26,8 +30,9 @@ export class AudioEngine {
     }
 
     public resume() {
+        this.ensureContext();
         if (this.ctx && this.ctx.state === 'suspended') {
-            this.ctx.resume();
+            this.ctx.resume().catch(e => console.warn('Audio resume failed', e));
         }
     }
 

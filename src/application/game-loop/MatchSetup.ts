@@ -65,7 +65,8 @@ export class MatchSetup {
             this.state.playerShipsToPlace = [];
         }
 
-        if (match.mode !== MatchMode.Rogue || this.state.config.autoBattler) {
+        // Always place enemy fleet
+        if (true) {
             const targetBoard = match.mode === MatchMode.Rogue ? match.playerBoard : match.enemyBoard;
             const enemyShips = match.getRequiredFleet();
             for (const ship of enemyShips) {

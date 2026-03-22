@@ -42,13 +42,14 @@ export class UnifiedBoardUI extends BaseUIComponent {
     }
 
     protected render(): void {
+        const isRogue = Config.rogueMode;
         this.container.innerHTML = `
-            <div class="unified-board-container">
+            <div class="unified-board-container ${isRogue ? 'rogue-layout' : ''}">
                 <div class="mini-board-wrapper">
-                    <div class="mini-board-title">YOU</div>
+                    <div class="mini-board-title">${isRogue ? 'BATTLEFIELD' : 'YOU'}</div>
                     <div id="mini-player-grid" class="mini-grid"></div>
                 </div>
-                <div class="mini-board-wrapper">
+                <div class="mini-board-wrapper" style="display: ${isRogue ? 'none' : 'block'};">
                     <div class="mini-board-title">ENEMY</div>
                     <div id="mini-enemy-grid" class="mini-grid"></div>
                 </div>
@@ -66,7 +67,12 @@ export class UnifiedBoardUI extends BaseUIComponent {
         const createGrid = (container: HTMLElement, isPlayer: boolean) => {
             container.innerHTML = '';
             const boardWidth = this.gameLoop.match ? this.gameLoop.match.playerBoard.width : Config.board.width;
-            const cellCount = this.gameLoop.match ? (this.gameLoop.match.playerBoard.width * this.gameLoop.match.playerBoard.height) : (Config.board.width * Config.board.height);
+            const boardHeight = this.gameLoop.match ? this.gameLoop.match.playerBoard.height : Config.board.height;
+            const cellCount = boardWidth * boardHeight;
+
+            container.style.gridTemplateColumns = `repeat(${boardWidth}, 8px)`;
+            container.style.gridTemplateRows = `repeat(${boardHeight}, 8px)`;
+            
             for (let i = 0; i < cellCount; i++) {
                 const cell = document.createElement('div');
                 cell.classList.add('mini-cell');
@@ -111,7 +117,9 @@ export class UnifiedBoardUI extends BaseUIComponent {
         const enemyBoard = this.gameLoop.match.enemyBoard;
 
         this.updateGrid(this.playerGridContainer, playerBoard.gridState, true);
-        this.updateGrid(this.enemyGridContainer, enemyBoard.gridState, false);
+        if (!Config.rogueMode) {
+            this.updateGrid(this.enemyGridContainer, enemyBoard.gridState, false);
+        }
     }
 
     private updateGrid(container: HTMLElement, gridState: Uint8Array, isPlayer: boolean): void {
