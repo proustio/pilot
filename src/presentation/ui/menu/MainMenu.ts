@@ -2,6 +2,7 @@ import { BaseUIComponent } from '../components/BaseUIComponent';
 import { GameLoop } from '../../../application/game-loop/GameLoop';
 import { Match, MatchMode } from '../../../domain/match/Match';
 import { Config } from '../../../infrastructure/config/Config';
+import { Storage } from '../../../infrastructure/storage/Storage';
 
 export class MainMenu extends BaseUIComponent {
     private gameLoop: GameLoop;
@@ -197,8 +198,9 @@ export class MainMenu extends BaseUIComponent {
             Config.saveConfig();
 
             let matchMode = MatchMode.Classic;
-            let width = Config.board.width;
-            let height = Config.board.height;
+            let width = 10;
+            let height = 10;
+            let rogueMode = false;
 
             if (selectedMode === 'russian') {
                 matchMode = MatchMode.Russian;
@@ -206,9 +208,22 @@ export class MainMenu extends BaseUIComponent {
                 matchMode = MatchMode.Rogue;
                 width = 20;
                 height = 20;
+                rogueMode = true;
             }
 
             const match = new Match(matchMode, width, height);
+
+            if (Config.board.width !== width || Config.rogueMode !== rogueMode) {
+                Config.board.width = width;
+                Config.board.height = height;
+                Config.rogueMode = rogueMode;
+                Config.saveConfig();
+                
+                Storage.saveGame('session', match);
+                window.location.reload();
+                return;
+            }
+
             this.gameLoop.startNewMatch(match);
         });
 

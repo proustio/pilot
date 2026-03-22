@@ -38,6 +38,7 @@ export const Config = {
     rogue: {
         fogRadius: 7,  // cells of personal fog halo around each ship
     },
+    rogueMode: false,
 
     autoBattler: false,
     aiDifficulty: 'normal',
@@ -75,6 +76,13 @@ export const Config = {
                 if (parsedConfig.visual?.antialias !== undefined) {
                     this.visual.antialias = parsedConfig.visual.antialias;
                 }
+                if (parsedConfig.board?.width !== undefined) {
+                    this.board.width = parsedConfig.board.width;
+                    this.board.height = parsedConfig.board.height;
+                }
+                if (parsedConfig.rogueMode !== undefined) {
+                    this.rogueMode = parsedConfig.rogueMode;
+                }
                 if (parsedConfig.autoBattler !== undefined) {
                     this.autoBattler = parsedConfig.autoBattler;
                 }
@@ -105,6 +113,11 @@ export const Config = {
                     shadowsEnabled: this.visual.shadowsEnabled,
                     antialias: this.visual.antialias
                 },
+                board: {
+                    width: this.board.width,
+                    height: this.board.height
+                },
+                rogueMode: this.rogueMode,
                 autoBattler: this.autoBattler,
                 aiDifficulty: this.aiDifficulty,
                 audio: {

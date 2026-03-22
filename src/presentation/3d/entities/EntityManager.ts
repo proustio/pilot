@@ -38,6 +38,8 @@ export class EntityManager {
     private fogManager: FogManager;
     private projectileManager: ProjectileManager;
 
+    private allShips: Ship[] = []; // Stores references to domain ships for rogue fog
+
     constructor(scene: THREE.Scene) {
         this.scene = scene;
 
@@ -47,7 +49,7 @@ export class EntityManager {
         this.enemyBoardGroup = new THREE.Group();
 
         this.particleSystem = new ParticleSystem();
-        this.fogManager = new FogManager(this.enemyBoardGroup);
+        this.fogManager = new FogManager(this.enemyBoardGroup, Config.rogueMode);
 
         // Position faces: Player points UP, Enemy points DOWN
         this.playerBoardGroup.position.y = 1.2;
@@ -110,6 +112,10 @@ export class EntityManager {
         const targetGroup = isPlayer ? this.playerBoardGroup : this.enemyBoardGroup;
         ShipFactory.createShip(ship, x, z, orientation, isPlayer, targetGroup);
 
+        if (!this.allShips.includes(ship)) {
+            this.allShips.push(ship);
+        }
+
         // Trigger water ripple at ship center
         const boardOffset = Config.board.width / 2;
         const cx = orientation === Orientation.Horizontal ? x + Math.floor(ship.size / 2) : x;
@@ -165,6 +171,11 @@ export class EntityManager {
         // Water uniforms
         this.updateWater(this.playerWaterUniforms, waterTimeIncrement);
         this.updateWater(this.enemyWaterUniforms, waterTimeIncrement);
+
+        // Rogue dynamic fog
+        if (this.fogManager.rogueMode) {
+            this.fogManager.updateRogueFog(this.allShips);
+        }
 
         // LED pulsing
         this.staticGroup.children.forEach(child => {

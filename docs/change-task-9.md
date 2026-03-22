@@ -55,16 +55,16 @@
 
 > In Rogue mode, fog wraps each ship at a 7-cell radius instead of covering all enemy cells statically.
 
-- [ ] **Add `rogueMode: boolean` flag to `FogManager`** (passed from `Config`).
-- [ ] **In Rogue mode, skip per-cell static fog creation** in `BoardBuilder.build()`.
-- [ ] **Create `updateRogueFog(ships: Ship[])` method**:
+- [x] **Add `rogueMode: boolean` flag to `FogManager`** (passed from `Config`).
+- [x] **In Rogue mode, skip per-cell static fog creation** in `BoardBuilder.build()`.
+- [x] **Create `updateRogueFog(ships: Ship[])` method**:
   - For each cell on the board, compute the minimum Chebyshev distance to any ship cell.
   - If `distance <= Config.rogue.fogRadius`, hide fog mesh (fade out opacity).
   - If `distance > Config.rogue.fogRadius`, show fog mesh (fade in).
   - Animate opacity smoothly using lerp over ~20 frames.
-- [ ] **Call `updateRogueFog(ships)` every frame** in `EntityManager.update()` when `rogueMode` is active.
-- [ ] **When a ship moves**, call `updateRogueFog()` immediately to recompute revealed cells.
-- [ ] **Acceptance**: Fog clouds appear and disappear dynamically at a 7-cell radius around each ship as they move.
+- [x] **Call `updateRogueFog(ships)` every frame** in `EntityManager.update()` when `rogueMode` is active.
+- [x] **When a ship moves**, call `updateRogueFog()` immediately to recompute revealed cells.
+- [x] **Acceptance**: Fog clouds appear and disappear dynamically at a 7-cell radius around each ship as they move.
 
 ---
 

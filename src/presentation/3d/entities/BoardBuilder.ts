@@ -358,6 +358,8 @@ export class BoardBuilder {
         fogVoxelGeo.setAttribute('aPhase', new THREE.InstancedBufferAttribute(aPhase, 1));
         fogVoxelGeo.setAttribute('aSpeed', new THREE.InstancedBufferAttribute(aSpeed, 1));
 
+        fogManager.initializeDynamicAssets(fogVoxelGeo, fogMat);
+
         for (let z = 0; z < boardSize; z++) {
             for (let x = 0; x < boardSize; x++) {
                 const worldX = x - offset + 0.5;
@@ -377,19 +379,21 @@ export class BoardBuilder {
                 enemyBoardGroup.add(etile);
                 enemyGridTiles.push(etile);
 
-                // Fog cloud
-                const fogCloud = new THREE.InstancedMesh(fogVoxelGeo, fogMat, numVoxels);
-                fogCloud.position.set(worldX, 0.0, worldZ);
+                // Fog cloud (skip static creation if rogue mode)
+                if (!fogManager.rogueMode) {
+                    const fogCloud = new THREE.InstancedMesh(fogVoxelGeo, fogMat, numVoxels);
+                    fogCloud.position.set(worldX, 0.0, worldZ);
 
-                const identity = new THREE.Matrix4();
-                for (let i = 0; i < numVoxels; i++) {
-                    fogCloud.setMatrixAt(i, identity);
+                    const identity = new THREE.Matrix4();
+                    for (let i = 0; i < numVoxels; i++) {
+                        fogCloud.setMatrixAt(i, identity);
+                    }
+                    
+                    fogCloud.userData = { isFog: true };
+
+                    enemyBoardGroup.add(fogCloud);
+                    fogManager.setFogMesh(z * boardSize + x, fogCloud);
                 }
-                
-                fogCloud.userData = { isFog: true };
-
-                enemyBoardGroup.add(fogCloud);
-                fogManager.setFogMesh(z * boardSize + x, fogCloud);
             }
         }
 
