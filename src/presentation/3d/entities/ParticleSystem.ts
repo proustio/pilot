@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { ThemeManager } from '../../theme/ThemeManager';
 
 interface Particle {
     mesh: THREE.Mesh;
@@ -45,7 +46,17 @@ export class ParticleSystem {
     private splashMatBlue = new THREE.MeshStandardMaterial({ color: 0x4fa4ff, transparent: true, opacity: 0.8, roughness: 0.2 });
     private shipVoxelMat = new THREE.MeshStandardMaterial({ color: 0x888888, roughness: 0.7 });
 
-    constructor() { }
+    constructor() {
+        const updateParticleTheme = () => {
+            const tm = ThemeManager.getInstance();
+            const wc = tm.getWaterColors();
+            // Splash particles should mirror the water peak color
+            this.splashMatBlue.color.copy(wc.secondary);
+        };
+
+        document.addEventListener('THEME_CHANGED', updateParticleTheme);
+        updateParticleTheme(); // Run once to seed values
+    }
 
     public spawnExplosion(x: number, y: number, z: number, group: THREE.Object3D) {
         // Spawn 10-15 fiery/grey particles bursting outwards

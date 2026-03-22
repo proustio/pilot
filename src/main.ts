@@ -5,14 +5,15 @@ import { GameLoop } from './application/game-loop/GameLoop';
 import { UIManager } from './presentation/ui/UIManager';
 import { Config } from './infrastructure/config/Config';
 import { Storage, ViewState } from './infrastructure/storage/Storage';
+import { ThemeManager } from './presentation/theme/ThemeManager';
 
 const init = () => {
     try {
         Config.loadConfig();
+        
+        ThemeManager.getInstance().applyToDOM();
 
         const engine = new Engine3D('app');
-
-        document.body.classList.add(Config.visual.isDayMode ? 'day-mode' : 'night-mode');
 
         const entityManager = new EntityManager(engine.scene);
 
@@ -22,7 +23,7 @@ const init = () => {
             entityManager
         );
 
-        const gameLoop = new GameLoop();
+        const gameLoop = new GameLoop(Config, Storage);
 
         interactionManager.setGameLoop(gameLoop);
 
@@ -134,7 +135,7 @@ const init = () => {
 
             if (!gameLoop.isPaused) {
                 interactionManager.update();
-                entityManager.update();
+                entityManager.update(engine.camera);
                 uiManager.update();
             }
 
@@ -197,8 +198,7 @@ const init = () => {
             setTimeout(() => { isRestoringState = false; }, 0);
 
             Config.visual.isDayMode = vs.isDayMode;
-            document.body.classList.remove('day-mode', 'night-mode');
-            document.body.classList.add(vs.isDayMode ? 'day-mode' : 'night-mode');
+            ThemeManager.getInstance().applyToDOM();
             engine.setDayMode(vs.isDayMode);
             document.dispatchEvent(new CustomEvent('TOGGLE_DAY_NIGHT', { detail: { isDay: vs.isDayMode } }));
 

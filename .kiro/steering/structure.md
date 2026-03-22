@@ -10,6 +10,7 @@ Domain-Driven Design with strict layer separation. Domain and application layers
 src/
 ├── domain/                    # Pure game logic, no framework dependencies
 │   ├── board/Board.ts         # Grid, cells (CellState enum), attack resolution
+│   ├── board/BoardUtils.ts    # Grid index ↔ coordinate helper functions
 │   ├── fleet/Ship.ts          # Ship model, orientation, hit segments, occupied coords
 │   └── match/Match.ts         # Match rules per mode (Classic/Russian), fleet config, placement validation
 │
@@ -21,10 +22,14 @@ src/
 │       └── TurnExecutor.ts    # Turn handling for AI, auto-player, and player interaction
 │
 ├── infrastructure/            # External concerns
+│   ├── audio/AudioEngine.ts   # Web Audio API sound engine (singleton, layered synthesis)
 │   ├── config/Config.ts       # Runtime config (visual settings, timing, game speed)
 │   └── storage/Storage.ts     # Save/load interfaces and localStorage adapter
 │
 ├── presentation/              # All rendering and UI
+│   ├── InteractivityGuard.ts  # Centralized input-blocking guard (camera, animations, menus)
+│   ├── theme/                 # Dynamic color management
+│   │   └── ThemeManager.ts    # Single source-of-truth for DOM CSS variables and 3D WebGL material hexes
 │   ├── 3d/
 │   │   ├── Engine3D.ts        # Three.js scene, camera, renderer, orbit controls, lighting
 │   │   ├── entities/
@@ -66,8 +71,9 @@ src/
 ```
 
 ## Architecture Rules
-- `domain/` and `application/` must never import from `presentation/` or `infrastructure/`
-- Cross-layer communication uses CustomEvents on `document` (e.g., `SAVE_GAME`, `TOGGLE_PEEK`, `RESTORE_VIEW_STATE`)
+- `domain/` must never import from `presentation/` or `infrastructure/`
+- `application/` must never import from `presentation/`; `Config` and `Storage` are injected via constructor from `main.ts` (no direct `infrastructure/` imports)
+- Cross-layer communication uses CustomEvents on `document` (e.g., `SAVE_GAME`, `TOGGLE_PEEK`, `RESTORE_VIEW_STATE`, `INTERACTION_GUARD_STATE`)
 - UI components follow a lifecycle pattern: extend `BaseUIComponent`, implement `render()`, use `mount()`/`unmount()`/`show()`/`hide()`
 - `main.ts` is the composition root — it wires dependencies and registers event listeners
 - One class per file, file named after the primary export

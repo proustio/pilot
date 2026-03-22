@@ -9,8 +9,8 @@ Browser-based Battleships game with a Minecraft-style 3D voxel aesthetic, built 
 ## Game Modes
 - Classic: American rules (standard fleet, standard placement)
 - Russian: Russian rules (1×4-deck, 2×3-deck, etc., strict non-touching adjacency)
-- Rogue (Active): Rogue-like mode with movable ships and weapon variety (in development)
-- PvP (Active): Multiplayer mode (in development)
+- Rogue: Rogue-like mode with movable ships and weapon variety (in development)
+- PvP: Multiplayer mode (in development)
 
 ## Core Gameplay
 - Single-player vs AI (Easy / Normal / Hard difficulty)

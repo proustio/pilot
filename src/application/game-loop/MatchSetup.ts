@@ -2,7 +2,6 @@ import { Match } from '../../domain/match/Match';
 import { Ship, Orientation } from '../../domain/fleet/Ship';
 import { CellState } from '../../domain/board/Board';
 import { AIEngine } from '../ai/AIEngine';
-import { Config } from '../../infrastructure/config/Config';
 import { getCoords } from '../../domain/board/BoardUtils';
 import { GameState } from './GameLoop';
 
@@ -17,6 +16,9 @@ export interface MatchSetupState {
     shipPlacedListeners: ShipPlacedListener[];
     attackResultListeners: AttackResultListener[];
     transitionTo: (state: GameState) => void;
+    config: {
+        autoBattler: boolean;
+    };
 }
 
 /**
@@ -41,7 +43,7 @@ export class MatchSetup {
 
         this.state.playerShipsToPlace = match.getRequiredFleet();
 
-        if (Config.autoBattler) {
+        if (this.state.config.autoBattler) {
             const playerShips = match.getRequiredFleet();
             for (const ship of playerShips) {
                 let placed = false;

@@ -9,24 +9,28 @@
   z-index: 100;
 }
 
+.custom-dropdown.open {
+  z-index: 1000;
+}
+
 .custom-dropdown-selected {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 8px 12px;
-  background: rgba(0, 20, 0, 0.85);
-  border: 1px solid #0f0;
+  background: var(--panel-bg, rgba(0, 20, 0, 0.85));
+  border: 1px solid var(--player-primary, #0f0);
   border-radius: 4px;
-  color: #0f0;
+  color: var(--player-primary, #0f0);
   cursor: pointer;
-  text-shadow: 0 0 5px rgba(0, 255, 0, 0.5);
-  box-shadow: inset 0 0 8px rgba(0, 255, 0, 0.1), 0 0 4px rgba(0, 255, 0, 0.15);
-  transition: box-shadow 0.15s;
+  box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.8);
+  transition: all 0.15s ease-in-out;
   letter-spacing: 0.5px;
 }
 
 .custom-dropdown-selected:hover {
-  box-shadow: inset 0 0 12px rgba(0, 255, 0, 0.25), 0 0 8px rgba(0, 255, 0, 0.3);
+  background: rgba(255, 255, 255, 0.05);
+  box-shadow: var(--panel-border-glow, inset 0 0 10px rgba(0, 255, 0, 0.2));
 }
 
 .custom-dropdown-arrow {
@@ -45,11 +49,11 @@
   top: calc(100% + 4px);
   left: 0;
   right: 0;
-  background: rgba(0, 10, 0, 0.97);
-  border: 1px solid #0a0;
+  background: var(--panel-bg, rgba(0, 10, 0, 0.97));
+  border: 1px solid var(--player-primary, #0a0);
   border-radius: 4px;
   overflow: hidden;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.9), 0 0 10px rgba(0, 255, 0, 0.1);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.9);
   display: none;
   flex-direction: column;
 }
@@ -72,9 +76,9 @@
   cursor: pointer;
   font-size: 0.82rem;
   letter-spacing: 0.4px;
-  border-bottom: 1px solid rgba(0, 80, 0, 0.4);
+  border-bottom: 1px solid rgba(128, 128, 128, 0.2);
   transition: background 0.12s, color 0.12s;
-  color: #aaa;
+  color: var(--text-base, #aaa);
 }
 
 .custom-dropdown-option:last-child {
@@ -87,15 +91,11 @@
   text-align: center;
 }
 
-/* Classic — green CRT theme */
-.option-classic {
-  color: #7fff7f;
-}
-.option-classic:hover,
-.option-classic.active {
-  background: rgba(0, 180, 0, 0.15);
-  color: #0f0;
-  text-shadow: 0 0 6px rgba(0, 255, 0, 0.6);
+/* Classic — generic generic interactive option state */
+.custom-dropdown-option:hover,
+.custom-dropdown-option.active {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--player-primary, #0f0);
 }
 
 /* Russian — icy blue theme */
@@ -106,7 +106,6 @@
 .option-russian.active {
   background: rgba(30, 100, 220, 0.2);
   color: #a0cfff;
-  text-shadow: 0 0 6px rgba(100, 180, 255, 0.5);
 }
 
 /* Rogue — dimmed skull theme */
@@ -123,7 +122,6 @@
 .option-rogue.active {
   background: rgba(150, 0, 0, 0.15);
   color: #bb6666;
-  text-shadow: 0 0 6px rgba(200, 50, 50, 0.4);
   opacity: 1;
 }
 

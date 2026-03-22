@@ -10,8 +10,8 @@ export const Config = {
     },
     timing: {
         gameSpeedMultiplier: 1.0,
-        aiThinkingTimeMs: 1000,
-        turnDelayMs: 2000,
+        aiThinkingTimeMs: 2000,
+        turnDelayMs: 1000,
         boardFlipSpeed: 0.05,
         projectileSpeed: 0.04,
         cameraLerpSpeed: 0.05,
@@ -19,10 +19,20 @@ export const Config = {
     },
     visual: {
         isDayMode: new Date().getHours() >= 6 && new Date().getHours() < 18,
-        showGeekStats: false,
-        fpsCap: 60,
-        sinkingFloor: -0.35,
-        sinkingMaxAngle: 0.25
+        colorScheme: 'default' as 'default' | 'grayscale' | 'custom',
+        customColors: {
+            playerShip: '#50C878',
+            enemyShip: '#8D2B00',
+            waterPrimary: '#00563F',
+            waterSecondary: '#3D5E42',
+            boardLines: '#2C3F50'
+        },
+        showGeekStats: true,
+        fpsCap: 30,
+        sinkingFloor: -0.08,
+        sinkingMaxAngle: 0.25,
+        shadowsEnabled: true,
+        antialias: typeof navigator !== 'undefined' ? !/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) : true
     },
 
     autoBattler: false,
@@ -43,11 +53,23 @@ export const Config = {
                 if (parsedConfig.visual?.isDayMode !== undefined) {
                     this.visual.isDayMode = parsedConfig.visual.isDayMode;
                 }
+                if (parsedConfig.visual?.colorScheme !== undefined) {
+                    this.visual.colorScheme = parsedConfig.visual.colorScheme;
+                }
+                if (parsedConfig.visual?.customColors !== undefined) {
+                    this.visual.customColors = { ...this.visual.customColors, ...parsedConfig.visual.customColors };
+                }
                 if (parsedConfig.visual?.showGeekStats !== undefined) {
                     this.visual.showGeekStats = parsedConfig.visual.showGeekStats;
                 }
                 if (parsedConfig.visual?.fpsCap !== undefined) {
                     this.visual.fpsCap = parsedConfig.visual.fpsCap;
+                }
+                if (parsedConfig.visual?.shadowsEnabled !== undefined) {
+                    this.visual.shadowsEnabled = parsedConfig.visual.shadowsEnabled;
+                }
+                if (parsedConfig.visual?.antialias !== undefined) {
+                    this.visual.antialias = parsedConfig.visual.antialias;
                 }
                 if (parsedConfig.autoBattler !== undefined) {
                     this.autoBattler = parsedConfig.autoBattler;
@@ -72,8 +94,12 @@ export const Config = {
                 },
                 visual: {
                     isDayMode: this.visual.isDayMode,
+                    colorScheme: this.visual.colorScheme,
+                    customColors: this.visual.customColors,
                     showGeekStats: this.visual.showGeekStats,
-                    fpsCap: this.visual.fpsCap
+                    fpsCap: this.visual.fpsCap,
+                    shadowsEnabled: this.visual.shadowsEnabled,
+                    antialias: this.visual.antialias
                 },
                 autoBattler: this.autoBattler,
                 aiDifficulty: this.aiDifficulty,

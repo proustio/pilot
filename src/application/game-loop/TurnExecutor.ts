@@ -1,6 +1,5 @@
 import { Ship, Orientation } from '../../domain/fleet/Ship';
 import { AIEngine } from '../ai/AIEngine';
-import { Config } from '../../infrastructure/config/Config';
 import { GameState } from './GameLoop';
 
 type AttackResultListener = (x: number, z: number, result: string, isPlayer: boolean, isReplay: boolean) => void;
@@ -23,6 +22,10 @@ export interface TurnExecutorState {
     onAnimationsComplete: (() => void) | null;
     transitionTo: (state: GameState) => void;
     triggerAutoSave: () => void;
+    config: {
+        timing: { boardFlipWaitMs: number; gameSpeedMultiplier: number; aiThinkingTimeMs: number };
+        autoBattler: boolean;
+    };
 }
 
 /**
@@ -53,7 +56,7 @@ export class TurnExecutor {
 
             this.s.isAnimating = true;
 
-            const flipWait = Config.timing.boardFlipWaitMs / Config.timing.gameSpeedMultiplier;
+            const flipWait = this.s.config.timing.boardFlipWaitMs / this.s.config.timing.gameSpeedMultiplier;
             setTimeout(() => {
                 setTimeout(() => {
                     if (!this.s.match) return;
@@ -96,7 +99,7 @@ export class TurnExecutor {
 
                     this.s.onAnimationsComplete = finalizeTurn;
 
-                }, Config.timing.aiThinkingTimeMs / Config.timing.gameSpeedMultiplier);
+                }, this.s.config.timing.aiThinkingTimeMs / this.s.config.timing.gameSpeedMultiplier);
             }, flipWait);
         };
 
@@ -120,7 +123,7 @@ export class TurnExecutor {
 
             this.s.isAnimating = true;
 
-            const flipWait = Config.timing.boardFlipWaitMs / Config.timing.gameSpeedMultiplier;
+            const flipWait = this.s.config.timing.boardFlipWaitMs / this.s.config.timing.gameSpeedMultiplier;
             setTimeout(() => {
                 setTimeout(() => {
                     if (!this.s.match) return;
@@ -163,7 +166,7 @@ export class TurnExecutor {
 
                     this.s.onAnimationsComplete = finalizeTurn;
 
-                }, Config.timing.aiThinkingTimeMs / Config.timing.gameSpeedMultiplier);
+                }, this.s.config.timing.aiThinkingTimeMs / this.s.config.timing.gameSpeedMultiplier);
             }, flipWait);
         };
 
@@ -209,7 +212,7 @@ export class TurnExecutor {
      */
     public onPlayerTurnClick(x: number, z: number, isPlayerSide?: boolean): void {
         if (!this.s.match || this.s.isPaused) return;
-        if (this.s.isAnimating || Config.autoBattler) return;
+        if (this.s.isAnimating || this.s.config.autoBattler) return;
         if (isPlayerSide === true) return;
 
         const result = this.s.match.enemyBoard.receiveAttack(x, z);

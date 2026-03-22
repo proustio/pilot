@@ -8,6 +8,7 @@ export default defineConfig({
     build: {
         // Optimizes the build for modern browsers
         target: 'esnext',
+        chunkSizeWarningLimit: 600,
         // Helps with Three.js performance by chunking dependencies
         rollupOptions: {
             output: {

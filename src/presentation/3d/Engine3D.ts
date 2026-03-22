@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { InteractivityGuard } from '../InteractivityGuard';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { Config } from '../../infrastructure/config/Config';
+import { ThemeManager } from '../theme/ThemeManager';
 export class Engine3D {
   public scene: THREE.Scene;
   public camera: THREE.PerspectiveCamera;
@@ -28,26 +29,23 @@ export class Engine3D {
     this.container = el;
 
     this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color('#00000a'); // Deep space/Jarvis hologram background
-    // Optional: Add some subtle space dust/grid fog to the background
-    this.scene.fog = new THREE.FogExp2(0x00000a, 0.02);
+    this.scene.background = ThemeManager.getInstance().getBackgroundColor();
 
     const aspect = window.innerWidth / window.innerHeight;
     this.camera = new THREE.PerspectiveCamera(50, aspect, 0.1, 1000);
     this.camera.position.set(5, 10, 14);
     this.camera.lookAt(0, 0, 0);
 
-    this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    this.renderer = new THREE.WebGLRenderer({ antialias: Config.visual.antialias, alpha: true });
     this.renderer.setSize(window.innerWidth, window.innerHeight);
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    this.renderer.shadowMap.enabled = true;
-    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+    this.renderer.shadowMap.enabled = Config.visual.shadowsEnabled;
+    this.renderer.shadowMap.type = THREE.PCFShadowMap;
 
     this.container.appendChild(this.renderer.domElement);
 
     this.setupLighting();
-
-    this.setDayMode(Config.visual.isDayMode);
+    this.updateTheme();
 
     this.orbitControls = new OrbitControls(this.camera, this.renderer.domElement);
     this.orbitControls.enableDamping = true;
@@ -97,11 +95,12 @@ export class Engine3D {
       }
     }, { capture: true });
 
-    document.addEventListener('TOGGLE_DAY_NIGHT', (e: Event) => {
-      const customEvent = e as CustomEvent;
-      if (customEvent.detail && customEvent.detail.isDay !== undefined) {
-        this.setDayMode(customEvent.detail.isDay);
-      }
+    document.addEventListener('TOGGLE_DAY_NIGHT', () => {
+      this.updateTheme();
+    });
+
+    document.addEventListener('THEME_CHANGED', () => {
+      this.updateTheme();
     });
 
     document.addEventListener('SET_CAMERA_TARGET', (e: Event) => {
@@ -130,16 +129,16 @@ export class Engine3D {
 
     this.dirLight = new THREE.DirectionalLight(0xFFD700, 0.8); // Gold directional light for highlights
     this.dirLight.position.set(10, 20, 10);
-    this.dirLight.castShadow = true;
+    this.dirLight.castShadow = Config.visual.shadowsEnabled;
 
-    this.dirLight.shadow.camera.top = 25;
-    this.dirLight.shadow.camera.bottom = -25;
-    this.dirLight.shadow.camera.left = -25;
-    this.dirLight.shadow.camera.right = 25;
+    this.dirLight.shadow.camera.top = 12;
+    this.dirLight.shadow.camera.bottom = -12;
+    this.dirLight.shadow.camera.left = -12;
+    this.dirLight.shadow.camera.right = 12;
     this.dirLight.shadow.camera.near = 0.5;
     this.dirLight.shadow.camera.far = 50;
-    this.dirLight.shadow.mapSize.width = 1024;
-    this.dirLight.shadow.mapSize.height = 1024;
+    this.dirLight.shadow.mapSize.width = 512;
+    this.dirLight.shadow.mapSize.height = 512;
 
     this.scene.add(this.dirLight);
 
@@ -153,34 +152,27 @@ export class Engine3D {
     this.scene.add(pointLight);
   }
 
-  public setDayMode(isDay: boolean) {
-    if (isDay) {
-      // Light Mode - Bright Tech Jarvis Vibe
-      this.scene.background = new THREE.Color('#f0f4f8');
-      if (this.scene.fog) {
-        (this.scene.fog as THREE.FogExp2).color.setHex(0xf0f4f8);
-      }
-      this.ambientLight.color.setHex(0xffffff);
-      this.ambientLight.intensity = 0.6;
+  public setDayMode(_isDay: boolean) {
+    this.updateTheme();
+  }
 
-      this.dirLight.color.setHex(0xffffff);
-      this.dirLight.intensity = 1.0;
-
-      this.hemiLight.intensity = 0.6;
-    } else {
-      // Night Mode - Dark Hologram Jarvis Vibe
-      this.scene.background = new THREE.Color('#00000a');
-      if (this.scene.fog) {
-        (this.scene.fog as THREE.FogExp2).color.setHex(0x00000a);
-      }
-      this.ambientLight.color.setHex(0x4169E1);
-      this.ambientLight.intensity = 0.3;
-
-      this.dirLight.color.setHex(0xFFD700);
-      this.dirLight.intensity = 0.8;
-
-      this.hemiLight.intensity = 0.4;
+  public updateTheme() {
+    const tm = ThemeManager.getInstance();
+    
+    this.scene.background = tm.getBackgroundColor();
+    
+    if (this.scene.fog) {
+        this.scene.fog.color = tm.getFogColor();
     }
+
+    this.ambientLight.color.copy(tm.getAmbientLightColor());
+    this.ambientLight.intensity = Config.visual.isDayMode ? 0.6 : 0.3;
+
+    this.dirLight.color.copy(tm.getDirectionalLightColor());
+    this.dirLight.intensity = Config.visual.isDayMode ? 1.0 : 0.8;
+
+    this.hemiLight.groundColor.copy(tm.getBackgroundColor());
+    this.hemiLight.intensity = Config.visual.isDayMode ? 0.6 : 0.4;
   }
 
   private onWindowResize() {

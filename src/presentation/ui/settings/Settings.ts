@@ -5,6 +5,15 @@ import { AudioEngine } from '../../../infrastructure/audio/AudioEngine';
 
 export class Settings extends BaseUIComponent {
     private gameLoop: GameLoop;
+    
+    private onClickOutsideDropdowns = (e: MouseEvent) => {
+        const dropdowns = this.container.querySelectorAll('.custom-dropdown');
+        dropdowns.forEach(d => {
+            if (!d.contains(e.target as Node)) {
+                d.classList.remove('open');
+            }
+        });
+    };
 
     constructor(gameLoop: GameLoop) {
         super('settings-modal');
@@ -17,9 +26,11 @@ export class Settings extends BaseUIComponent {
         document.dispatchEvent(new CustomEvent('PAUSE_GAME'));
         document.dispatchEvent(new CustomEvent('SET_INTERACTION_ENABLED', { detail: { enabled: false } }));
         this.render();
+        document.addEventListener('click', this.onClickOutsideDropdowns);
     }
 
     protected onHide(): void {
+        document.removeEventListener('click', this.onClickOutsideDropdowns);
         // Return to pause menu instead of resuming
         document.dispatchEvent(new CustomEvent('SHOW_PAUSE_MENU'));
     }
@@ -30,10 +41,22 @@ export class Settings extends BaseUIComponent {
             
             <div class="settings-row" id="difficulty-row">
                 <label>Enemy AI Difficulty:</label>
-                <select id="ai-difficulty" class="voxel-select" style="width: auto;">
-                    <option value="easy" ${this.gameLoop.aiEngine.difficulty === 'easy' ? 'selected' : ''}>Easy (Random)</option>
-                    <option value="normal" ${this.gameLoop.aiEngine.difficulty === 'normal' ? 'selected' : ''}>Normal (Hunt/Target)</option>
-                </select>
+                <div id="ai-difficulty-dropdown" class="custom-dropdown">
+                    <div class="custom-dropdown-selected" id="ai-difficulty-selected">
+                        <span id="ai-difficulty-selected-text">${this.gameLoop.aiEngine.difficulty === 'easy' ? '✔ Easy (Random)' : '✔ Normal (Hunt/Target)'}</span>
+                        <span class="custom-dropdown-arrow">▾</span>
+                    </div>
+                    <div class="custom-dropdown-options" id="ai-difficulty-options">
+                        <div class="custom-dropdown-option ${this.gameLoop.aiEngine.difficulty === 'easy' ? 'active' : ''}" data-value="easy">
+                            <span class="option-check">${this.gameLoop.aiEngine.difficulty === 'easy' ? '✔' : '&nbsp;'}</span>
+                            <span class="option-text">Easy (Random)</span>
+                        </div>
+                        <div class="custom-dropdown-option ${this.gameLoop.aiEngine.difficulty === 'normal' ? 'active' : ''}" data-value="normal">
+                            <span class="option-check">${this.gameLoop.aiEngine.difficulty === 'normal' ? '✔' : '&nbsp;'}</span>
+                            <span class="option-text">Normal (Hunt/Target)</span>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <div class="settings-row">
@@ -54,11 +77,26 @@ export class Settings extends BaseUIComponent {
 
             <div class="settings-row">
                 <label>FPS Cap:</label>
-                <select id="fps-cap" class="voxel-select" style="width: auto;">
-                    <option value="30" ${Config.visual.fpsCap === 30 ? 'selected' : ''}>30 FPS</option>
-                    <option value="60" ${Config.visual.fpsCap === 60 ? 'selected' : ''}>60 FPS</option>
-                    <option value="120" ${Config.visual.fpsCap === 120 ? 'selected' : ''}>120 FPS</option>
-                </select>
+                <div id="fps-cap-dropdown" class="custom-dropdown">
+                    <div class="custom-dropdown-selected" id="fps-cap-selected">
+                        <span id="fps-cap-selected-text">✔ ${Config.visual.fpsCap} FPS</span>
+                        <span class="custom-dropdown-arrow">▾</span>
+                    </div>
+                    <div class="custom-dropdown-options" id="fps-cap-options">
+                        <div class="custom-dropdown-option ${Config.visual.fpsCap === 30 ? 'active' : ''}" data-value="30">
+                            <span class="option-check">${Config.visual.fpsCap === 30 ? '✔' : '&nbsp;'}</span>
+                            <span class="option-text">30 FPS</span>
+                        </div>
+                        <div class="custom-dropdown-option ${Config.visual.fpsCap === 60 ? 'active' : ''}" data-value="60">
+                            <span class="option-check">${Config.visual.fpsCap === 60 ? '✔' : '&nbsp;'}</span>
+                            <span class="option-text">60 FPS</span>
+                        </div>
+                        <div class="custom-dropdown-option ${Config.visual.fpsCap === 120 ? 'active' : ''}" data-value="120">
+                            <span class="option-check">${Config.visual.fpsCap === 120 ? '✔' : '&nbsp;'}</span>
+                            <span class="option-text">120 FPS</span>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <div class="settings-row">
@@ -67,13 +105,78 @@ export class Settings extends BaseUIComponent {
             </div>
 
             <div class="settings-row">
+                <label>Color Theme:</label>
+                <div id="theme-dropdown" class="custom-dropdown">
+                    <div class="custom-dropdown-selected" id="theme-selected">
+                        <span id="theme-selected-text">✔ ${Config.visual.colorScheme === 'default' ? 'Default (Emerald/Orange)' : Config.visual.colorScheme === 'grayscale' ? 'Grayscale (High Contrast)' : 'Custom'}</span>
+                        <span class="custom-dropdown-arrow">▾</span>
+                    </div>
+                    <div class="custom-dropdown-options" id="theme-options">
+                        <div class="custom-dropdown-option ${Config.visual.colorScheme === 'default' ? 'active' : ''}" data-value="default">
+                            <span class="option-check">${Config.visual.colorScheme === 'default' ? '✔' : '&nbsp;'}</span>
+                            <span class="option-text">Default (Emerald/Orange)</span>
+                        </div>
+                        <div class="custom-dropdown-option ${Config.visual.colorScheme === 'grayscale' ? 'active' : ''}" data-value="grayscale">
+                            <span class="option-check">${Config.visual.colorScheme === 'grayscale' ? '✔' : '&nbsp;'}</span>
+                            <span class="option-text">Grayscale (High Contrast)</span>
+                        </div>
+                        <div class="custom-dropdown-option ${Config.visual.colorScheme === 'custom' ? 'active' : ''}" data-value="custom">
+                            <span class="option-check">${Config.visual.colorScheme === 'custom' ? '✔' : '&nbsp;'}</span>
+                            <span class="option-text">Custom</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="custom-colors-container" style="display: ${Config.visual.colorScheme === 'custom' ? 'block' : 'none'}; margin-left: 20px; border-left: 2px solid var(--panel-border); padding-left: 10px; margin-bottom: 10px;">
+                <div class="settings-row" style="margin-bottom: 5px;">
+                    <label style="font-size: 0.9em;">Player Fleet:</label>
+                    <input type="color" id="color-player-ship" value="${Config.visual.customColors.playerShip}" style="background: transparent; border: 1px solid var(--panel-border); padding: 0;">
+                </div>
+                <div class="settings-row" style="margin-bottom: 5px;">
+                    <label style="font-size: 0.9em;">Enemy Fleet:</label>
+                    <input type="color" id="color-enemy-ship" value="${Config.visual.customColors.enemyShip}" style="background: transparent; border: 1px solid var(--panel-border); padding: 0;">
+                </div>
+                <div class="settings-row" style="margin-bottom: 5px;">
+                    <label style="font-size: 0.9em;">Water Primary:</label>
+                    <input type="color" id="color-water-primary" value="${Config.visual.customColors.waterPrimary}" style="background: transparent; border: 1px solid var(--panel-border); padding: 0;">
+                </div>
+                <div class="settings-row" style="margin-bottom: 5px;">
+                    <label style="font-size: 0.9em;">Water Sec.:</label>
+                    <input type="color" id="color-water-secondary" value="${Config.visual.customColors.waterSecondary}" style="background: transparent; border: 1px solid var(--panel-border); padding: 0;">
+                </div>
+                <div class="settings-row" style="margin-bottom: 5px;">
+                    <label style="font-size: 0.9em;">Board Lines:</label>
+                    <input type="color" id="color-board-lines" value="${Config.visual.customColors.boardLines}" style="background: transparent; border: 1px solid var(--panel-border); padding: 0;">
+                </div>
+            </div>
+
+            <div class="settings-row">
                 <label>Game Speed:</label>
-                <select id="game-speed" class="voxel-select" style="width: auto;">
-                    <option value="0.5" ${Config.timing.gameSpeedMultiplier === 0.5 ? 'selected' : ''}>0.5x (Slow)</option>
-                    <option value="1.0" ${Config.timing.gameSpeedMultiplier === 1.0 ? 'selected' : ''}>1.0x (Normal)</option>
-                    <option value="2.0" ${Config.timing.gameSpeedMultiplier === 2.0 ? 'selected' : ''}>2.0x (Fast)</option>
-                    <option value="4.0" ${Config.timing.gameSpeedMultiplier === 4.0 ? 'selected' : ''}>4.0x (Very Fast)</option>
-                </select>
+                <div id="game-speed-dropdown" class="custom-dropdown">
+                    <div class="custom-dropdown-selected" id="game-speed-selected">
+                        <span id="game-speed-selected-text">✔ ${Config.timing.gameSpeedMultiplier === 0.5 ? '0.5x (Slow)' : Config.timing.gameSpeedMultiplier === 1.0 ? '1.0x (Normal)' : Config.timing.gameSpeedMultiplier === 2.0 ? '2.0x (Fast)' : '4.0x (Very Fast)'}</span>
+                        <span class="custom-dropdown-arrow">▾</span>
+                    </div>
+                    <div class="custom-dropdown-options" id="game-speed-options">
+                        <div class="custom-dropdown-option ${Config.timing.gameSpeedMultiplier === 0.5 ? 'active' : ''}" data-value="0.5">
+                            <span class="option-check">${Config.timing.gameSpeedMultiplier === 0.5 ? '✔' : '&nbsp;'}</span>
+                            <span class="option-text">0.5x (Slow)</span>
+                        </div>
+                        <div class="custom-dropdown-option ${Config.timing.gameSpeedMultiplier === 1.0 ? 'active' : ''}" data-value="1.0">
+                            <span class="option-check">${Config.timing.gameSpeedMultiplier === 1.0 ? '✔' : '&nbsp;'}</span>
+                            <span class="option-text">1.0x (Normal)</span>
+                        </div>
+                        <div class="custom-dropdown-option ${Config.timing.gameSpeedMultiplier === 2.0 ? 'active' : ''}" data-value="2.0">
+                            <span class="option-check">${Config.timing.gameSpeedMultiplier === 2.0 ? '✔' : '&nbsp;'}</span>
+                            <span class="option-text">2.0x (Fast)</span>
+                        </div>
+                        <div class="custom-dropdown-option ${Config.timing.gameSpeedMultiplier === 4.0 ? 'active' : ''}" data-value="4.0">
+                            <span class="option-check">${Config.timing.gameSpeedMultiplier === 4.0 ? '✔' : '&nbsp;'}</span>
+                            <span class="option-text">4.0x (Very Fast)</span>
+                        </div>
+                    </div>
+                </div>
             </div>
             
             <button id="btn-close-settings" class="voxel-btn primary" style="margin-top: 10px;">Back</button>
@@ -98,9 +201,8 @@ export class Settings extends BaseUIComponent {
             document.dispatchEvent(new CustomEvent('TOGGLE_GEEK_STATS', { detail: { show: isChecked } }));
         });
 
-        const fpsCapSelect = this.container.querySelector('#fps-cap') as HTMLSelectElement;
-        fpsCapSelect.addEventListener('change', (e) => {
-            const fpsCap = parseInt((e.target as HTMLSelectElement).value, 10);
+        this.setupDropdown('fps-cap-dropdown', (val) => {
+            const fpsCap = parseInt(val, 10);
             Config.visual.fpsCap = fpsCap;
             Config.saveConfig();
             document.dispatchEvent(new CustomEvent('SET_FPS_CAP', { detail: { fpsCap } }));
@@ -109,13 +211,11 @@ export class Settings extends BaseUIComponent {
         document.addEventListener('SET_FPS_CAP', (e: Event) => {
             const customEvent = e as CustomEvent;
             if (customEvent.detail && customEvent.detail.fpsCap) {
-                fpsCapSelect.value = customEvent.detail.fpsCap.toString();
+                this.updateDropdownVisuals('fps-cap-dropdown', customEvent.detail.fpsCap.toString());
             }
         });
 
-        const gameSpeedSelect = this.container.querySelector('#game-speed') as HTMLSelectElement;
-        gameSpeedSelect.addEventListener('change', (e) => {
-            const speed = (e.target as HTMLSelectElement).value;
+        this.setupDropdown('game-speed-dropdown', (speed) => {
             Config.timing.gameSpeedMultiplier = parseFloat(speed);
             Config.saveConfig();
             document.dispatchEvent(new CustomEvent('SET_GAME_SPEED', { detail: { speed } }));
@@ -124,9 +224,39 @@ export class Settings extends BaseUIComponent {
         document.addEventListener('SET_GAME_SPEED', (e: Event) => {
             const customEvent = e as CustomEvent;
             if (customEvent.detail && customEvent.detail.speed) {
-                gameSpeedSelect.value = customEvent.detail.speed.toString();
+                this.updateDropdownVisuals('game-speed-dropdown', customEvent.detail.speed.toString());
             }
         });
+
+        const customContainer = this.container.querySelector('#custom-colors-container') as HTMLElement;
+
+        this.setupDropdown('theme-dropdown', (val) => {
+            const scheme = val as 'default' | 'grayscale' | 'custom';
+            Config.visual.colorScheme = scheme;
+            Config.saveConfig();
+            customContainer.style.display = scheme === 'custom' ? 'block' : 'none';
+            document.dispatchEvent(new CustomEvent('THEME_CHANGED'));
+        });
+
+        const setupColorPicker = (id: string, key: keyof typeof Config.visual.customColors) => {
+            const picker = this.container.querySelector(`#${id}`) as HTMLInputElement;
+            picker.addEventListener('input', (e) => {
+                Config.visual.customColors[key] = (e.target as HTMLInputElement).value;
+                if (Config.visual.colorScheme !== 'custom') {
+                    Config.visual.colorScheme = 'custom';
+                    this.updateDropdownVisuals('theme-dropdown', 'custom');
+                    customContainer.style.display = 'block';
+                }
+                Config.saveConfig();
+                document.dispatchEvent(new CustomEvent('THEME_CHANGED'));
+            });
+        };
+
+        setupColorPicker('color-player-ship', 'playerShip');
+        setupColorPicker('color-enemy-ship', 'enemyShip');
+        setupColorPicker('color-water-primary', 'waterPrimary');
+        setupColorPicker('color-water-secondary', 'waterSecondary');
+        setupColorPicker('color-board-lines', 'boardLines');
 
         const volumeSlider = this.container.querySelector('#sound-volume') as HTMLInputElement;
         const volumeValue = this.container.querySelector('#volume-value') as HTMLElement;
@@ -138,19 +268,20 @@ export class Settings extends BaseUIComponent {
             AudioEngine.getInstance().setVolume(val);
         });
 
-        const aiSelect = this.container.querySelector('#ai-difficulty') as HTMLSelectElement;
-
         const isGameStarted = this.gameLoop.currentState !== GameState.MAIN_MENU &&
             this.gameLoop.currentState !== GameState.SETUP_BOARD;
 
         if (isGameStarted) {
-            aiSelect.disabled = true;
+            const aiDropdown = this.container.querySelector('#ai-difficulty-dropdown') as HTMLElement;
+            if (aiDropdown) {
+                aiDropdown.classList.add('disabled');
+                aiDropdown.style.pointerEvents = 'none';
+            }
             const row = this.container.querySelector('#difficulty-row') as HTMLElement;
             if (row) row.style.opacity = '0.5';
         }
 
-        aiSelect.addEventListener('change', (e) => {
-            const difficulty = (e.target as HTMLSelectElement).value;
+        this.setupDropdown('ai-difficulty-dropdown', (difficulty) => {
             console.log("AI Difficulty set to: ", difficulty);
             Config.aiDifficulty = difficulty;
             Config.saveConfig();
@@ -175,9 +306,63 @@ export class Settings extends BaseUIComponent {
         document.addEventListener('SET_AI_DIFFICULTY', (e: Event) => {
             const ce = e as CustomEvent;
             if (ce.detail && ce.detail.difficulty) {
-                aiSelect.value = ce.detail.difficulty;
+                this.updateDropdownVisuals('ai-difficulty-dropdown', ce.detail.difficulty);
             }
         });
 
+    }
+
+    private setupDropdown(dropdownId: string, onChange: (val: string) => void) {
+        const dropdownEl = this.container.querySelector(`#${dropdownId}`) as HTMLElement;
+        if (!dropdownEl) return;
+        const selectedEl = dropdownEl.querySelector('.custom-dropdown-selected') as HTMLElement;
+        const allOptions = dropdownEl.querySelectorAll('.custom-dropdown-option') as NodeListOf<HTMLElement>;
+
+        selectedEl.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (dropdownEl.classList.contains('disabled')) return;
+            // Close others
+            this.container.querySelectorAll('.custom-dropdown').forEach(d => {
+                if (d !== dropdownEl) d.classList.remove('open');
+            });
+            dropdownEl.classList.toggle('open');
+        });
+
+        allOptions.forEach((opt) => {
+            opt.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (opt.classList.contains('disabled')) return;
+                
+                const value = opt.dataset.value as string;
+                this.updateDropdownVisuals(dropdownId, value);
+                
+                dropdownEl.classList.remove('open');
+                onChange(value);
+            });
+        });
+    }
+
+    private updateDropdownVisuals(dropdownId: string, value: string) {
+        const dropdownEl = this.container.querySelector(`#${dropdownId}`) as HTMLElement;
+        if (!dropdownEl) return;
+        
+        const selectedTextEl = dropdownEl.querySelector('.custom-dropdown-selected span:first-child') as HTMLElement;
+        const allOptions = dropdownEl.querySelectorAll('.custom-dropdown-option') as NodeListOf<HTMLElement>;
+        
+        allOptions.forEach(o => {
+            if (o.dataset.value === value) {
+                o.classList.add('active');
+                const check = o.querySelector('.option-check');
+                if (check) check.innerHTML = '✔';
+                if (selectedTextEl) {
+                    const text = o.querySelector('.option-text')?.textContent || '';
+                    selectedTextEl.textContent = `✔ ${text}`;
+                }
+            } else {
+                o.classList.remove('active');
+                const check = o.querySelector('.option-check');
+                if (check) check.innerHTML = '&nbsp;';
+            }
+        });
     }
 }
