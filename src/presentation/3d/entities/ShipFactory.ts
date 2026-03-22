@@ -39,7 +39,14 @@ export class ShipFactory {
         const originWorldX = x - boardOffset + 0.5;
         const originWorldZ = z - boardOffset + 0.5;
         shipGroup.position.set(originWorldX, 0, originWorldZ);
-        shipGroup.visible = isPlayer;
+        
+        // In Rogue mode, all ships on the same board are visible initially? 
+        // No, they should be hidden by fog. 
+        shipGroup.visible = isPlayer || !Config.rogueMode; 
+        
+        if (Config.rogueMode) {
+            ship.isEnemy = !isPlayer; // Sync domain object
+        }
 
         // ───── Colors ─────
         let hullColor = new THREE.Color(0x111111);

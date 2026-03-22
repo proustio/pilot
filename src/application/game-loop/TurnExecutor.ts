@@ -218,7 +218,8 @@ export class TurnExecutor {
                             let attempts = 0;
                             while (!placed && attempts < 1000) {
                                 const x = Math.floor(Math.random() * this.s.match.playerBoard.width);
-                                const z = Math.floor(Math.random() * this.s.match.playerBoard.height);
+                                // Enemy must be in top 10 rows (0-9)
+                                const z = Math.floor(Math.random() * 10);
                                 const orient = Math.random() > 0.5 ? Orientation.Horizontal : Orientation.Vertical;
 
                                 if (this.s.match.validatePlacement(this.s.match.playerBoard, ship, x, z, orient)) {

@@ -21,6 +21,14 @@ export class Ship {
     public movesRemaining: number = 0;
     public hasActedThisTurn: boolean = false;
     public readonly maxMoves: number;
+    public visionRadius: number;
+
+    // Resource tracking (carried by each ship for simplicity, but we can treat as global later)
+    public static resources = {
+        airStrikes: 1,
+        sonars: 2,
+        mines: 5
+    };
 
     constructor(id: string, size: number) {
         this.id = id;
@@ -28,6 +36,7 @@ export class Ship {
         this.orientation = Orientation.Horizontal; // default
         this.segments = new Array(size).fill(true);
         this.maxMoves = 5 - this.size;
+        this.visionRadius = this.size * 2;
     }
 
     /**

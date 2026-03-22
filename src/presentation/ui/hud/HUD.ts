@@ -81,12 +81,10 @@ export class HUD extends BaseUIComponent {
                     <div class="hud-arsenal-panel retro-panel ${Config.rogueMode ? 'collapsed' : 'hidden'}" id="arsenal-panel">
                         <div class="sw-screw tl"></div><div class="sw-screw tr"></div>
                         <div class="sw-screw bl"></div><div class="sw-screw br"></div>
-                        <div class="arsenal-title">SHIP SYSTEMS</div>
+                        <div class="arsenal-title">MOVE SYSTEMS</div>
                         <div class="arsenal-items">
-                            <button class="arsenal-btn active" data-weapon="cannon" title="Standard Cannon">💣</button>
-                            <button class="arsenal-btn" data-weapon="mine" title="Place Mine">⚓</button>
-                            <button class="arsenal-btn" data-weapon="sonar" title="Sonar Ping">📡</button>
-                            <button class="arsenal-btn" data-weapon="airstrike" title="Air Strike">✈️</button>
+                            <button class="arsenal-btn" data-weapon="sonar" title="Sonar Ping (2 Remaining)">📡</button>
+                            <button class="arsenal-btn" data-weapon="mine" title="Place Mine (5 Remaining)">⚓</button>
                         </div>
                     </div>
                 </div>
@@ -123,7 +121,7 @@ export class HUD extends BaseUIComponent {
                     <div class="sw-screw bl"></div><div class="sw-screw br"></div>
                     <div class="sw-mount"><div class="sw-label">STATS</div><div id="led-geek-stats" class="sw-led ${Config.visual.showGeekStats ? 'on-gold' : ''}"></div><div id="hud-btn-geek-stats" class="sw-toggle ${Config.visual.showGeekStats ? 'active' : ''}" title="Toggle Geek Stats"></div></div>
                     <div class="sw-mount"><div class="sw-label">AUTO</div><div id="led-auto-battler" class="sw-led ${Config.autoBattler ? 'on-red' : ''}"></div><div id="hud-btn-auto-battler" class="sw-rocker ${Config.autoBattler ? 'active' : ''}" title="Toggle Auto-Battler"></div></div>
-                    <div class="sw-mount"><div class="sw-label">PEEK</div><div id="led-peek" class="sw-led"></div><div id="hud-btn-peek" class="sw-toggle" title="Peek at other side"></div></div>
+                    <div class="sw-mount ${Config.rogueMode ? 'hidden' : ''}"><div class="sw-label">PEEK</div><div id="led-peek" class="sw-led"></div><div id="hud-btn-peek" class="sw-toggle" title="Peek at other side"></div></div>
                     <div class="sw-mount"><div class="sw-label">MODE</div><div id="led-day-night" class="sw-led ${Config.visual.isDayMode ? 'on-gold' : 'on-blue'}"></div><button id="hud-btn-day-night" class="sw-push" title="Toggle Day/Night" style="font-size: 1.2rem;">${Config.visual.isDayMode ? '🌘' : '🌖'}</button></div>
                     <div class="sw-mount"><div class="sw-label">CAM</div><div id="led-cam-reset" class="sw-led"></div><button id="hud-btn-cam-reset" class="sw-push" title="Reset Camera" style="font-size: 0.8rem;">👁️</button></div>
                     <div class="sw-mount"><div class="sw-label">FPS</div><div class="sw-led on-green"></div><button id="hud-btn-fps" class="sw-push" title="Cycle FPS Cap" style="font-size: 0.7rem;">${Config.visual.fpsCap || 60}<br></button></div>
@@ -187,9 +185,9 @@ export class HUD extends BaseUIComponent {
             if (moveBtn) moveBtn.classList.toggle('active', mode === 'move');
             if (attackBtn) attackBtn.classList.toggle('active', mode === 'attack');
             
-            // Slide out arsenal if attack is selected
+            // Slide out arsenal if MOVE is selected (nested abilities)
             if (arsenalPanel) {
-                if (mode === 'attack') arsenalPanel.classList.remove('collapsed');
+                if (mode === 'move') arsenalPanel.classList.remove('collapsed');
                 else arsenalPanel.classList.add('collapsed');
             }
 

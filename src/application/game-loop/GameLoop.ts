@@ -170,6 +170,20 @@ export class GameLoop {
                 const moved = this.match.sharedBoard.moveShip(ship, targetX, targetZ, newOrient);
                 if (moved) {
                     ship.movesRemaining -= dist;
+                    
+                    // Ability Dispersal Logic
+                    const queuedAbility = (window as any).queuedRogueAbility;
+                    if (queuedAbility) {
+                        if (queuedAbility === 'sonar' && Ship.resources.sonars > 0) {
+                            Ship.resources.sonars--;
+                            this.disperseAbilityAlongPath(ship, targetX, targetZ, 'sonar');
+                        } else if (queuedAbility === 'mine' && Ship.resources.mines > 0) {
+                            Ship.resources.mines--;
+                            this.disperseAbilityAlongPath(ship, targetX, targetZ, 'mine');
+                        }
+                        (window as any).queuedRogueAbility = null;
+                    }
+
                     // Fully complete turn upon movement
                     ship.hasActedThisTurn = true;
                     ship.movesRemaining = 0;
@@ -203,6 +217,19 @@ export class GameLoop {
                     ship.movesRemaining--;
                     this.shipMovedListeners.forEach(listener => listener(ship, newX, newZ, newOrientation as Orientation));
                 }
+            }
+        });
+
+        document.addEventListener('ROGUE_USE_ABILITY', (e: Event) => {
+            const ce = e as CustomEvent;
+            const { type } = ce.detail;
+            
+            if (type === 'sonar' && Ship.resources.sonars > 0) {
+                (window as any).queuedRogueAbility = 'sonar';
+                document.dispatchEvent(new CustomEvent('ROGUE_ABILITY_QUEUED', { detail: { type: 'sonar' } }));
+            } else if (type === 'mine' && Ship.resources.mines > 0) {
+                (window as any).queuedRogueAbility = 'mine';
+                document.dispatchEvent(new CustomEvent('ROGUE_ABILITY_QUEUED', { detail: { type: 'mine' } }));
             }
         });
 
@@ -415,6 +442,33 @@ export class GameLoop {
             this.turnExecutor.onSetupBoardClick(x, z, isPlayerSide);
         } else if (this.currentState === GameState.PLAYER_TURN) {
             this.turnExecutor.onPlayerTurnClick(x, z, isPlayerSide);
+        }
+    }
+    private disperseAbilityAlongPath(ship: Ship, targetX: number, targetZ: number, type: 'sonar' | 'mine') {
+        const startX = ship.headX;
+        const startZ = ship.headZ;
+        
+        // Find a random step along the Manhattan path
+        const dx = targetX - startX;
+        const dz = targetZ - startZ;
+        
+        // For simplicity, pick one cell adjacent to the midpoint or start/end
+        const midX = Math.floor(startX + dx / 2);
+        const midZ = Math.floor(startZ + dz / 2);
+        
+        // Adjacent random offset
+        const rx = midX + (Math.random() > 0.5 ? 1 : -1);
+        const rz = midZ + (Math.random() > 0.5 ? 1 : -1);
+        
+        if (this.match && !this.match.sharedBoard.isOutOfBounds(rx, rz)) {
+            if (type === 'sonar') {
+                this.match.sharedBoard.receiveAttack(rx, rz); // Sonar revealing fog
+                this.attackResultListeners.forEach(l => l(rx, rz, 'sonar', true, false));
+            } else {
+                // Mines could be a new cell state, but for now let's just mark it as a 'miss' that can be hit?
+                // Or just a special visual effect. 
+                this.attackResultListeners.forEach(l => l(rx, rz, 'mine', true, false));
+            }
         }
     }
 }

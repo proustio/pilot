@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { Config } from '../../../infrastructure/config/Config';
 import { getIndex } from '../../../domain/board/BoardUtils';
+import { Ship } from '../../../domain/fleet/Ship';
 
 export class FogManager {
     private fogMeshes: (THREE.Mesh | null)[];
@@ -81,12 +82,14 @@ export class FogManager {
         
         const boardWidth = Config.board.width;
         const boardHeight = Config.board.height;
-        const fogRadius = Config.rogue.fogRadius;
 
         // Get all cell coordinates occupied by any ship
-        const shipCells: {x: number, z: number}[] = [];
+        const shipCells: {x: number, z: number, ship: Ship}[] = [];
         for (const ship of ships) {
-            shipCells.push(...ship.getOccupiedCoordinates());
+            const coords = ship.getOccupiedCoordinates();
+            for (const c of coords) {
+                shipCells.push({ x: c.x, z: c.z, ship });
+            }
         }
 
         const lerpFactor = 0.1; 
@@ -97,13 +100,18 @@ export class FogManager {
                 
                 let minDist = Infinity;
                 for (const cell of shipCells) {
+                    if (cell.ship.isEnemy) continue; // Only player units reveal fog
+
                     const dx = Math.abs(cell.x - x);
                     const dz = Math.abs(cell.z - z);
                     const dist = Math.max(dx, dz); // Chebyshev
-                    if (dist < minDist) minDist = dist;
+                    
+                    // Normalize distance by vision radius (dist / visionRadius)
+                    const normalizedDist = dist / cell.ship.visionRadius;
+                    if (normalizedDist < minDist) minDist = normalizedDist;
                 }
 
-                const targetOpacity = (minDist <= fogRadius) ? 0.0 : 0.85;
+                const targetOpacity = (minDist <= 1.0) ? 0.0 : 0.85;
 
                 let fogMesh = this.fogMeshes[fogIdx] as THREE.InstancedMesh;
                 

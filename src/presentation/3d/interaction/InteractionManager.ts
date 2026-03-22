@@ -149,35 +149,51 @@ export class InteractionManager {
   private onMouseClick(event: MouseEvent) {
     if (InteractivityGuard.isBlocked() || !this.interactionEnabled || (this.gameLoop && (this.gameLoop.isAnimating || this.gameLoop.currentState === GameState.GAME_OVER))) return;
 
-    // Block if clicking over HUD/UI
-    if (InteractivityGuard.isPointerOverUI(event.clientX, event.clientY)) return;
+        // Block if clicking over HUD/UI
+        if (InteractivityGuard.isPointerOverUI(event.clientX, event.clientY)) return;
 
+        this.raycaster.setFromCamera(this.mouse, this.camera);
+        const interacts = this.entityManager.getInteractableObjects();
+        const intersects = this.raycaster.intersectObjects(interacts);
+        if (intersects.length > 0) {
+            const hit = intersects.find((i: THREE.Intersection) => i.object.userData.isGridTile);
+            if (hit) {
+                const x = hit.object.userData.cellX;
+                const z = hit.object.userData.cellZ;
+                const isPlayerSide = hit.object.userData.isPlayerSide;
 
-    this.raycaster.setFromCamera(this.mouse, this.camera);
-    const interacts = this.entityManager.getInteractableObjects();
-    const intersects = this.raycaster.intersectObjects(interacts);
-    if (intersects.length > 0) {
-      const hit = intersects.find((i: THREE.Intersection) => i.object.userData.isGridTile);
-      if (hit) {
-        const x = hit.object.userData.cellX;
-        const z = hit.object.userData.cellZ;
-        const isPlayerSide = hit.object.userData.isPlayerSide;
+                if (this.gameLoop && this.gameLoop.match && this.gameLoop.currentState === GameState.PLAYER_TURN) {
+                    const isRogue = this.gameLoop.match.mode === MatchMode.Rogue;
+                    const action = (window as any).selectedRogueAction || 'move';
+                    
+                    if (isRogue && action === 'move') {
+                        const order = this.gameLoop.rogueShipOrder;
+                        const index = this.gameLoop.activeRogueShipIndex;
+                        const activeShip = order && index >= 0 && index < order.length ? order[index] : null;
 
-        // Check if the cell has already been shot at
-        if (this.gameLoop && this.gameLoop.match && this.gameLoop.currentState === GameState.PLAYER_TURN) {
-          const targetBoard = isPlayerSide ? this.gameLoop.match.playerBoard : this.gameLoop.match.enemyBoard;
-          const index = z * targetBoard.width + x;
-          const cellState = targetBoard.gridState[index];
+                        if (activeShip) {
+                            const dx = Math.abs(x - activeShip.headX);
+                            const dz = Math.abs(z - activeShip.headZ);
+                            if (dx + dz === 0 || dx + dz > activeShip.movesRemaining) {
+                                this.playErrorSound();
+                                return;
+                            }
+                        }
+                    }
 
-          if (cellState === CellState.Hit || cellState === CellState.Miss || cellState === CellState.Sunk) {
-            this.playErrorSound();
-            return; // Prevent click from propagating
-          }
+                    const targetBoard = isRogue ? this.gameLoop.match.sharedBoard : (isPlayerSide ? this.gameLoop.match.playerBoard : this.gameLoop.match.enemyBoard);
+                    const index = z * targetBoard.width + x;
+                    const cellState = targetBoard.gridState[index];
+
+                    if (cellState === CellState.Hit || cellState === CellState.Miss || cellState === CellState.Sunk) {
+                        this.playErrorSound();
+                        return;
+                    }
+                }
+
+                this.clickListeners.forEach(listener => listener(hit));
+            }
         }
-
-        this.clickListeners.forEach(listener => listener(hit));
-      }
-    }
   }
 
   private onMouseMove(event: MouseEvent) {

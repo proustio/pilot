@@ -58,6 +58,20 @@ export class Match {
             return false;
         }
 
+        // Rogue mode: Player (isEnemy=false) in Southern half (>=10), AI in Northern half (<10)
+        // Note: headZ is the top of the ship. 
+        if (this.mode === MatchMode.Rogue) {
+            const shipTailZ = orientation === Orientation.Vertical ? headZ + shipToPlace.size - 1 : headZ;
+            
+            if (shipToPlace.isEnemy === true) {
+                // Enemy must be in top 10 rows (0-9)
+                if (shipTailZ >= 10) return false;
+            } else {
+                // Player must be in bottom 10 rows (10-19)
+                if (headZ < 10) return false;
+            }
+        }
+
         // Apply Russian non-touching constraints
         if (this.mode === MatchMode.Russian) {
             for (let i = 0; i < shipToPlace.size; i++) {

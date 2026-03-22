@@ -183,6 +183,15 @@ export class AIEngine {
             return false;
         }
 
+        // Rogue mode: Enforce Northern/Southern split in AI's experimental fitting
+        if (mode === MatchMode.Rogue) {
+            const shipTailZ = orientation === Orientation.Vertical ? headZ + ship.size - 1 : headZ;
+            // Case 1: AI (isEnemy=true) must be in rows 0-9
+            if (ship.isEnemy === true && shipTailZ >= 10) return false;
+            // Case 2: Player (isEnemy=false) must be in rows 10-19
+            if (ship.isEnemy !== true && headZ < 10) return false;
+        }
+
         for (let i = 0; i < ship.size; i++) {
             const cx = orientation === Orientation.Horizontal ? headX + i : headX;
             const cz = orientation === Orientation.Vertical ? headZ + i : headZ;
