@@ -41,9 +41,9 @@
 - `src/application/game-loop/GameLoop.ts`
 
 - [ ] **In `Match`**: When `mode === MatchMode.Rogue`, both player and enemy fleets are placed on `playerBoard`. Add a getter `public get sharedBoard(): Board` returning `playerBoard` in Rogue mode.
-- [ ] **In `GameLoop.startNewMatch()`**: Add a Rogue branch that places enemy ships on `playerBoard` (same grid as the player's ships, non-overlapping).
+- [ ] **In `GameLoop.startNewMatch()`**: Add a Rogue branch that places enemy ships on `playerBoard` (same grid as the player's ships, non-overlapping). Note that the board size in Rogue mode is 20×20.
 - [ ] **In `GameLoop.onGridClick()` during `SETUP_BOARD`**: After all player ships are placed in Rogue mode, trigger a second placement phase for enemy ships on the same board.
-- [ ] **Acceptance**: In Rogue mode, both fleets share a 10×10 grid and all ships are visible at game start.
+- [ ] **Acceptance**: In Rogue mode, both fleets share a 20×20 grid and all ships are visible at game start.
 
 ---
 
@@ -110,23 +110,17 @@
 
 ---
 
-### 9.6 — Alternative Attack Types (Domain Stubs)
+### 9.6 — Alternative Attack Types
 
-**Files:**
-- `src/domain/board/Board.ts`
-- `src/domain/match/Match.ts`
-- `src/application/game-loop/GameLoop.ts`
+> The advanced arsenal should be fully implemented from the start of this sprint rather than just stubbed.
 
-> Full implementation is a future sprint. Stub the domain API now to lock down the architecture.
-
-- [ ] **Define `WeaponType` enum**: `Cannon` (existing), `Mine`, `Sonar`, `Warplane`, `Ram`.
-- [ ] **Add stub methods to `Board`**:
-  - `placeMine(x, z): boolean` — marks cell as `CellState.Mine` (add new enum value).
-  - `sonarPing(centerX, centerZ, radius): { x, z }[]` — returns occupied cells in radius (read-only, no state change).
-  - `dispatchWarplane(startX, startZ, directionX: -1|0|1, directionZ: -1|0|1): AttackResult[]` — attacks a line of cells.
-  - `ram(attackerShip: Ship, targetX, targetZ): AttackResult` — collision damage to a single cell.
-- [ ] **Add `ROGUE_USE_WEAPON` handler in `GameLoop`**: Routes to the appropriate `Board` stub and logs result to console.
-- [ ] **Acceptance**: All methods compile and return stub results without runtime errors.
+- [ ] **Define `WeaponType` enum**: `Cannon` (existing), `Mine`, `Sonar`, `AirStrike`.
+- [ ] **Implement methods in `Board`**:
+  - `placeMine(x, z): boolean` — logic to mark cell as `CellState.Mine` and handle triggering when a ship enters the cell.
+  - `sonarPing(centerX, centerZ, radius): { x, z }[]` — functional scanning logic returning occupied cells.
+  - `dispatchAirStrike(startX, startZ, directionX: -1|0|1, directionZ: -1|0|1): AttackResult[]` — full implementation of line attack logic.
+- [ ] **Add `ROGUE_USE_WEAPON` handler in `GameLoop`**: Routes to the appropriate `Board` implementation, processes state changes, and signals the presentation layer.
+- [ ] **Acceptance**: All advanced weapons (mines, sonar, air strikes) are fully implemented and affect gameplay correctly instead of returning stub results.
 
 ---
 
