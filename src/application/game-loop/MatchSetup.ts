@@ -69,6 +69,7 @@ export class MatchSetup {
             const targetBoard = match.mode === MatchMode.Rogue ? match.playerBoard : match.enemyBoard;
             const enemyShips = match.getRequiredFleet();
             for (const ship of enemyShips) {
+                ship.isEnemy = true;
                 let placed = false;
                 let attempts = 0;
                 while (!placed && attempts < 1000) {

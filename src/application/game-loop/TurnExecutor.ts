@@ -22,6 +22,8 @@ export interface TurnExecutorState {
     attackResultListeners: AttackResultListener[];
     onAnimationsComplete: (() => void) | null;
     transitionTo: (state: GameState) => void;
+    advanceRogueShipTurn: () => void;
+    advanceEnemyRogueShipTurn: () => void;
     triggerAutoSave: () => void;
     config: {
         timing: { boardFlipWaitMs: number; gameSpeedMultiplier: number; aiThinkingTimeMs: number };
@@ -68,10 +70,11 @@ export class TurnExecutor {
                         return;
                     }
 
-                    const target = this.s.aiEngine.computeNextMove(this.s.match.playerBoard, this.s.match);
-                    const result = this.s.match.playerBoard.receiveAttack(target.x, target.z);
+                    const targetBoard = this.s.match.mode === MatchMode.Rogue ? this.s.match.sharedBoard : this.s.match.playerBoard;
+                    const target = this.s.aiEngine.computeNextMove(targetBoard, this.s.match);
+                    const result = targetBoard.receiveAttack(target.x, target.z);
 
-                    this.s.aiEngine.reportResult(target.x, target.z, result.toString(), this.s.match.playerBoard);
+                    this.s.aiEngine.reportResult(target.x, target.z, result.toString(), targetBoard);
                     this.s.attackResultListeners.forEach(l => l(target.x, target.z, result.toString(), false, false));
 
                     const finalizeTurn = () => {
@@ -94,7 +97,11 @@ export class TurnExecutor {
                         if (status !== 'ongoing') {
                             this.s.transitionTo(GameState.GAME_OVER);
                         } else {
-                            this.s.transitionTo(GameState.PLAYER_TURN);
+                            if (this.s.match!.mode === MatchMode.Rogue) {
+                                this.s.advanceEnemyRogueShipTurn();
+                            } else {
+                                this.s.transitionTo(GameState.PLAYER_TURN);
+                            }
                         }
                     };
 
@@ -135,10 +142,11 @@ export class TurnExecutor {
                         return;
                     }
 
-                    const target = this.s.playerAIEngine.computeNextMove(this.s.match.enemyBoard, this.s.match);
-                    const result = this.s.match.enemyBoard.receiveAttack(target.x, target.z);
+                    const targetBoard = this.s.match.mode === MatchMode.Rogue ? this.s.match.sharedBoard : this.s.match.enemyBoard;
+                    const target = this.s.playerAIEngine.computeNextMove(targetBoard, this.s.match);
+                    const result = targetBoard.receiveAttack(target.x, target.z);
 
-                    this.s.playerAIEngine.reportResult(target.x, target.z, result.toString(), this.s.match.enemyBoard);
+                    this.s.playerAIEngine.reportResult(target.x, target.z, result.toString(), targetBoard);
                     this.s.attackResultListeners.forEach(l => l(target.x, target.z, result.toString(), true, false));
 
                     const finalizeTurn = () => {
@@ -205,6 +213,7 @@ export class TurnExecutor {
                     if (this.s.match.mode === MatchMode.Rogue) {
                         const enemyShips = this.s.match.getRequiredFleet();
                         for (const ship of enemyShips) {
+                            ship.isEnemy = true;
                             let placed = false;
                             let attempts = 0;
                             while (!placed && attempts < 1000) {
@@ -236,7 +245,8 @@ export class TurnExecutor {
         if (this.s.isAnimating || this.s.config.autoBattler) return;
         if (isPlayerSide === true) return;
 
-        const result = this.s.match.enemyBoard.receiveAttack(x, z);
+        const targetBoard = this.s.match.mode === MatchMode.Rogue ? this.s.match.sharedBoard : this.s.match.enemyBoard;
+        const result = targetBoard.receiveAttack(x, z);
 
         if (result !== 'invalid') {
             this.s.attackResultListeners.forEach(l => l(x, z, result, true, false));
@@ -257,7 +267,11 @@ export class TurnExecutor {
                 if (status !== 'ongoing') {
                     this.s.transitionTo(GameState.GAME_OVER);
                 } else {
-                    this.s.transitionTo(GameState.ENEMY_TURN);
+                    if (this.s.match!.mode === MatchMode.Rogue) {
+                        this.s.advanceRogueShipTurn();
+                    } else {
+                        this.s.transitionTo(GameState.ENEMY_TURN);
+                    }
                 }
             };
 

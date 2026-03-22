@@ -1,4 +1,4 @@
-import { Match } from '../../domain/match/Match';
+import { Match, MatchMode } from '../../domain/match/Match';
 import { Ship, Orientation } from '../../domain/fleet/Ship';
 import { AIEngine, AIDifficulty } from '../ai/AIEngine';
 import { MatchSetup, MatchSetupState } from './MatchSetup';
@@ -25,6 +25,13 @@ export class GameLoop {
     public currentPlacementOrientation: Orientation = Orientation.Horizontal;
     public isAnimating: boolean = false;
     public isPaused: boolean = false;
+    
+    // Rogue Mode tracking
+    public activeRogueShipIndex: number = 0;
+    public rogueShipOrder: Ship[] = [];
+    public activeEnemyRogueShipIndex: number = 0;
+    public enemyRogueShipOrder: Ship[] = [];
+
     public aiEngine: AIEngine;
     public playerAIEngine: AIEngine;
 
@@ -142,11 +149,15 @@ export class GameLoop {
             const ship = this.match.sharedBoard.ships.find(s => s.id === shipId);
             if (!ship) return;
 
+            const activeShip = this.rogueShipOrder[this.activeRogueShipIndex];
+            if (activeShip && activeShip.id !== ship.id) {
+                return; // Can only move the currently active ship
+            }
+
             if (ship.movesRemaining > 0 && !ship.hasActedThisTurn) {
                 const moved = this.match.sharedBoard.moveShip(ship, newX, newZ, newOrientation as Orientation);
                 if (moved) {
                     ship.movesRemaining--;
-                    ship.hasActedThisTurn = true;
                     this.shipMovedListeners.forEach(listener => listener(ship, newX, newZ, newOrientation as Orientation));
                 }
             }
@@ -156,6 +167,39 @@ export class GameLoop {
     // ─────────────────────────────────────────────────────────────────────────
     // Public API (unchanged from before)
     // ─────────────────────────────────────────────────────────────────────────
+
+    public advanceRogueShipTurn(): void {
+        this.activeRogueShipIndex++;
+        
+        while (this.activeRogueShipIndex < this.rogueShipOrder.length) {
+            const ship = this.rogueShipOrder[this.activeRogueShipIndex];
+            if (!ship.isSunk()) {
+                document.dispatchEvent(new CustomEvent('ACTIVE_SHIP_CHANGED', { detail: { ship } }));
+                return;
+            }
+            this.activeRogueShipIndex++;
+        }
+        
+        // All player ships have acted
+        this.transitionTo(GameState.ENEMY_TURN);
+    }
+
+    public advanceEnemyRogueShipTurn(): void {
+        this.activeEnemyRogueShipIndex++;
+        
+        while (this.activeEnemyRogueShipIndex < this.enemyRogueShipOrder.length) {
+            const ship = this.enemyRogueShipOrder[this.activeEnemyRogueShipIndex];
+            if (!ship.isSunk()) {
+                // The TurnExecutor will handle exactly one AI attack
+                this.turnExecutor.handleEnemyTurn();
+                return;
+            }
+            this.activeEnemyRogueShipIndex++;
+        }
+        
+        // All enemy ships have acted
+        this.transitionTo(GameState.PLAYER_TURN);
+    }
 
     public hasUnsavedProgress(): boolean {
         if (!this.match) return false;
@@ -199,6 +243,33 @@ export class GameLoop {
 
         if (newState === GameState.GAME_OVER) {
             this.storage.clearSession();
+        }
+
+        if (newState === GameState.PLAYER_TURN) {
+            if (this.match && this.match.mode === MatchMode.Rogue) {
+                this.rogueShipOrder = this.match.sharedBoard.ships
+                    .filter(s => !s.isEnemy && !s.isSunk())
+                    .sort((a, b) => a.size - b.size);
+                
+                this.rogueShipOrder.forEach(s => s.resetTurnAction());
+                this.activeRogueShipIndex = 0;
+
+                if (this.rogueShipOrder.length > 0) {
+                    document.dispatchEvent(new CustomEvent('ACTIVE_SHIP_CHANGED', { detail: { ship: this.rogueShipOrder[0] } }));
+                } else if (!this.config.autoBattler) {
+                    this.transitionTo(GameState.ENEMY_TURN);
+                    return;
+                }
+            }
+        } else if (newState === GameState.ENEMY_TURN) {
+            if (this.match && this.match.mode === MatchMode.Rogue) {
+                this.enemyRogueShipOrder = this.match.sharedBoard.ships
+                    .filter(s => s.isEnemy && !s.isSunk())
+                    .sort((a, b) => a.size - b.size);
+                
+                this.enemyRogueShipOrder.forEach(s => s.resetTurnAction());
+                this.activeEnemyRogueShipIndex = 0;
+            }
         }
 
         if (newState === GameState.ENEMY_TURN) {

@@ -87,6 +87,14 @@ export class Match {
     }
 
     public checkGameEnd(): 'player_wins' | 'enemy_wins' | 'ongoing' {
+        if (this.mode === MatchMode.Rogue) {
+            const enemyShips = this.sharedBoard.ships.filter(s => s.isEnemy);
+            const playerShips = this.sharedBoard.ships.filter(s => !s.isEnemy);
+            if (enemyShips.length > 0 && enemyShips.every(s => s.isSunk())) return 'player_wins';
+            if (playerShips.length > 0 && playerShips.every(s => s.isSunk())) return 'enemy_wins';
+            return 'ongoing';
+        }
+
         if (this.enemyBoard.allShipsSunk()) return 'player_wins';
         if (this.playerBoard.allShipsSunk()) return 'enemy_wins';
         return 'ongoing';

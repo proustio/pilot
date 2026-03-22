@@ -99,14 +99,14 @@
 **Files:**
 - `src/application/game-loop/GameLoop.ts`
 
-- [ ] **Add `activeRogueShipIndex: number`** to `GameLoop`.
-- [ ] **Sort the active fleet by size ascending** at match start; store as `rogueShipOrder: Ship[]`.
-- [ ] **In Rogue mode, `PLAYER_TURN` means acting with the current active ship** (move, attack, or skip — not free-targeting).
-- [ ] **After a ship acts**, advance `activeRogueShipIndex` to the next ship in `rogueShipOrder`.
-- [ ] **When all ships have acted**, transition to `ENEMY_TURN`; AI cycles through its ships similarly.
-- [ ] **Reset all `hasActedThisTurn` flags** and `movesRemaining` at the start of each full player turn (call `ship.resetTurnAction()` for all ships).
-- [ ] **Emit `ACTIVE_SHIP_CHANGED` CustomEvent** with `{ ship }` payload whenever the active ship changes.
-- [ ] **Acceptance**: Ships are cycled smallest→largest each player turn; once all act, enemy turn begins.
+- [x] **Add `activeRogueShipIndex: number`** to `GameLoop`.
+- [x] **Sort the active fleet by size ascending** at match start; store as `rogueShipOrder: Ship[]`.
+- [x] **In Rogue mode, `PLAYER_TURN` means acting with the current active ship** (move, attack, or skip — not free-targeting).
+- [x] **After a ship acts**, advance `activeRogueShipIndex` to the next ship in `rogueShipOrder`.
+- [x] **When all ships have acted**, transition to `ENEMY_TURN`; AI cycles through its ships similarly.
+- [x] **Reset all `hasActedThisTurn` flags** and `movesRemaining` at the start of each full player turn (call `ship.resetTurnAction()` for all ships).
+- [x] **Emit `ACTIVE_SHIP_CHANGED` CustomEvent** with `{ ship }` payload whenever the active ship changes.
+- [x] **Acceptance**: Ships are cycled smallest→largest each player turn; once all act, enemy turn begins.
 
 ---
 

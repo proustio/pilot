@@ -15,6 +15,7 @@ export class Ship {
     
     // Will be populated once placed on a board
     public isPlaced: boolean = false;
+    public isEnemy?: boolean;
     
     // Rogue Mode properties
     public movesRemaining: number = 0;
