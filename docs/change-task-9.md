@@ -40,10 +40,10 @@
 - `src/domain/match/Match.ts`
 - `src/application/game-loop/GameLoop.ts`
 
-- [ ] **In `Match`**: When `mode === MatchMode.Rogue`, both player and enemy fleets are placed on `playerBoard`. Add a getter `public get sharedBoard(): Board` returning `playerBoard` in Rogue mode.
-- [ ] **In `GameLoop.startNewMatch()`**: Add a Rogue branch that places enemy ships on `playerBoard` (same grid as the player's ships, non-overlapping). Note that the board size in Rogue mode is 20×20.
-- [ ] **In `GameLoop.onGridClick()` during `SETUP_BOARD`**: After all player ships are placed in Rogue mode, trigger a second placement phase for enemy ships on the same board.
-- [ ] **Acceptance**: In Rogue mode, both fleets share a 20×20 grid and all ships are visible at game start.
+- [x] **In `Match`**: When `mode === MatchMode.Rogue`, both player and enemy fleets are placed on `playerBoard`. Add a getter `public get sharedBoard(): Board` returning `playerBoard` in Rogue mode.
+- [x] **In `GameLoop.startNewMatch()`**: Add a Rogue branch that places enemy ships on `playerBoard` (same grid as the player's ships, non-overlapping). Note that the board size in Rogue mode is 20×20.
+- [x] **In `GameLoop.onGridClick()` during `SETUP_BOARD`**: After all player ships are placed in Rogue mode, trigger a second placement phase for enemy ships on the same board.
+- [x] **Acceptance**: In Rogue mode, both fleets share a 20×20 grid and all ships are visible at game start.
 
 ---
 

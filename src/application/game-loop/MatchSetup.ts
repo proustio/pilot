@@ -1,4 +1,4 @@
-import { Match } from '../../domain/match/Match';
+import { Match, MatchMode } from '../../domain/match/Match';
 import { Ship, Orientation } from '../../domain/fleet/Ship';
 import { CellState } from '../../domain/board/Board';
 import { AIEngine } from '../ai/AIEngine';
@@ -65,22 +65,25 @@ export class MatchSetup {
             this.state.playerShipsToPlace = [];
         }
 
-        const enemyShips = match.getRequiredFleet();
-        for (const ship of enemyShips) {
-            let placed = false;
-            let attempts = 0;
-            while (!placed && attempts < 1000) {
-                const x = Math.floor(Math.random() * match.enemyBoard.width);
-                const z = Math.floor(Math.random() * match.enemyBoard.height);
-                const orient = Math.random() > 0.5 ? Orientation.Horizontal : Orientation.Vertical;
+        if (match.mode !== MatchMode.Rogue || this.state.config.autoBattler) {
+            const targetBoard = match.mode === MatchMode.Rogue ? match.playerBoard : match.enemyBoard;
+            const enemyShips = match.getRequiredFleet();
+            for (const ship of enemyShips) {
+                let placed = false;
+                let attempts = 0;
+                while (!placed && attempts < 1000) {
+                    const x = Math.floor(Math.random() * targetBoard.width);
+                    const z = Math.floor(Math.random() * targetBoard.height);
+                    const orient = Math.random() > 0.5 ? Orientation.Horizontal : Orientation.Vertical;
 
-                if (match.validatePlacement(match.enemyBoard, ship, x, z, orient)) {
-                    placed = match.enemyBoard.placeShip(ship, x, z, orient);
-                    if (placed) {
-                        this.state.shipPlacedListeners.forEach(l => l(ship, x, z, orient, false));
+                    if (match.validatePlacement(targetBoard, ship, x, z, orient)) {
+                        placed = targetBoard.placeShip(ship, x, z, orient);
+                        if (placed) {
+                            this.state.shipPlacedListeners.forEach(l => l(ship, x, z, orient, false));
+                        }
                     }
+                    attempts++;
                 }
-                attempts++;
             }
         }
 

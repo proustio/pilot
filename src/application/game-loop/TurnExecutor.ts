@@ -1,6 +1,7 @@
 import { Ship, Orientation } from '../../domain/fleet/Ship';
 import { AIEngine } from '../ai/AIEngine';
 import { GameState } from './GameLoop';
+import { MatchMode } from '../../domain/match/Match';
 
 type AttackResultListener = (x: number, z: number, result: string, isPlayer: boolean, isReplay: boolean) => void;
 type ShipPlacedListener = (ship: Ship, x: number, z: number, orientation: Orientation, isPlayer: boolean) => void;
@@ -201,6 +202,26 @@ export class TurnExecutor {
                 this.s.triggerAutoSave();
 
                 if (this.s.playerShipsToPlace.length === 0) {
+                    if (this.s.match.mode === MatchMode.Rogue) {
+                        const enemyShips = this.s.match.getRequiredFleet();
+                        for (const ship of enemyShips) {
+                            let placed = false;
+                            let attempts = 0;
+                            while (!placed && attempts < 1000) {
+                                const x = Math.floor(Math.random() * this.s.match.playerBoard.width);
+                                const z = Math.floor(Math.random() * this.s.match.playerBoard.height);
+                                const orient = Math.random() > 0.5 ? Orientation.Horizontal : Orientation.Vertical;
+
+                                if (this.s.match.validatePlacement(this.s.match.playerBoard, ship, x, z, orient)) {
+                                    placed = this.s.match.playerBoard.placeShip(ship, x, z, orient);
+                                    if (placed) {
+                                        this.s.shipPlacedListeners.forEach(l => l(ship, x, z, orient, false));
+                                    }
+                                }
+                                attempts++;
+                            }
+                        }
+                    }
                     this.s.transitionTo(GameState.PLAYER_TURN);
                 }
             }

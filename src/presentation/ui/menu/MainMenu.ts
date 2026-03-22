@@ -151,13 +151,11 @@ export class MainMenu extends BaseUIComponent {
             const isRogue = mode === 'rogue';
             if (isRogue) {
                 cardAnchor.classList.add('rogue-selected');
-                newGameBtn.classList.add('rogue-disabled');
-                newGameBtn.textContent = 'STAY TUNED';
             } else {
                 cardAnchor.classList.remove('rogue-selected');
-                newGameBtn.classList.remove('rogue-disabled');
-                newGameBtn.textContent = 'ENGAGE';
             }
+            newGameBtn.classList.remove('rogue-disabled');
+            newGameBtn.textContent = 'ENGAGE';
         };
 
         const updateCard = (mode: string) => {
@@ -195,16 +193,22 @@ export class MainMenu extends BaseUIComponent {
         updateCard(selectedMode);
 
         newGameBtn.addEventListener('click', () => {
-            if (selectedMode === 'rogue') return;
             Config.autoBattler = autoBattlerToggle.checked;
             Config.saveConfig();
 
             let matchMode = MatchMode.Classic;
+            let width = Config.board.width;
+            let height = Config.board.height;
+
             if (selectedMode === 'russian') {
                 matchMode = MatchMode.Russian;
+            } else if (selectedMode === 'rogue') {
+                matchMode = MatchMode.Rogue;
+                width = 20;
+                height = 20;
             }
 
-            const match = new Match(matchMode, Config.board.width, Config.board.height);
+            const match = new Match(matchMode, width, height);
             this.gameLoop.startNewMatch(match);
         });
 

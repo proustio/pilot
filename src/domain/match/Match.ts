@@ -44,6 +44,10 @@ export class Match {
         }
     }
 
+    public get sharedBoard(): Board {
+        return this.playerBoard;
+    }
+
     /**
      * More strict placement validation depending on mode.
      * Russian mode requires absolutely no touching (even diagonally).
