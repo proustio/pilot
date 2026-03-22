@@ -130,7 +130,7 @@ export function bindHUDControls(container: HTMLElement): void {
         dayNightBtn.addEventListener('click', () => {
             Config.visual.isDayMode = !Config.visual.isDayMode;
             Config.saveConfig();
-            dayNightBtn.innerText = Config.visual.isDayMode ? '🌞' : '🌚';
+            dayNightBtn.innerText = Config.visual.isDayMode ? '🌘' : '🌖';
             dayNightLed.classList.remove('on-gold', 'on-blue');
             dayNightLed.classList.add(Config.visual.isDayMode ? 'on-gold' : 'on-blue');
             document.body.classList.remove('day-mode', 'night-mode');
