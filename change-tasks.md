@@ -1,12 +1,12 @@
 # Implementation Tasks: Centralized Theme & Custom Colors
 
 ## Phase 1: Global Configuration & Logic
-- [ ] **Update Configuration Storage (`Config.ts`)**
+- [x] **Update Configuration Storage (`Config.ts`)**
   - Add `visual.colorScheme` type (`'default' | 'grayscale' | 'custom'`).
   - Add `visual.customColors` object mapping specific hex codes for customizable vectors (e.g., `playerShip`, `enemyShip`, `waterPrimary`, `waterSecondary`, `boardLines`).
   - Validate that `Config.saveConfig()` properly writes to global `localStorage` so themes transcend save slots and browser refreshes.
 
-- [ ] **Create `src/presentation/theme/ThemeManager.ts`**
+- [x] **Create `src/presentation/theme/ThemeManager.ts`**
   - Define static preset palettes (Default Emerald/Orange, Grayscale).
   - Implement a color resolver: if `colorScheme` is `'custom'`, pull from `Config.visual.customColors`; otherwise, pull from the presets.
   - Expose getters (`getPlayerColor()`, `getEnemyColor()`, `getWaterColors()`) and DOM injector (`applyToDOM()`).

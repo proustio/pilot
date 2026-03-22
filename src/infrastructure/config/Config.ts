@@ -19,6 +19,14 @@ export const Config = {
     },
     visual: {
         isDayMode: new Date().getHours() >= 6 && new Date().getHours() < 18,
+        colorScheme: 'default' as 'default' | 'grayscale' | 'custom',
+        customColors: {
+            playerShip: '#50C878',
+            enemyShip: '#8D2B00',
+            waterPrimary: '#00563F',
+            waterSecondary: '#3D5E42',
+            boardLines: '#2C3F50'
+        },
         showGeekStats: true,
         fpsCap: 30,
         sinkingFloor: -0.08,
@@ -44,6 +52,12 @@ export const Config = {
                 }
                 if (parsedConfig.visual?.isDayMode !== undefined) {
                     this.visual.isDayMode = parsedConfig.visual.isDayMode;
+                }
+                if (parsedConfig.visual?.colorScheme !== undefined) {
+                    this.visual.colorScheme = parsedConfig.visual.colorScheme;
+                }
+                if (parsedConfig.visual?.customColors !== undefined) {
+                    this.visual.customColors = { ...this.visual.customColors, ...parsedConfig.visual.customColors };
                 }
                 if (parsedConfig.visual?.showGeekStats !== undefined) {
                     this.visual.showGeekStats = parsedConfig.visual.showGeekStats;
@@ -80,6 +94,8 @@ export const Config = {
                 },
                 visual: {
                     isDayMode: this.visual.isDayMode,
+                    colorScheme: this.visual.colorScheme,
+                    customColors: this.visual.customColors,
                     showGeekStats: this.visual.showGeekStats,
                     fpsCap: this.visual.fpsCap,
                     shadowsEnabled: this.visual.shadowsEnabled,
