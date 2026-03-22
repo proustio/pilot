@@ -248,6 +248,14 @@ export class TurnExecutor {
         if (!isRogue && isPlayerSide === true) return;
 
         if (isRogue) {
+            const actionMode = (window as any).selectedRogueAction || 'move';
+            if (actionMode === 'move') {
+                document.dispatchEvent(new CustomEvent('ROGUE_ATTEMPT_MOVE', {
+                    detail: { targetX: x, targetZ: z }
+                }));
+                return;
+            }
+
             const weapon = (window as any).selectedRogueWeapon || 'cannon';
             if (weapon !== 'cannon') {
                 // Dispatch weapon event and let GameLoop handle it

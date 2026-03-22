@@ -59,6 +59,7 @@ const init = () => {
 
         gameLoop.onStateChange((newState) => {
             const isRogue = gameLoop.match?.mode === MatchMode.Rogue;
+            entityManager.setPlayerTurn(newState === 'PLAYER_TURN');
 
             if (newState === 'SETUP_BOARD') {
                 matchStartTime = performance.now();

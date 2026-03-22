@@ -20,6 +20,7 @@ export class HUD extends BaseUIComponent {
     private playerFleetIcons!: HTMLElement;
     private enemyFleetIcons!: HTMLElement;
     private unifiedBoard!: UnifiedBoardUI;
+    private activeRogueShip: any = null;
 
     constructor(gameLoop: GameLoop) {
         super('hud');
@@ -141,11 +142,24 @@ export class HUD extends BaseUIComponent {
                 </div>
             </div>
             <div id="mouse-coords" class="mouse-coords" style="display: none;">(0,0)</div>
+
+            <div id="rogue-action-bar" class="rogue-action-bar hidden">
+                <button id="btn-rogue-move" class="action-btn move-btn">Move (<span id="rogue-moves-count">0</span>)</button>
+                <button id="btn-rogue-attack" class="action-btn attack-btn">Attack</button>
+                <button id="btn-rogue-skip" class="action-btn skip-btn">Skip</button>
+            </div>
         `;
 
         this.turnIndicator = this.container.querySelector('#turn-indicator') as HTMLElement;
         this.playerFleetIcons = this.container.querySelector('#player-fleet-icons') as HTMLElement;
         this.enemyFleetIcons = this.container.querySelector('#enemy-fleet-icons') as HTMLElement;
+
+        // Listen for active ship changes in Rogue mode
+        document.addEventListener('ACTIVE_SHIP_CHANGED', (e: Event) => {
+            const ce = e as CustomEvent;
+            this.activeRogueShip = ce.detail.ship;
+            this.updateRogueShipDisplay(this.activeRogueShip);
+        });
 
         // Delegate control binding to HUDControls.ts
         bindHUDControls(this.container);
@@ -153,6 +167,71 @@ export class HUD extends BaseUIComponent {
         this.updateStats();
         this.updateCounters();
         this.bindArsenalEvents();
+        this.bindRogueActionBar();
+    }
+
+    private bindRogueActionBar(): void {
+        const skipBtn = this.container.querySelector('#btn-rogue-skip');
+        if (skipBtn) {
+            skipBtn.addEventListener('click', () => {
+                this.gameLoop.advanceRogueShipTurn();
+            });
+        }
+
+        const moveBtn = this.container.querySelector('#btn-rogue-move');
+        const attackBtn = this.container.querySelector('#btn-rogue-attack');
+
+        const setActiveTab = (mode: 'move' | 'attack') => {
+            (window as any).selectedRogueAction = mode;
+            if (moveBtn) moveBtn.classList.toggle('active', mode === 'move');
+            if (attackBtn) attackBtn.classList.toggle('active', mode === 'attack');
+            document.dispatchEvent(new CustomEvent('ROGUE_ACTION_MODE_CHANGED', { detail: { mode } }));
+        };
+
+        if (moveBtn) moveBtn.addEventListener('click', () => setActiveTab('move'));
+        if (attackBtn) attackBtn.addEventListener('click', () => setActiveTab('attack'));
+
+        // Default to move
+        setActiveTab('move');
+        
+        // Listen for ship change to refresh default if needed
+        document.addEventListener('ACTIVE_SHIP_CHANGED', () => {
+            if ((window as any).selectedRogueAction !== 'move') {
+                setActiveTab('move'); // automatically select move on turn start
+            }
+        });
+    }
+
+    private updateRogueShipDisplay(ship: any): void {
+        const isRogue = this.gameLoop.match?.mode === MatchMode.Rogue;
+        const actionBar = this.container.querySelector('#rogue-action-bar') as HTMLElement;
+        
+        if (!isRogue || !ship || !actionBar) {
+            if (actionBar) actionBar.classList.add('hidden');
+            return;
+        }
+
+        const isPlayerTurn = this.gameLoop.currentState === GameState.PLAYER_TURN;
+        actionBar.classList.toggle('hidden', !isPlayerTurn);
+
+        // Update Turn Indicator
+        if (isPlayerTurn) {
+            this.turnIndicator.innerHTML = `
+                <div style="font-size: 0.7rem; color: #888; margin-bottom: 2px;">ACTIVE SHIP</div>
+                <div style="font-size: 1.1rem; color: #fff; font-weight: bold;">${ship.id}</div>
+                <div style="font-size: 0.8rem; color: #0f0; margin-top: 4px;">MOVES: ${ship.movesRemaining}/${ship.maxMoves}</div>
+            `;
+            this.turnIndicator.style.color = "#0f0";
+        }
+
+        // Update Action Bar buttons
+        const moveBtn = actionBar.querySelector('#btn-rogue-move') as HTMLButtonElement;
+        const attackBtn = actionBar.querySelector('#btn-rogue-attack') as HTMLButtonElement;
+        const movesCount = actionBar.querySelector('#rogue-moves-count') as HTMLElement;
+
+        if (movesCount) movesCount.innerText = ship.movesRemaining.toString();
+        if (moveBtn) moveBtn.disabled = ship.movesRemaining <= 0 || ship.hasActedThisTurn;
+        if (attackBtn) attackBtn.disabled = ship.hasActedThisTurn;
     }
 
     private bindArsenalEvents(): void {
@@ -188,8 +267,12 @@ export class HUD extends BaseUIComponent {
 
         const indicator = this.turnIndicator;
         if (state === GameState.PLAYER_TURN) {
-            indicator.innerText = "YOUR TURN";
-            indicator.style.color = "#0f0";
+            if (isRogue && this.activeRogueShip) {
+                this.updateRogueShipDisplay(this.activeRogueShip);
+            } else {
+                indicator.innerText = "YOUR TURN";
+                indicator.style.color = "#0f0";
+            }
         } else if (state === GameState.ENEMY_TURN) {
             indicator.innerText = "ENEMY TURN";
             indicator.style.color = "#0c0";

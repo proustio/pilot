@@ -20,6 +20,14 @@ export class UnifiedBoardUI extends BaseUIComponent {
             const ce = e as CustomEvent;
             this.handle3DHover(ce.detail);
         });
+
+        document.addEventListener('ROGUE_ACTION_MODE_CHANGED', () => {
+            this.refresh();
+        });
+
+        document.addEventListener('ACTIVE_SHIP_CHANGED', () => {
+            this.refresh();
+        });
     }
 
     private handle3DHover(detail: any): void {
@@ -124,9 +132,35 @@ export class UnifiedBoardUI extends BaseUIComponent {
 
     private updateGrid(container: HTMLElement, gridState: Uint8Array, isPlayer: boolean): void {
         const cells = container.querySelectorAll('.mini-cell');
+        const boardWidth = this.gameLoop.match?.playerBoard.width || Config.board.width;
+        
+        const isRogue = Config.rogueMode;
+        const currentActionMode = (window as any).selectedRogueAction || 'move';
+        let moveRadiusSet = new Set<number>();
+
+        if (isRogue && isPlayer && currentActionMode === 'move') {
+            const index = this.gameLoop.activeRogueShipIndex;
+            const ship = this.gameLoop.rogueShipOrder ? this.gameLoop.rogueShipOrder[index] : null;
+            if (ship && !ship.hasActedThisTurn && ship.movesRemaining > 0) {
+                const moves = ship.movesRemaining;
+                for (let x = 0; x < boardWidth; x++) {
+                    for (let z = 0; z < boardWidth; z++) {
+                        const dist = Math.abs(x - ship.headX) + Math.abs(z - ship.headZ);
+                        if (dist > 0 && dist <= moves) {
+                            moveRadiusSet.add(z * boardWidth + x);
+                        }
+                    }
+                }
+            }
+        }
+
         gridState.forEach((state, index) => {
             const cell = cells[index] as HTMLElement;
             cell.className = 'mini-cell';
+
+            if (moveRadiusSet.has(index)) {
+                cell.classList.add('cell-move-radius');
+            }
 
             switch (state) {
                 case CellState.Ship:

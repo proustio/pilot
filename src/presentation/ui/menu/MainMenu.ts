@@ -91,7 +91,7 @@ export class MainMenu extends BaseUIComponent {
                                 </div>
                                 <div class="custom-dropdown-option option-rogue" data-value="rogue">
                                     <span class="option-check">☠</span>
-                                    <span>Rogue <em>(Coming Soon)</em></span>
+                                    <span>Rogue (Variable Weapons)</span>
                                 </div>
                             </div>
                         </div>
@@ -119,7 +119,7 @@ export class MainMenu extends BaseUIComponent {
         const optionDisplay: Record<string, string> = {
             classic: '✔ Classic (US Fleet)',
             russian: '❄ Russian (No Touching)',
-            rogue: '☠ Rogue — Coming Soon',
+            rogue: '☠ Rogue (Variable Weapons)',
         };
 
         const closeDropdown = () => dropdownEl.classList.remove('open');

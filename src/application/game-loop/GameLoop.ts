@@ -142,6 +142,48 @@ export class GameLoop {
             }
         });
 
+        document.addEventListener('ROGUE_ATTEMPT_MOVE', (e: Event) => {
+            const ce = e as CustomEvent;
+            const { targetX, targetZ } = ce.detail;
+            
+            if (!this.match || this.currentState !== GameState.PLAYER_TURN || this.config.autoBattler) return;
+
+            const ship = this.rogueShipOrder[this.activeRogueShipIndex];
+            if (!ship || ship.hasActedThisTurn || ship.movesRemaining <= 0) return;
+
+            const dx = Math.abs(ship.headX - targetX);
+            const dz = Math.abs(ship.headZ - targetZ);
+            
+            // Only strictly vertical or horizontal movement, no diagonals?
+            // "maximum movement radius" typically means manhattan or chebyshev. 
+            // In a grid game without diagonals, let's just use Manhattan.
+            
+            const dist = dx + dz;
+            if (dist > 0 && dist <= ship.movesRemaining) {
+                // Determine new orientation: 
+                let newOrient = ship.orientation;
+                if (dx > dz) newOrient = Orientation.Horizontal;
+                else if (dz > dx) newOrient = Orientation.Vertical;
+
+                // Move ship with the new calculated orientation, 
+                // `moveShip` checks boundaries and collisions.
+                const moved = this.match.sharedBoard.moveShip(ship, targetX, targetZ, newOrient);
+                if (moved) {
+                    ship.movesRemaining -= dist;
+                    // Fully complete turn upon movement
+                    ship.hasActedThisTurn = true;
+                    ship.movesRemaining = 0;
+                    this.shipMovedListeners.forEach(listener => listener(ship, targetX, targetZ, newOrient));
+
+                    this.isAnimating = true;
+                    setTimeout(() => {
+                        this.isAnimating = false;
+                        this.advanceRogueShipTurn();
+                    }, 800);
+                }
+            }
+        });
+
         document.addEventListener('ROGUE_MOVE_SHIP', (e: Event) => {
             const ce = e as CustomEvent;
             const { shipId, newX, newZ, newOrientation } = ce.detail;

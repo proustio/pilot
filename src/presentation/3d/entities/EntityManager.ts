@@ -40,6 +40,9 @@ export class EntityManager {
 
     private allShips: Ship[] = []; // Stores references to domain ships for rogue fog
 
+    private activeRogueShipId: string | null = null;
+    private isPlayerTurn: boolean = false;
+
     constructor(scene: THREE.Scene) {
         this.scene = scene;
 
@@ -83,6 +86,15 @@ export class EntityManager {
             this.playerBoardGroup,
             this.enemyBoardGroup
         );
+
+        document.addEventListener('ACTIVE_SHIP_CHANGED', (e: Event) => {
+            const ce = e as CustomEvent;
+            this.activeRogueShipId = ce.detail.ship?.id || null;
+        });
+    }
+
+    public setPlayerTurn(isPlayerTurn: boolean) {
+        this.isPlayerTurn = isPlayerTurn;
     }
 
     // ───── Public API ─────
@@ -249,6 +261,9 @@ export class EntityManager {
 
         // Ship animations (sinking & movement)
         this.updateShipAnimations();
+
+        // Ship highlighting
+        this.updateShipHighlighting();
     }
 
     // ───── Private Helpers ─────
@@ -327,6 +342,33 @@ export class EntityManager {
                     }
                 }
             });
+        });
+    }
+
+    private updateShipHighlighting() {
+        const shouldHighlight = Config.rogueMode && this.isPlayerTurn && this.activeRogueShipId;
+        
+        // Throb between 0.2 and 0.8
+        const throb = (Math.sin(this.time * 5) + 1) / 2;
+        const currentIntensity = 0.2 + throb * 0.6;
+        const highlightColor = new THREE.Color(0xffff00);
+        const defaultColor = new THREE.Color(0x000000);
+
+        this.playerBoardGroup.children.forEach(child => {
+            if (child.userData.isShip) {
+                const isActive = shouldHighlight && child.userData.ship?.id === this.activeRogueShipId;
+                const instancedMesh = child.userData.instancedMesh as THREE.InstancedMesh;
+                
+                if (instancedMesh && instancedMesh.material instanceof THREE.MeshStandardMaterial) {
+                    if (isActive) {
+                        instancedMesh.material.emissive.copy(highlightColor);
+                        instancedMesh.material.emissiveIntensity = currentIntensity;
+                    } else if (instancedMesh.material.emissiveIntensity > 0) {
+                        instancedMesh.material.emissive.copy(defaultColor);
+                        instancedMesh.material.emissiveIntensity = 0;
+                    }
+                }
+            }
         });
     }
 }

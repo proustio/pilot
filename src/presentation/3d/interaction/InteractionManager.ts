@@ -25,15 +25,28 @@ export class InteractionManager {
   private ghostGroup: THREE.Group;
   private currentGhostSize: number = 0;
   private uiHoveredCell: { x: number, z: number, isPlayerSide: boolean } | null = null;
+  private moveHighlightGroup: THREE.Group;
+  
+  private lastMoveShipId: string | null = null;
+  private lastMoveAction: string | null = null;
+  private lastMovesRemaining: number = -1;
 
   constructor(scene: THREE.Scene, camera: THREE.PerspectiveCamera, entityManager: any) {
     this.camera = camera;
     this.entityManager = entityManager;
 
     this.ghostGroup = new THREE.Group();
+    this.ghostGroup.renderOrder = 999;
     this.ghostGroup.visible = false;
     scene.add(this.ghostGroup);
 
+    this.moveHighlightGroup = new THREE.Group();
+    this.moveHighlightGroup.renderOrder = 998;
+    this.moveHighlightGroup.visible = false;
+    // Add to player board group so it moves/rotates with the shared battlefield in Rogue mode
+    entityManager.playerBoardGroup.add(this.moveHighlightGroup);
+
+    // Glowing Highlight Shader for Hover Cursor
     this.raycaster = new THREE.Raycaster();
     this.mouse = new THREE.Vector2();
 
@@ -279,14 +292,13 @@ export class InteractionManager {
       }));
 
     } else {
-      // No 3D interaction or pick. Clear 3D hover state if it was active.
-      if (this.interactionEnabled && this.hoveredCell !== null) {
-          this.hoveredCell = null;
+      this.ghostGroup.visible = false;
+      this.hoverCursor.visible = false;
+      this.hoveredCell = null;
+      if (this.uiHoveredCell === null) {
           document.dispatchEvent(new CustomEvent('MOUSE_CELL_HOVER', { detail: null }));
       }
       
-      this.ghostGroup.visible = false;
-
       // Check if there's a UI hover to display instead
       if (this.uiHoveredCell) {
         const { x, z, isPlayerSide } = this.uiHoveredCell;
@@ -314,12 +326,77 @@ export class InteractionManager {
       }
     }
 
+    this.updateMoveHighlight();
     this.updateHoverState();
   }
 
   private updateHoverState() {
     // We want to report it even if blocked for clicking, because the camera guard needs it.
     (window as any).isHoveringBattlefield = this.hoveredCell !== null;
+  }
+
+  private updateMoveHighlight() {
+      if (!this.gameLoop || this.gameLoop.currentState !== GameState.PLAYER_TURN || !this.gameLoop.match || this.gameLoop.match.mode !== MatchMode.Rogue) {
+          this.moveHighlightGroup.visible = false;
+          return;
+      }
+      const action = (window as any).selectedRogueAction || 'move';
+      if (action !== 'move') {
+          this.moveHighlightGroup.visible = false;
+          this.lastMoveAction = action;
+          return;
+      }
+
+      const order = this.gameLoop.rogueShipOrder;
+      const index = this.gameLoop.activeRogueShipIndex;
+      const activeShip = order && index >= 0 && index < order.length ? order[index] : null;
+      
+      if (!activeShip || activeShip.hasActedThisTurn || activeShip.movesRemaining <= 0) {
+          this.moveHighlightGroup.visible = false;
+          return;
+      }
+
+      this.moveHighlightGroup.visible = true;
+
+      if (this.lastMoveShipId !== activeShip.id || this.lastMoveAction !== action || this.lastMovesRemaining !== activeShip.movesRemaining) {
+          this.rebuildMoveHighlight(activeShip, this.gameLoop.match.sharedBoard);
+          this.lastMoveShipId = activeShip.id;
+          this.lastMoveAction = action;
+          this.lastMovesRemaining = activeShip.movesRemaining;
+      }
+  }
+
+  private rebuildMoveHighlight(ship: any, board: any) {
+      this.moveHighlightGroup.clear();
+      
+      const mat = new THREE.MeshBasicMaterial({
+          color: 0x00ffff,
+          transparent: true,
+          opacity: 0.5,
+          side: THREE.DoubleSide,
+          depthWrite: false,
+          depthTest: false
+      });
+      const geo = new THREE.PlaneGeometry(0.9, 0.9);
+      
+      const boardOffset = Config.board.width / 2;
+      const moves = ship.movesRemaining;
+      
+      for (let x = 0; x < board.width; x++) {
+          for (let z = 0; z < board.height; z++) {
+              const dx = Math.abs(x - ship.headX);
+              const dz = Math.abs(z - ship.headZ);
+              if (dx + dz > 0 && dx + dz <= moves) { 
+                  const targetX = x - boardOffset + 0.5;
+                  const targetZ = z - boardOffset + 0.5;
+                  const mesh = new THREE.Mesh(geo, mat);
+                  mesh.rotation.x = -Math.PI / 2;
+                  mesh.position.set(targetX, 0.2, targetZ);
+                  mesh.renderOrder = 999;
+                  this.moveHighlightGroup.add(mesh);
+              }
+          }
+      }
   }
 
   private buildGhost(size: number) {

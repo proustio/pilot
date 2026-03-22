@@ -186,6 +186,74 @@
   box-shadow: 0 0 5px #0f0;
 }
 
+.rogue-action-bar {
+  display: flex;
+  position: absolute;
+  bottom: 120px;
+  left: 50%;
+  transform: translateX(-50%);
+  gap: 12px;
+  background: rgba(15, 15, 15, 0.85);
+  backdrop-filter: blur(10px);
+  padding: 10px 15px;
+  border: 3px solid #555;
+  border-radius: 4px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.8), inset 0 0 15px rgba(255,255,255,0.05);
+  pointer-events: auto;
+  z-index: 100;
+  transition: opacity 0.3s, transform 0.3s;
+}
+
+.rogue-action-bar.hidden {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-50%) translateY(20px);
+}
+
+.action-btn {
+  padding: 8px 18px;
+  background: #333;
+  color: #fff;
+  border: 2px solid #666;
+  border-radius: 3px;
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+}
+
+.action-btn:hover:not(:disabled) {
+  background: #444;
+  border-color: #888;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 10px rgba(0,0,0,0.4);
+}
+
+.action-btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.action-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  filter: grayscale(1);
+}
+
+.action-btn.move-btn { border-color: #3498db; color: #3498db; }
+.action-btn.attack-btn { border-color: #e74c3c; color: #e74c3c; }
+.action-btn.skip-btn { border-color: #95a5a6; color: #95a5a6; }
+
+.action-btn.move-btn:hover { background: rgba(52, 152, 219, 0.1); }
+.action-btn.attack-btn:hover { background: rgba(231, 76, 60, 0.1); }
+.action-btn.skip-btn:hover { background: rgba(149, 165, 166, 0.1); }
+
+.action-btn.move-btn.active { background: #3498db; color: #fff; box-shadow: 0 0 15px rgba(52, 152, 219, 0.4); }
+.action-btn.attack-btn.active { background: #e74c3c; color: #fff; box-shadow: 0 0 15px rgba(231, 76, 60, 0.4); }
+
 .unified-board-container {
   display: flex;
   gap: 15px;
@@ -273,6 +341,12 @@
   border-color: #FFD700;
   z-index: 5;
   transform: scale(1.2);
+}
+
+.mini-cell.cell-move-radius {
+  background: #00ffff;
+  box-shadow: 0 0 6px #00ffff;
+  opacity: 0.6;
 }
 
 .hud-game-stats {
