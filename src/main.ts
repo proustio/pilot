@@ -97,7 +97,7 @@ const init = () => {
             }
         });
 
-        const uiManager = new UIManager(gameLoop);
+        const uiManager = new UIManager(gameLoop, entityManager);
         (window as any).uiManager = uiManager;
 
         // Global Audio Resume on first interaction

@@ -110,7 +110,7 @@ export class EntityManager {
 
     public showPlayerBoard() {
         if (Config.rogueMode) {
-            this.targetRotationX = Math.PI;
+            this.targetRotationX = 0; // No flipping in Rogue mode
             this.fogManager.setParent(this.enemyBoardGroup); // Shared board is enemy side
         } else {
             this.targetRotationX = 0;
@@ -119,7 +119,7 @@ export class EntityManager {
 
     public showEnemyBoard() {
         if (Config.rogueMode) {
-            this.targetRotationX = 0;
+            this.targetRotationX = 0; // No flipping in Rogue mode
             this.fogManager.setParent(this.enemyBoardGroup); // Keep fog on actual board, even when peeking at bottom
         } else {
             this.targetRotationX = Math.PI;
@@ -132,7 +132,8 @@ export class EntityManager {
 
     public addShip(ship: Ship, x: number, z: number, orientation: Orientation, isPlayer: boolean) {
         const isRogue = Config.rogueMode;
-        const targetGroup = isRogue ? this.enemyBoardGroup : (isPlayer ? this.playerBoardGroup : this.enemyBoardGroup);
+        // In Rogue mode, everything happens on the playerBoardGroup (top side, non-flipped)
+        const targetGroup = isRogue ? this.playerBoardGroup : (isPlayer ? this.playerBoardGroup : this.enemyBoardGroup);
         const shipGroup = ShipFactory.createShip(ship, x, z, orientation, isPlayer, targetGroup);
 
         if (Config.rogueMode && !isPlayer) {
@@ -324,6 +325,7 @@ export class EntityManager {
 
     public setSetupPhase(isSetup: boolean) {
         this.isSetupPhase = isSetup;
+        this.fogManager.setSetupPhase(isSetup);
     }
 
     private updatePlacementHighlight() {
@@ -339,7 +341,7 @@ export class EntityManager {
         this.playerGridTiles.forEach(tile => {
             const { cellX, cellZ } = tile.userData;
             // Player placement area: Top-Left 10x10 (0-9, 0-9)
-            const isInArea = cellX < 10 && cellZ < 10;
+            let isInArea = cellX < 7 && cellZ < 7;
             
             const mesh = tile as THREE.Mesh;
             const mat = mesh.material as THREE.MeshStandardMaterial;
@@ -350,7 +352,7 @@ export class EntityManager {
                 mat.opacity = 0.3;
             } else {
                 mat.emissiveIntensity = 0;
-                mat.opacity = 0.1;
+                mat.opacity = 0.05;
             }
         });
     }
@@ -459,5 +461,9 @@ export class EntityManager {
                 }
             }
         });
+    }
+
+    public isCellRevealed(x: number, z: number): boolean {
+        return this.fogManager.isCellRevealed(x, z);
     }
 }

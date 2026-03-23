@@ -45,6 +45,7 @@ export const Config = {
     audio: {
         masterVolume: 0.5
     },
+    preferredMode: 'classic' as 'classic' | 'russian' | 'rogue',
 
     loadConfig() {
         try {
@@ -92,6 +93,9 @@ export const Config = {
                 if (parsedConfig.audio?.masterVolume !== undefined) {
                     this.audio.masterVolume = parsedConfig.audio.masterVolume;
                 }
+                if (parsedConfig.preferredMode !== undefined) {
+                    this.preferredMode = parsedConfig.preferredMode;
+                }
             }
         } catch (e) {
             console.error('Failed to load user config', e);
@@ -122,7 +126,8 @@ export const Config = {
                 aiDifficulty: this.aiDifficulty,
                 audio: {
                     masterVolume: this.audio.masterVolume
-                }
+                },
+                preferredMode: this.preferredMode
             };
             localStorage.setItem('battleships_config', JSON.stringify(configToSave));
         } catch (e) {

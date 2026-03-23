@@ -422,21 +422,3 @@
   align-items: center;
   justify-content: center;
 }
-
-/* Rogue mode greyed-out states */
-.mtg-card-container.rogue-selected {
-  filter: grayscale(0.8) brightness(0.6);
-  opacity: 0.6;
-  pointer-events: none;
-}
-
-.engage-btn.rogue-disabled {
-  background: rgba(80, 80, 80, 0.4) !important;
-  border-color: #555 !important;
-  color: #888 !important;
-  text-shadow: none !important;
-  cursor: not-allowed !important;
-  animation: none !important;
-  box-shadow: none !important;
-  pointer-events: none;
-}

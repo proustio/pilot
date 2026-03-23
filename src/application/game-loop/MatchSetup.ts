@@ -84,8 +84,15 @@ export class MatchSetup {
             let placed = false;
             let attempts = 0;
             while (!placed && attempts < 1000) {
-                const x = Math.floor(Math.random() * targetBoard.width);
-                const z = Math.floor(Math.random() * targetBoard.height);
+                let x, z;
+                if (match.mode === MatchMode.Rogue) {
+                    // Enemy Bottom-Right 7x7
+                    x = 13 + Math.floor(Math.random() * 7);
+                    z = 13 + Math.floor(Math.random() * 7);
+                } else {
+                    x = Math.floor(Math.random() * targetBoard.width);
+                    z = Math.floor(Math.random() * targetBoard.height);
+                }
                 const orient = Math.random() > 0.5 ? Orientation.Horizontal : Orientation.Vertical;
 
                 if (match.validatePlacement(targetBoard, ship, x, z, orient)) {

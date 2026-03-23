@@ -91,13 +91,13 @@ export class MainMenu extends BaseUIComponent {
                                 </div>
                                 <div class="custom-dropdown-option option-rogue" data-value="rogue">
                                     <span class="option-check">☠</span>
-                                    <span>Rogue (Variable Weapons)</span>
+                                    <span>Rogue (Action)</span>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <div id="mtg-card-anchor" class="mtg-card-container" style="margin-top: 0; transform: scale(0.85); flex: 0;">
+                    <div id="mtg-card-anchor" class="mtg-card-container" style="margin-top: 0; transform: scale(0.85); flex: 0; z-index: 30; position: relative;">
                         <!-- Card injected here dynamically -->
                     </div>
                 </div>
@@ -109,7 +109,7 @@ export class MainMenu extends BaseUIComponent {
         const cardAnchor = this.container.querySelector('#mtg-card-anchor') as HTMLElement;
 
         // --- Custom Dropdown Logic ---
-        let selectedMode = 'classic';
+        let selectedMode = Config.preferredMode || 'classic';
 
         const dropdownEl = this.container.querySelector('#mode-dropdown') as HTMLElement;
         const selectedEl = this.container.querySelector('#dropdown-selected') as HTMLElement;
@@ -119,7 +119,7 @@ export class MainMenu extends BaseUIComponent {
         const optionDisplay: Record<string, string> = {
             classic: '✔ Classic (US Fleet)',
             russian: '❄ Russian (No Touching)',
-            rogue: '☠ Rogue (Variable Weapons)',
+            rogue: '☠ Rogue (Action)',
         };
 
         const closeDropdown = () => dropdownEl.classList.remove('open');
@@ -132,9 +132,12 @@ export class MainMenu extends BaseUIComponent {
         allOptions.forEach((opt) => {
             opt.addEventListener('click', (e) => {
                 e.stopPropagation();
-                const value = opt.dataset.value as string;
+                const value = opt.dataset.value as 'classic' | 'russian' | 'rogue';
                 selectedMode = value;
                 selectedTextEl.textContent = optionDisplay[value];
+                
+                Config.preferredMode = value as any;
+                Config.saveConfig();
 
                 allOptions.forEach(o => o.classList.remove('active'));
                 opt.classList.add('active');
@@ -155,7 +158,6 @@ export class MainMenu extends BaseUIComponent {
             } else {
                 cardAnchor.classList.remove('rogue-selected');
             }
-            newGameBtn.classList.remove('rogue-disabled');
             newGameBtn.textContent = 'ENGAGE';
         };
 
@@ -189,6 +191,16 @@ export class MainMenu extends BaseUIComponent {
 
             updateRogueState(mode);
         };
+
+        // Initialize dropdown UI state
+        selectedTextEl.textContent = optionDisplay[selectedMode];
+        allOptions.forEach(opt => {
+            if (opt.dataset.value === selectedMode) {
+                opt.classList.add('active');
+            } else {
+                opt.classList.remove('active');
+            }
+        });
 
         // Initial card
         updateCard(selectedMode);

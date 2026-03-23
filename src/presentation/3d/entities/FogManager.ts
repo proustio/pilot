@@ -7,7 +7,7 @@ export class FogManager {
     private fogMeshes: (THREE.Mesh | null)[];
     private enemyBoardGroup: THREE.Group;
     public rogueMode: boolean;
-
+    private isSetupPhase: boolean = false;
     private fogGeo?: THREE.BufferGeometry;
     private fogMatProto?: THREE.Material;
 
@@ -81,7 +81,11 @@ export class FogManager {
      * Computes Chebyshev distance from each cell to nearest ship.
      * Fades in outside radius, fades out inside radius.
      */
-    public updateRogueFog(ships: import('../../../domain/fleet/Ship').Ship[]) {
+    public setSetupPhase(isSetup: boolean) {
+        this.isSetupPhase = isSetup;
+    }
+
+    public updateRogueFog(shipsOnBoard: Ship[]) {
         if (!this.rogueMode) return;
         
         const boardWidth = Config.board.width;
@@ -89,7 +93,7 @@ export class FogManager {
 
         // Get all cell coordinates occupied by any ship
         const shipCells: {x: number, z: number, ship: Ship}[] = [];
-        for (const ship of ships) {
+        for (const ship of shipsOnBoard) {
             const coords = ship.getOccupiedCoordinates();
             for (const c of coords) {
                 shipCells.push({ x: c.x, z: c.z, ship });
@@ -112,10 +116,22 @@ export class FogManager {
                     
                     // Normalize distance by vision radius (dist / visionRadius)
                     const normalizedDist = dist / cell.ship.visionRadius;
-                    if (normalizedDist < minDist) minDist = normalizedDist;
+                    if (normalizedDist < minDist) {
+                        minDist = normalizedDist;
+                    }
                 }
 
-                const targetOpacity = (minDist <= 1.0) ? 0.0 : 0.85;
+                let targetOpacity = 0.85;
+                
+                // Rule 1: Radius-based fog around ships
+                if (minDist <= 1.0) { // Using normalizedDist, so 1.0 means within radius
+                    targetOpacity = 0.1;
+                }
+                
+                // Rule 2: During setup, reveal player quadrant (0-6, 0-6)
+                if (this.isSetupPhase && x < 7 && z < 7) {
+                    targetOpacity = 0.1;
+                }
 
                 let fogMesh = this.fogMeshes[fogIdx] as THREE.InstancedMesh;
                 
@@ -161,5 +177,14 @@ export class FogManager {
                 }
             }
         }
+    }
+
+    public isCellRevealed(x: number, z: number): boolean {
+        const fogIdx = z * Config.board.width + x;
+        const fogMesh = this.fogMeshes[fogIdx];
+        if (!fogMesh) return true; // Permanently cleared
+        
+        const mat = (fogMesh as THREE.Mesh).material as THREE.MeshStandardMaterial;
+        return mat.opacity < 0.2; // Dynamically revealed by proximity
     }
 }

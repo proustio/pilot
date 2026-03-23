@@ -5,12 +5,14 @@ import { Config } from '../../../infrastructure/config/Config';
 
 export class UnifiedBoardUI extends BaseUIComponent {
     private gameLoop: GameLoop;
+    private entityManager: any;
     private playerGridContainer!: HTMLElement;
     private enemyGridContainer!: HTMLElement;
 
-    constructor(gameLoop: GameLoop) {
+    constructor(gameLoop: GameLoop, entityManager: any) {
         super('unified-board');
         this.gameLoop = gameLoop;
+        this.entityManager = entityManager;
 
         this.gameLoop.onShipPlaced(() => this.refresh());
         this.gameLoop.onAttackResult((_x, _z, _result, _isPlayer, _isReplay) => this.refresh());
@@ -179,19 +181,12 @@ export class UnifiedBoardUI extends BaseUIComponent {
                             if (!ship.isEnemy) {
                                 cell.classList.add('cell-ship');
                             } else {
-                                // For enemies, we need to know if they are "revealed"
-                                // We'll look at the gridState: if it's CellState.Ship but not hit, 
-                                // we should only show it if the player has "seen" it.
-                                // Simplification: in the domain, we don't have a "revealed" bitmask, 
-                                // but we can check if it's hit/sunk. 
-                                // If not hit/sunk, we only show if revealed in 3D? 
-                                // Actually, let's just use the 'revealedShips' set if we had one.
-                                // For now, let's just check if it's hit or sunk. 
-                                // Wait, the user said "some ships do not appear", so they WANT to see them if they are revealed.
-                                // I'll assume they are revealed if they are NOT in fog.
-                                // But the minimap doesn't have access to FogManager easily.
-                                // I'll just show them as 'cell-fog' if not revealed.
-                                cell.classList.add('cell-fog'); 
+                                // Enemy ship: only show if revealed in 3D (not in fog)
+                                if (this.entityManager && this.entityManager.isCellRevealed(x, z)) {
+                                    cell.classList.add('cell-ship-enemy');
+                                } else {
+                                    cell.classList.add('cell-fog');
+                                }
                             }
                         }
                     }

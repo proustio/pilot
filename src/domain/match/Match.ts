@@ -25,13 +25,21 @@ export class Match {
      * Russian: 1x4, 2x3, 3x2, 4x1 (Total 10 ships, 20 hits)
      */
     public getRequiredFleet(): Ship[] {
-        if (this.mode === MatchMode.Classic || this.mode === MatchMode.Rogue) {
+        if (this.mode === MatchMode.Classic) {
             return [
                 new Ship('carrier', 5),
                 new Ship('battleship', 4),
                 new Ship('destroyer', 3),
                 new Ship('submarine', 3),
                 new Ship('patrol', 2)
+            ];
+        } else if (this.mode === MatchMode.Rogue) {
+            // Smaller fleet for Rogue mode balance in 20x20 with 7x7 quadrants
+            return [
+                new Ship('battleship-r', 4),
+                new Ship('destroyer-r', 3),
+                new Ship('submarine-r', 2),
+                new Ship('patrol-r', 2)
             ];
         } else {
             // Russian ruleset
@@ -58,17 +66,17 @@ export class Match {
             return false;
         }
 
-        // Rogue mode: Player (isEnemy=false) in Top-Left (0-9, 0-9), AI in Bottom-Right (10-19, 10-19)
+        // Rogue mode: Player (isEnemy=false) in Top-Left (0-6, 0-6), AI in Bottom-Right (13-19, 13-19)
         if (this.mode === MatchMode.Rogue) {
             const shipTailX = orientation === Orientation.Horizontal ? headX + shipToPlace.size - 1 : headX;
             const shipTailZ = orientation === Orientation.Vertical ? headZ + shipToPlace.size - 1 : headZ;
             
             if (shipToPlace.isEnemy === true) {
-                // Enemy must be in Bottom-Right quadrant (10-19, 10-10)
-                if (headX < 10 || headZ < 10) return false;
+                // Enemy must be in Bottom-Right quadrant (13-19, 13-19)
+                if (headX < 13 || headZ < 13) return false;
             } else {
-                // Player must be in Top-Left quadrant (0-9, 0-9)
-                if (shipTailX >= 10 || shipTailZ >= 10) return false;
+                // Player must be in Top-Left quadrant (0-6, 0-6)
+                if (shipTailX >= 7 || shipTailZ >= 7) return false;
             }
         }
 

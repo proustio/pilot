@@ -21,9 +21,11 @@ export class UIManager {
     private settings: Settings;
     private gameOver: GameOver;
     private saveLoadDialog: SaveLoadDialog;
+    private entityManager: any; // Quick type or import EntityManager
 
-    constructor(gameLoop: GameLoop) {
+    constructor(gameLoop: GameLoop, entityManager: any) {
         this.gameLoop = gameLoop;
+        this.entityManager = entityManager;
         
         const layer = document.getElementById('ui-layer');
         if (!layer) {
@@ -32,7 +34,7 @@ export class UIManager {
         this.uiLayer = layer;
 
         this.mainMenu = new MainMenu(this.gameLoop);
-        this.hud = new HUD(this.gameLoop);
+        this.hud = new HUD(this.gameLoop, this.entityManager);
         this.pauseMenu = new PauseMenu(this.gameLoop);
         this.settings = new Settings(this.gameLoop);
         this.gameOver = new GameOver();

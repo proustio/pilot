@@ -43,8 +43,8 @@ export class InteractionManager {
     this.moveHighlightGroup = new THREE.Group();
     this.moveHighlightGroup.renderOrder = 998;
     this.moveHighlightGroup.visible = false;
-    // Add to the appropriate board group. In Rogue mode, the battlefield is the enemy board.
-    const highlightParent = Config.rogueMode ? entityManager.enemyBoardGroup : entityManager.playerBoardGroup;
+    // Add to the appropriate board group. In Rogue mode, the battlefield is the player board (non-flipped).
+    const highlightParent = Config.rogueMode ? entityManager.playerBoardGroup : entityManager.playerBoardGroup;
     highlightParent.add(this.moveHighlightGroup);
 
     // Glowing Highlight Shader for Hover Cursor

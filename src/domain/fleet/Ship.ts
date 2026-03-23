@@ -36,7 +36,7 @@ export class Ship {
         this.orientation = Orientation.Horizontal; // default
         this.segments = new Array(size).fill(true);
         this.maxMoves = 5 - this.size;
-        this.visionRadius = this.size * 2;
+        this.visionRadius = 5;
     }
 
     /**

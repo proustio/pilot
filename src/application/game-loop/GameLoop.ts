@@ -124,8 +124,8 @@ export class GameLoop {
             const ce = e as CustomEvent;
             const slotId = ce.detail?.slotId;
             if (slotId) {
-                const match = this.storage.loadGame(slotId);
-                if (match) {
+                const loaded = this.storage.loadGame(slotId);
+                if (loaded) {
                     sessionStorage.setItem('battleships_autoload', slotId.toString());
                     window.location.reload();
                 } else {
@@ -446,6 +446,8 @@ export class GameLoop {
     }
 
     public loadMatch(match: Match): void {
+        this.config.preferredMode = match.mode;
+        this.config.saveConfig();
         this.matchSetup.loadMatch(match);
     }
 

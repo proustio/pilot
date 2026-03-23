@@ -193,7 +193,7 @@ export class TurnExecutor {
      */
     public onSetupBoardClick(x: number, z: number, isPlayerSide?: boolean): void {
         if (!this.s.match || this.s.isPaused) return;
-        // In Rogue mode, the shared battlefield is on the enemy side visually.
+        // In Rogue mode, the shared battlefield is on the player side visually (non-flipped).
         if (!Config.rogueMode && isPlayerSide === false) return;
         if (this.s.playerShipsToPlace.length === 0) return;
 
@@ -223,12 +223,12 @@ export class TurnExecutor {
                             let attempts = 0;
                             while (!placed && attempts < 1000) {
                                 const orient = Math.random() > 0.5 ? Orientation.Horizontal : Orientation.Vertical;
-                                // Enemy must be in bottom-right quadrant: X [10,19], Z [10,19]
+                                // Enemy must be in bottom-right quadrant: X [13,19], Z [13,19]
                                 const maxX = 20 - (orient === Orientation.Horizontal ? ship.size : 1);
                                 const maxZ = 20 - (orient === Orientation.Vertical ? ship.size : 1);
                                 
-                                const x = 10 + Math.floor(Math.random() * (maxX - 10 + 1));
-                                const z = 10 + Math.floor(Math.random() * (maxZ - 10 + 1));
+                                const x = 13 + Math.floor(Math.random() * (maxX - 13 + 1));
+                                const z = 13 + Math.floor(Math.random() * (maxZ - 13 + 1));
 
                                 if (this.s.match.validatePlacement(sharedBoard, ship, x, z, orient)) {
                                     placed = sharedBoard.placeShip(ship, x, z, orient);

@@ -20,10 +20,12 @@ export class HUD extends BaseUIComponent {
     private turnIndicator!: HTMLElement;
     private unifiedBoard!: UnifiedBoardUI;
     private activeRogueShip: any = null;
+    private entityManager: any;
 
-    constructor(gameLoop: GameLoop) {
+    constructor(gameLoop: GameLoop, entityManager: any) {
         super('hud');
         this.gameLoop = gameLoop;
+        this.entityManager = entityManager;
 
         // Listen to game loop state changes
         this.gameLoop.onStateChange((newState, _oldState) => {
@@ -38,7 +40,7 @@ export class HUD extends BaseUIComponent {
             this.updateStats();
         });
 
-        this.unifiedBoard = new UnifiedBoardUI(this.gameLoop);
+        this.unifiedBoard = new UnifiedBoardUI(this.gameLoop, this.entityManager);
     }
 
     public mount(parentElement: HTMLElement): void {
