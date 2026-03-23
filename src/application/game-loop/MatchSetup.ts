@@ -40,12 +40,22 @@ export class MatchSetup {
         this.state.match = match;
         this.state.aiEngine.reset();
         this.state.playerAIEngine.reset();
+        this.state.playerShipsToPlace = []; // Clear any previous state
+        
+        // Reset global resources
+        Ship.resources = { airStrikes: 1, sonars: 2, mines: 5 };
 
-        this.state.playerShipsToPlace = match.getRequiredFleet();
+        this.state.playerShipsToPlace = match.getRequiredFleet().map(s => {
+            s.id = `player-${s.id}`;
+            s.isEnemy = false;
+            return s;
+        });
 
         if (this.state.config.autoBattler) {
             const playerShips = match.getRequiredFleet();
             for (const ship of playerShips) {
+                ship.id = `player-${ship.id}`;
+                ship.isEnemy = false;
                 let placed = false;
                 let attempts = 0;
                 while (!placed && attempts < 1000) {
@@ -66,26 +76,25 @@ export class MatchSetup {
         }
 
         // Always place enemy fleet
-        if (true) {
-            const targetBoard = match.mode === MatchMode.Rogue ? match.playerBoard : match.enemyBoard;
-            const enemyShips = match.getRequiredFleet();
-            for (const ship of enemyShips) {
-                ship.isEnemy = true;
-                let placed = false;
-                let attempts = 0;
-                while (!placed && attempts < 1000) {
-                    const x = Math.floor(Math.random() * targetBoard.width);
-                    const z = Math.floor(Math.random() * targetBoard.height);
-                    const orient = Math.random() > 0.5 ? Orientation.Horizontal : Orientation.Vertical;
+        const targetBoard = match.mode === MatchMode.Rogue ? match.sharedBoard : match.enemyBoard;
+        const enemyShips = match.getRequiredFleet();
+        for (const ship of enemyShips) {
+            ship.id = `enemy-${ship.id}`;
+            ship.isEnemy = true;
+            let placed = false;
+            let attempts = 0;
+            while (!placed && attempts < 1000) {
+                const x = Math.floor(Math.random() * targetBoard.width);
+                const z = Math.floor(Math.random() * targetBoard.height);
+                const orient = Math.random() > 0.5 ? Orientation.Horizontal : Orientation.Vertical;
 
-                    if (match.validatePlacement(targetBoard, ship, x, z, orient)) {
-                        placed = targetBoard.placeShip(ship, x, z, orient);
-                        if (placed) {
-                            this.state.shipPlacedListeners.forEach(l => l(ship, x, z, orient, false));
-                        }
+                if (match.validatePlacement(targetBoard, ship, x, z, orient)) {
+                    placed = targetBoard.placeShip(ship, x, z, orient);
+                    if (placed) {
+                        this.state.shipPlacedListeners.forEach(l => l(ship, x, z, orient, false));
                     }
-                    attempts++;
                 }
+                attempts++;
             }
         }
 

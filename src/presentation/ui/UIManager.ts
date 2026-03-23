@@ -1,4 +1,5 @@
 import { GameLoop, GameState } from '../../application/game-loop/GameLoop';
+import { Match } from '../../domain/match/Match';
 import { InteractivityGuard } from '../InteractivityGuard';
 import { MainMenu } from './menu/MainMenu';
 import { HUD } from './hud/HUD';
@@ -115,6 +116,17 @@ export class UIManager {
 
 
     private checkAutoLoad(): void {
+        const newMatchMode = sessionStorage.getItem('battleships_new_match_mode');
+        if (newMatchMode) {
+            sessionStorage.removeItem('battleships_new_match_mode');
+            const matchMode = newMatchMode as any;
+            const width = matchMode === 'rogue' ? 20 : 10;
+            const height = matchMode === 'rogue' ? 20 : 10;
+            const match = new Match(matchMode, width, height);
+            this.gameLoop.startNewMatch(match);
+            return;
+        }
+
         const autoloadSlot = sessionStorage.getItem('battleships_autoload');
         if (autoloadSlot) {
             sessionStorage.removeItem('battleships_autoload');

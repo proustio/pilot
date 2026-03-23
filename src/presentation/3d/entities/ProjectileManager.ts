@@ -62,7 +62,7 @@ export class ProjectileManager {
         }
 
         const isRogue = Config.rogueMode;
-        const targetGroup = isRogue ? this.playerBoardGroup : (isPlayer ? this.enemyBoardGroup : this.playerBoardGroup);
+        const targetGroup = isRogue ? this.enemyBoardGroup : (isPlayer ? this.enemyBoardGroup : this.playerBoardGroup);
 
         // ───── Missile Material ─────
         const activeMat = new THREE.MeshStandardMaterial({
@@ -169,7 +169,7 @@ export class ProjectileManager {
         }
 
         // ───── Live Shot Arc ─────
-        const sourceGroup = isRogue ? this.playerBoardGroup : (isPlayer ? this.playerBoardGroup : this.enemyBoardGroup);
+        const sourceGroup = isRogue ? this.enemyBoardGroup : (isPlayer ? this.playerBoardGroup : this.enemyBoardGroup);
         let startPos = new THREE.Vector3((Math.random() - 0.5) * 10, 5, (Math.random() - 0.5) * 10);
 
         const friendlyShips: THREE.Group[] = [];
@@ -262,7 +262,8 @@ export class ProjectileManager {
 
                 // Water splash + ripple
                 this.particleSystem.spawnSplash(m.worldX, 0.2, m.worldZ, targetGroup);
-                addRipple(m.worldX, m.worldZ, !m.isPlayer);
+                const rippleOnPlayerBoard = Config.rogueMode ? false : !m.isPlayer;
+                addRipple(m.worldX, m.worldZ, rippleOnPlayerBoard);
 
                 // Sunk-ship turbulence
                 if (m.result === 'sunk') {

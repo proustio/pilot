@@ -171,7 +171,7 @@ export class GameLoop {
                 if (moved) {
                     ship.movesRemaining -= dist;
                     
-                    // Ability Dispersal Logic
+                    // Ability Dispersal Logic ... (as before)
                     const queuedAbility = (window as any).queuedRogueAbility;
                     if (queuedAbility) {
                         if (queuedAbility === 'sonar' && Ship.resources.sonars > 0) {
@@ -182,18 +182,21 @@ export class GameLoop {
                             this.disperseAbilityAlongPath(ship, targetX, targetZ, 'mine');
                         }
                         (window as any).queuedRogueAbility = null;
+                        
+                        // Using an ability DOES end the ship's turn action
+                        ship.hasActedThisTurn = true;
+                        ship.movesRemaining = 0;
                     }
 
-                    // Fully complete turn upon movement
-                    ship.hasActedThisTurn = true;
-                    ship.movesRemaining = 0;
                     this.shipMovedListeners.forEach(listener => listener(ship, targetX, targetZ, newOrient));
 
-                    this.isAnimating = true;
-                    setTimeout(() => {
-                        this.isAnimating = false;
-                        this.advanceRogueShipTurn();
-                    }, 800);
+                    if (ship.movesRemaining <= 0 || ship.hasActedThisTurn) {
+                        this.isAnimating = true;
+                        setTimeout(() => {
+                            this.isAnimating = false;
+                            this.advanceRogueShipTurn();
+                        }, 800);
+                    }
                 }
             }
         });
@@ -263,7 +266,16 @@ export class GameLoop {
                 };
                 setTimeout(finalizeTurn, 1000); // Temporary visual delay for sonar
                 
+            } else if (weaponType === WeaponType.Cannon || weaponType === 'normal') {
+                const result = targetBoard.receiveAttack(targetX, targetZ);
+                if (result !== 'invalid') {
+                    this.attackResultListeners.forEach(l => l(targetX, targetZ, result.toString(), true, false));
+                } else {
+                    return; // Don't consume turn for an invalid shot
+                }
             } else if (weaponType === WeaponType.AirStrike) {
+                if (Ship.resources.airStrikes <= 0) return;
+                Ship.resources.airStrikes--;
                 const results = targetBoard.dispatchAirStrike(targetX, targetZ, directionX || 1, directionZ || 0);
                 this.isAnimating = true;
                 turnHandledAsync = true;
@@ -378,6 +390,12 @@ export class GameLoop {
         this.currentState = newState;
 
         this.listeners.forEach(listener => listener(newState, oldState));
+
+        // Sync setup phase to 3D layer for highlighting
+        // (Assuming entityManager is available or we fire a global event)
+        // Wait, I need to check how GameLoop communicates with the presentation layer.
+        // It uses listeners. I'll fire a custom event instead to be safe.
+        document.dispatchEvent(new CustomEvent('GAME_STATE_CHANGED', { detail: { state: newState } }));
 
         this.triggerAutoSave();
 

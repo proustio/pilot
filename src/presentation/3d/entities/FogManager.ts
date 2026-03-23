@@ -58,6 +58,10 @@ export class FogManager {
         }
     }
 
+    public setParent(newParent: THREE.Group) {
+        this.enemyBoardGroup = newParent;
+    }
+
     /**
      * Animates all fog voxel clouds (bobbing, rotation).
      */
@@ -121,6 +125,11 @@ export class FogManager {
                     clonedMat.transparent = true;
                     clonedMat.opacity = 0; // start transparent and fade in
                     
+                    // IMPORTANT: onBeforeCompile is not cloned by default in Three.js
+                    if (this.fogMatProto.onBeforeCompile) {
+                        clonedMat.onBeforeCompile = this.fogMatProto.onBeforeCompile;
+                    }
+                    
                     const numVoxels = 250;
                     fogMesh = new THREE.InstancedMesh(this.fogGeo, clonedMat, numVoxels);
                     
@@ -136,11 +145,8 @@ export class FogManager {
                     
                     fogMesh.userData = { isFog: true, ownsMaterial: true };
                     
-                    // In Rogue mode, board is shared, usually playerBoardGroup, but we'll attach to enemyBoardGroup
-                    // Wait, enemyBoardGroup is flipped upside down (y=-1.2, rotated).
-                    // In rogue mode, both share the player board (facing UP)
-                    // If we attach it to enemyBoardGroup, it will be upside down unless we attach to the right board.
-                    this.enemyBoardGroup.parent?.children[0].add(fogMesh); // Add to playerBoardGroup visually! (masterBoardGroup -> playerBoardGroup)
+                    // Attach to playerBoardGroup (the shared board in Rogue mode)
+                    this.enemyBoardGroup.parent?.children[0].add(fogMesh); 
                     this.fogMeshes[fogIdx] = fogMesh;
                 }
 

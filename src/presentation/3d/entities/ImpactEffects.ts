@@ -44,7 +44,8 @@ export class ImpactEffects {
         const boardOffset = Config.board.width / 2;
         const worldX = cellX - boardOffset + 0.5;
         const worldZ = cellZ - boardOffset + 0.5;
-        const targetGroup = isPlayer ? this.enemyBoardGroup : this.playerBoardGroup;
+        const isRogue = Config.rogueMode;
+        const targetGroup = isRogue ? this.enemyBoardGroup : (isPlayer ? this.enemyBoardGroup : this.playerBoardGroup);
         const impactPos = new THREE.Vector3(worldX, 0.4, worldZ);
 
         if (!isReplay) {
@@ -202,7 +203,8 @@ export class ImpactEffects {
                 setTimeout(() => {
                     this.particleSystem.spawnExplosion(ex, 0.4, ez, targetGroup);
                     this.particleSystem.spawnVoxelExplosion(ex, 0.4, ez, 10, targetGroup);
-                    addRipple(ex, ez, !isPlayer);
+                    const rippleOnPlayerBoard = Config.rogueMode ? false : !isPlayer;
+                    addRipple(ex, ez, rippleOnPlayerBoard);
                     this.addPersistentFireToShipCell(shipGroup, sx, sz, boardOffset, 2.0, this.particleSystem.blackSmokeMat.color.getStyle());
                 }, delay * 1000);
             }

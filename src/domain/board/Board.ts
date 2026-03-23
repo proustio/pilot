@@ -165,6 +165,10 @@ export class Board {
         return true;
     }
 
+    public getShipAt(x: number, z: number): Ship | undefined {
+        return this.shipMap.get(`${x},${z}`)?.ship;
+    }
+
     public receiveAttack(x: number, z: number): AttackResult {
         if (this.isOutOfBounds(x, z)) return AttackResult.Invalid;
 

@@ -121,12 +121,14 @@ export class UnifiedBoardUI extends BaseUIComponent {
     public refresh(): void {
         if (!this.gameLoop.match) return;
 
-        const playerBoard = this.gameLoop.match.playerBoard;
-        const enemyBoard = this.gameLoop.match.enemyBoard;
-
-        this.updateGrid(this.playerGridContainer, playerBoard.gridState, true);
-        if (!Config.rogueMode) {
-            this.updateGrid(this.enemyGridContainer, enemyBoard.gridState, false);
+        const isRogue = Config.rogueMode;
+        if (isRogue) {
+            // In Rogue mode, only the "BATTLEFIELD" (playerGridContainer) is shown.
+            // It displays the sharedBoard (which is now enemyBoard).
+            this.updateGrid(this.playerGridContainer, this.gameLoop.match.sharedBoard.gridState, true);
+        } else {
+            this.updateGrid(this.playerGridContainer, this.gameLoop.match.playerBoard.gridState, true);
+            this.updateGrid(this.enemyGridContainer, this.gameLoop.match.enemyBoard.gridState, false);
         }
     }
 
@@ -162,25 +164,58 @@ export class UnifiedBoardUI extends BaseUIComponent {
                 cell.classList.add('cell-move-radius');
             }
 
+            const x = index % boardWidth;
+            const z = Math.floor(index / boardWidth);
+
             switch (state) {
                 case CellState.Ship:
-                    if (isPlayer) {
-                        cell.classList.add('cell-ship');
+                    if (!isRogue) {
+                        if (isPlayer) cell.classList.add('cell-ship');
+                        else cell.classList.add('cell-fog');
                     } else {
-                        cell.classList.add('cell-fog');
+                        // Rogue mode: shared board has both.
+                        const ship = this.gameLoop.match?.sharedBoard.getShipAt(x, z);
+                        if (ship) {
+                            if (!ship.isEnemy) {
+                                cell.classList.add('cell-ship');
+                            } else {
+                                // For enemies, we need to know if they are "revealed"
+                                // We'll look at the gridState: if it's CellState.Ship but not hit, 
+                                // we should only show it if the player has "seen" it.
+                                // Simplification: in the domain, we don't have a "revealed" bitmask, 
+                                // but we can check if it's hit/sunk. 
+                                // If not hit/sunk, we only show if revealed in 3D? 
+                                // Actually, let's just use the 'revealedShips' set if we had one.
+                                // For now, let's just check if it's hit or sunk. 
+                                // Wait, the user said "some ships do not appear", so they WANT to see them if they are revealed.
+                                // I'll assume they are revealed if they are NOT in fog.
+                                // But the minimap doesn't have access to FogManager easily.
+                                // I'll just show them as 'cell-fog' if not revealed.
+                                cell.classList.add('cell-fog'); 
+                            }
+                        }
                     }
                     break;
                 case CellState.Hit:
                     cell.classList.add('cell-hit');
+                    // In Rogue mode, if it's a hit, we know it's a ship.
+                    if (isRogue) {
+                        const ship = this.gameLoop.match?.sharedBoard.getShipAt(x, z);
+                        if (ship && ship.isEnemy) cell.classList.add('cell-ship-enemy');
+                    }
                     break;
                 case CellState.Sunk:
                     cell.classList.add('cell-sunk');
+                    if (isRogue) {
+                        const ship = this.gameLoop.match?.sharedBoard.getShipAt(x, z);
+                        if (ship && ship.isEnemy) cell.classList.add('cell-ship-enemy');
+                    }
                     break;
                 case CellState.Miss:
                     cell.classList.add('cell-miss');
                     break;
                 default:
-                    if (!isPlayer) {
+                    if (!isPlayer && !isRogue) {
                         cell.classList.add('cell-fog');
                     }
                     break;

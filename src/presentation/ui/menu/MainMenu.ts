@@ -219,7 +219,10 @@ export class MainMenu extends BaseUIComponent {
                 Config.rogueMode = rogueMode;
                 Config.saveConfig();
                 
-                Storage.saveGame('session', match);
+                Storage.clearSession(); // Ensure no auto-load on refresh
+                // Note: We don't saveGame('session', match) here because that makes the loader think setup is done.
+                // We'll pass the intent to start a new match of this type via the config or a temporary storage key.
+                sessionStorage.setItem('battleships_new_match_mode', matchMode);
                 window.location.reload();
                 return;
             }

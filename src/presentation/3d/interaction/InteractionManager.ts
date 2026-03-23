@@ -43,8 +43,9 @@ export class InteractionManager {
     this.moveHighlightGroup = new THREE.Group();
     this.moveHighlightGroup.renderOrder = 998;
     this.moveHighlightGroup.visible = false;
-    // Add to player board group so it moves/rotates with the shared battlefield in Rogue mode
-    entityManager.playerBoardGroup.add(this.moveHighlightGroup);
+    // Add to the appropriate board group. In Rogue mode, the battlefield is the enemy board.
+    const highlightParent = Config.rogueMode ? entityManager.enemyBoardGroup : entityManager.playerBoardGroup;
+    highlightParent.add(this.moveHighlightGroup);
 
     // Glowing Highlight Shader for Hover Cursor
     this.raycaster = new THREE.Raycaster();
@@ -238,8 +239,16 @@ export class InteractionManager {
 
         const x = pickedTile.userData.cellX;
         const z = pickedTile.userData.cellZ;
+        const isPlayerSide = pickedTile.userData.isPlayerSide;
 
-        const isValid = this.gameLoop.match.validatePlacement(this.gameLoop.match.playerBoard, ship, x, z, orientation);
+        // Block preview on enemy side in Classic mode
+        if (!Config.rogueMode && !isPlayerSide) {
+           this.ghostGroup.visible = false;
+           return;
+        }
+
+        const targetBoard = Config.rogueMode ? this.gameLoop.match.sharedBoard : this.gameLoop.match.playerBoard;
+        const isValid = this.gameLoop.match.validatePlacement(targetBoard, ship, x, z, orientation);
         const color = isValid ? 0x00ff00 : 0xff0000;
 
         this.ghostGroup.children.forEach((child: THREE.Object3D, index: number) => {
@@ -285,6 +294,14 @@ export class InteractionManager {
           this.hoverCursor.position.y += 1.25;
           this.hoverCursor.visible = true;
           this.hoverCursor.quaternion.identity();
+
+          // Scale hover cursor for Air Strike (show a line)
+          const weapon = (window as any).selectedRogueWeapon;
+          if (Config.rogueMode && weapon === 'airstrike') {
+            this.hoverCursor.scale.set(10, 1, 1); // Highlight a wide area
+          } else {
+            this.hoverCursor.scale.set(1, 1, 1);
+          }
         } else {
           this.hoverCursor.visible = false;
         }

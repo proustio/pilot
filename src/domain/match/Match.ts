@@ -45,7 +45,7 @@ export class Match {
     }
 
     public get sharedBoard(): Board {
-        return this.playerBoard;
+        return this.mode === MatchMode.Rogue ? this.enemyBoard : this.playerBoard;
     }
 
     /**
@@ -58,17 +58,17 @@ export class Match {
             return false;
         }
 
-        // Rogue mode: Player (isEnemy=false) in Southern half (>=10), AI in Northern half (<10)
-        // Note: headZ is the top of the ship. 
+        // Rogue mode: Player (isEnemy=false) in Top-Left (0-9, 0-9), AI in Bottom-Right (10-19, 10-19)
         if (this.mode === MatchMode.Rogue) {
+            const shipTailX = orientation === Orientation.Horizontal ? headX + shipToPlace.size - 1 : headX;
             const shipTailZ = orientation === Orientation.Vertical ? headZ + shipToPlace.size - 1 : headZ;
             
             if (shipToPlace.isEnemy === true) {
-                // Enemy must be in top 10 rows (0-9)
-                if (shipTailZ >= 10) return false;
+                // Enemy must be in Bottom-Right quadrant (10-19, 10-10)
+                if (headX < 10 || headZ < 10) return false;
             } else {
-                // Player must be in bottom 10 rows (10-19)
-                if (headZ < 10) return false;
+                // Player must be in Top-Left quadrant (0-9, 0-9)
+                if (shipTailX >= 10 || shipTailZ >= 10) return false;
             }
         }
 

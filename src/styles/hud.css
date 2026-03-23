@@ -320,6 +320,11 @@
   box-shadow: 0 0 3px var(--color-primary);
 }
 
+.mini-cell.cell-ship-enemy {
+  background: #ff8c00;
+  box-shadow: 0 0 3px #ff8c00;
+}
+
 .mini-cell.cell-hit {
   background: var(--color-danger);
   box-shadow: 0 0 5px var(--color-danger);
@@ -374,76 +379,6 @@
   margin-left: auto;
   color: #ffde00;
   text-shadow: 0 0 5px rgba(255, 222, 0, 0.3);
-}
-
-.hud-fleet-status-group {
-  display: flex;
-  flex-direction: row;
-  min-width: 250px;
-}
-
-.fleet-status-display {
-  display: flex;
-  gap: 30px;
-  padding: 15px 20px;
-  width: 100%;
-  justify-content: space-around;
-  filter: blur(0.45px) contrast(1.1);
-  /* Touch of blur as requested */
-}
-
-.fleet-side {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.fleet-label {
-  font-family: 'JetBrains Mono', monospace;
-  font-weight: bold;
-  font-size: 0.9rem;
-  color: #0c0;
-  text-shadow: 0 0 5px rgba(0, 200, 0, 0.4);
-  margin-bottom: 4px;
-}
-
-.fleet-icons {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  margin-top: 8px;
-}
-
-.ship-icon {
-  display: flex;
-  gap: 1px;
-}
-
-.ship-segment {
-  width: 8px;
-  height: 12px;
-  background-color: transparent;
-  border: 1px solid var(--color-primary);
-  box-shadow: inset 0 0 3px var(--color-primary);
-}
-
-.ship-icon.sunk .ship-segment {
-  background-color: rgba(255, 36, 0, 0.3);
-  border-color: var(--color-danger);
-  box-shadow: inset 0 0 5px var(--color-danger);
-  opacity: 0.8;
-}
-
-#enemy-fleet-icons .ship-segment {
-  border-color: var(--color-danger);
-  box-shadow: inset 0 0 3px var(--color-danger);
-}
-
-#enemy-fleet-icons .ship-icon.sunk .ship-segment {
-  background-color: rgba(220, 20, 60, 0.3);
-  border-color: #DC143C;
-  /* Crimson */
-  box-shadow: inset 0 0 5px #DC143C;
 }
 
 /* Hit Segment Feedback */

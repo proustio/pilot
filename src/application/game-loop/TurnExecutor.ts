@@ -2,6 +2,7 @@ import { Ship, Orientation } from '../../domain/fleet/Ship';
 import { AIEngine } from '../ai/AIEngine';
 import { GameState } from './GameLoop';
 import { MatchMode } from '../../domain/match/Match';
+import { Config } from '../../infrastructure/config/Config';
 
 type AttackResultListener = (x: number, z: number, result: string, isPlayer: boolean, isReplay: boolean) => void;
 type ShipPlacedListener = (ship: Ship, x: number, z: number, orientation: Orientation, isPlayer: boolean) => void;
@@ -192,16 +193,19 @@ export class TurnExecutor {
      */
     public onSetupBoardClick(x: number, z: number, isPlayerSide?: boolean): void {
         if (!this.s.match || this.s.isPaused) return;
-        if (isPlayerSide === false) return;
+        // In Rogue mode, the shared battlefield is on the enemy side visually.
+        if (!Config.rogueMode && isPlayerSide === false) return;
         if (this.s.playerShipsToPlace.length === 0) return;
 
         const nextShip = this.s.playerShipsToPlace[0];
+        const targetBoard = Config.rogueMode ? this.s.match.sharedBoard : this.s.match.playerBoard;
+        
         const isValid = this.s.match.validatePlacement(
-            this.s.match.playerBoard, nextShip, x, z, this.s.currentPlacementOrientation
+            targetBoard, nextShip, x, z, this.s.currentPlacementOrientation
         );
 
         if (isValid) {
-            const placed = this.s.match.playerBoard.placeShip(nextShip, x, z, this.s.currentPlacementOrientation);
+            const placed = targetBoard.placeShip(nextShip, x, z, this.s.currentPlacementOrientation);
             if (placed) {
                 this.s.playerShipsToPlace.shift();
                 this.s.shipPlacedListeners.forEach(l =>
@@ -212,18 +216,22 @@ export class TurnExecutor {
                 if (this.s.playerShipsToPlace.length === 0) {
                     if (this.s.match.mode === MatchMode.Rogue) {
                         const enemyShips = this.s.match.getRequiredFleet();
+                        const sharedBoard = this.s.match.sharedBoard; 
                         for (const ship of enemyShips) {
                             ship.isEnemy = true;
                             let placed = false;
                             let attempts = 0;
                             while (!placed && attempts < 1000) {
-                                const x = Math.floor(Math.random() * this.s.match.playerBoard.width);
-                                // Enemy must be in top 10 rows (0-9)
-                                const z = Math.floor(Math.random() * 10);
                                 const orient = Math.random() > 0.5 ? Orientation.Horizontal : Orientation.Vertical;
+                                // Enemy must be in bottom-right quadrant: X [10,19], Z [10,19]
+                                const maxX = 20 - (orient === Orientation.Horizontal ? ship.size : 1);
+                                const maxZ = 20 - (orient === Orientation.Vertical ? ship.size : 1);
+                                
+                                const x = 10 + Math.floor(Math.random() * (maxX - 10 + 1));
+                                const z = 10 + Math.floor(Math.random() * (maxZ - 10 + 1));
 
-                                if (this.s.match.validatePlacement(this.s.match.playerBoard, ship, x, z, orient)) {
-                                    placed = this.s.match.playerBoard.placeShip(ship, x, z, orient);
+                                if (this.s.match.validatePlacement(sharedBoard, ship, x, z, orient)) {
+                                    placed = sharedBoard.placeShip(ship, x, z, orient);
                                     if (placed) {
                                         this.s.shipPlacedListeners.forEach(l => l(ship, x, z, orient, false));
                                     }

@@ -4,7 +4,8 @@ import { MatchMode } from '../../../domain/match/Match';
 import { Config } from '../../../infrastructure/config/Config';
 import { UnifiedBoardUI } from './UnifiedBoardUI';
 import { bindHUDControls } from './HUDControls';
-import { renderFleetIcons, updateGameStats } from './HUDStats';
+import { updateGameStats } from './HUDStats';
+import { Ship } from '../../../domain/fleet/Ship';
 
 /**
  * Main HUD component that orchestrates the top-bar (stats, turn, fleet)
@@ -17,8 +18,6 @@ import { renderFleetIcons, updateGameStats } from './HUDStats';
 export class HUD extends BaseUIComponent {
     private gameLoop: GameLoop;
     private turnIndicator!: HTMLElement;
-    private playerFleetIcons!: HTMLElement;
-    private enemyFleetIcons!: HTMLElement;
     private unifiedBoard!: UnifiedBoardUI;
     private activeRogueShip: any = null;
 
@@ -31,17 +30,10 @@ export class HUD extends BaseUIComponent {
             this.update(newState);
         });
 
-        // Listen for attack results to update ship counts immediately
-        this.gameLoop.onAttackResult((_x, _z, result, isPlayer, _isReplay) => {
+        // Listen for attack results to update stats
+        this.gameLoop.onAttackResult((_x, _z, result, _isPlayer, _isReplay) => {
             if (result === 'sunk') {
                 this.updateCounters();
-
-                const targetElement = isPlayer ? this.enemyFleetIcons : this.playerFleetIcons;
-                // Trigger CSS explosion animation
-                targetElement.classList.remove('hud-explosion-anim');
-                void targetElement.offsetWidth; // Trigger reflow
-                targetElement.classList.add('hud-explosion-anim');
-                setTimeout(() => targetElement.classList.remove('hud-explosion-anim'), 500);
             }
             this.updateStats();
         });
@@ -96,23 +88,6 @@ export class HUD extends BaseUIComponent {
                     <div class="sw-screw br" style="transform: scale(0.7); bottom: 4px; right: 4px;"></div>
                     WAITING...
                 </div>
-
-                <div id="fleet-status-group" class="hud-fleet-status-group retro-panel">
-                    <div class="sw-screw tl" style="transform: scale(0.6); top: 6px; left: 6px;"></div>
-                    <div class="sw-screw tr" style="transform: scale(0.6); top: 6px; right: 6px;"></div>
-                    <div class="sw-screw bl" style="transform: scale(0.6); bottom: 6px; left: 6px;"></div>
-                    <div class="sw-screw br" style="transform: scale(0.6); bottom: 6px; right: 6px;"></div>
-                    <div class="fleet-status-display retro-display">
-                        <div id="player-status" class="fleet-side">
-                            <span class="fleet-label">YOU</span>
-                            <div id="player-fleet-icons" class="fleet-icons"></div>
-                        </div>
-                        <div class="fleet-side">
-                            <span class="fleet-label">ENEMY</span>
-                            <div id="enemy-fleet-icons" class="fleet-icons"></div>
-                        </div>
-                    </div>
-                </div>
             </div>
             
             <div class="hud-bottom-bar">
@@ -149,8 +124,6 @@ export class HUD extends BaseUIComponent {
         `;
 
         this.turnIndicator = this.container.querySelector('#turn-indicator') as HTMLElement;
-        this.playerFleetIcons = this.container.querySelector('#player-fleet-icons') as HTMLElement;
-        this.enemyFleetIcons = this.container.querySelector('#enemy-fleet-icons') as HTMLElement;
 
         // Listen for active ship changes in Rogue mode
         document.addEventListener('ACTIVE_SHIP_CHANGED', (e: Event) => {
@@ -163,7 +136,6 @@ export class HUD extends BaseUIComponent {
         bindHUDControls(this.container);
 
         this.updateStats();
-        this.updateCounters();
         this.bindArsenalEvents();
         this.bindRogueActionBar();
     }
@@ -179,16 +151,33 @@ export class HUD extends BaseUIComponent {
         const moveBtn = this.container.querySelector('#btn-rogue-move');
         const attackBtn = this.container.querySelector('#btn-rogue-attack');
         const arsenalPanel = this.container.querySelector('#arsenal-panel');
+        const arsenalTitle = this.container.querySelector('.arsenal-title') as HTMLElement;
+        const arsenalItems = this.container.querySelector('.arsenal-items') as HTMLElement;
 
         const setActiveTab = (mode: 'move' | 'attack') => {
             (window as any).selectedRogueAction = mode;
             if (moveBtn) moveBtn.classList.toggle('active', mode === 'move');
             if (attackBtn) attackBtn.classList.toggle('active', mode === 'attack');
             
-            // Slide out arsenal if MOVE is selected (nested abilities)
-            if (arsenalPanel) {
-                if (mode === 'move') arsenalPanel.classList.remove('collapsed');
-                else arsenalPanel.classList.add('collapsed');
+            if (arsenalPanel && arsenalTitle && arsenalItems) {
+                arsenalPanel.classList.remove('collapsed');
+                const selected = (window as any).selectedRogueWeapon;
+                if (mode === 'move') {
+                    arsenalTitle.innerText = 'MOVE SYSTEMS';
+                    arsenalItems.innerHTML = `
+                        <button class="arsenal-btn ${selected === 'sonar' || !selected ? 'active' : ''}" data-weapon="sonar" title="Sonar Ping (${Ship.resources.sonars} Remaining)">📡</button>
+                        <button class="arsenal-btn ${selected === 'mine' ? 'active' : ''}" data-weapon="mine" title="Place Mine (${Ship.resources.mines} Remaining)">⚓</button>
+                    `;
+                    if (!selected || mode !== 'move') (window as any).selectedRogueWeapon = 'sonar';
+                } else {
+                    arsenalTitle.innerText = 'ATTACK SYSTEMS';
+                    arsenalItems.innerHTML = `
+                        <button class="arsenal-btn ${selected === 'cannon' || !selected ? 'active' : ''}" data-weapon="cannon" title="Normal Cannon (Infinite)">⚔️</button>
+                        <button class="arsenal-btn ${selected === 'airstrike' ? 'active' : ''}" data-weapon="airstrike" title="Air Strike (${Ship.resources.airStrikes} Remaining)">🚀</button>
+                    `;
+                    if (!selected || mode !== 'attack') (window as any).selectedRogueWeapon = 'cannon';
+                }
+                this.bindArsenalEvents();
             }
 
             document.dispatchEvent(new CustomEvent('ROGUE_ACTION_MODE_CHANGED', { detail: { mode } }));
@@ -297,10 +286,7 @@ export class HUD extends BaseUIComponent {
     }
 
     private updateCounters(): void {
-        if (this.gameLoop.match) {
-            renderFleetIcons(this.playerFleetIcons, this.gameLoop.match.playerBoard.ships);
-            renderFleetIcons(this.enemyFleetIcons, this.gameLoop.match.enemyBoard.ships);
-        }
+        // Removed as per request
     }
 
     private updateStats(): void {

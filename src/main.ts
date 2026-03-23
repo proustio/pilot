@@ -1,7 +1,7 @@
 import { Engine3D } from './presentation/3d/Engine3D';
 import { EntityManager } from './presentation/3d/entities/EntityManager';
 import { InteractionManager } from './presentation/3d/interaction/InteractionManager';
-import { GameLoop } from './application/game-loop/GameLoop';
+import { GameLoop, GameState } from './application/game-loop/GameLoop';
 import { MatchMode } from './domain/match/Match';
 import { UIManager } from './presentation/ui/UIManager';
 import { Config } from './infrastructure/config/Config';
@@ -60,6 +60,7 @@ const init = () => {
         gameLoop.onStateChange((newState) => {
             const isRogue = gameLoop.match?.mode === MatchMode.Rogue;
             entityManager.setPlayerTurn(newState === 'PLAYER_TURN');
+            entityManager.setSetupPhase(newState === 'SETUP_BOARD');
 
             if (newState === 'SETUP_BOARD') {
                 matchStartTime = performance.now();
@@ -237,21 +238,21 @@ const init = () => {
             const peeking = ce.detail?.peeking;
 
             if (peeking) {
+                // Peek always shows the OTHER side
                 const currentState = gameLoop.currentState;
-                if (currentState === 'PLAYER_TURN') {
-                    entityManager.showPlayerBoard();
-                } else if (currentState === 'ENEMY_TURN') {
-                    entityManager.showEnemyBoard();
-                } else if (currentState === 'SETUP_BOARD') {
-                    entityManager.showEnemyBoard();
-                }
-                document.dispatchEvent(new CustomEvent('SET_INTERACTION_ENABLED', { detail: { enabled: false } }));
-            } else {
-                const currentState = gameLoop.currentState;
-                if (currentState === 'PLAYER_TURN') {
+                if (currentState === GameState.PLAYER_TURN || currentState === GameState.SETUP_BOARD) {
                     entityManager.showEnemyBoard();
                 } else {
                     entityManager.showPlayerBoard();
+                }
+                document.dispatchEvent(new CustomEvent('SET_INTERACTION_ENABLED', { detail: { enabled: false } }));
+            } else {
+                // Back to current turn's side
+                const currentState = gameLoop.currentState;
+                if (currentState === GameState.PLAYER_TURN || currentState === GameState.SETUP_BOARD) {
+                    entityManager.showPlayerBoard();
+                } else {
+                    entityManager.showEnemyBoard();
                 }
                 document.dispatchEvent(new CustomEvent('SET_INTERACTION_ENABLED', { detail: { enabled: true } }));
             }

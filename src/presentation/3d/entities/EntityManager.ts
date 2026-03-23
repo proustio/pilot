@@ -109,11 +109,21 @@ export class EntityManager {
     }
 
     public showPlayerBoard() {
-        this.targetRotationX = 0;
+        if (Config.rogueMode) {
+            this.targetRotationX = Math.PI;
+            this.fogManager.setParent(this.enemyBoardGroup); // Shared board is enemy side
+        } else {
+            this.targetRotationX = 0;
+        }
     }
 
     public showEnemyBoard() {
-        this.targetRotationX = Math.PI;
+        if (Config.rogueMode) {
+            this.targetRotationX = 0;
+            this.fogManager.setParent(this.enemyBoardGroup); // Keep fog on actual board, even when peeking at bottom
+        } else {
+            this.targetRotationX = Math.PI;
+        }
     }
 
     public clearFogCell(x: number, z: number) {
@@ -121,8 +131,13 @@ export class EntityManager {
     }
 
     public addShip(ship: Ship, x: number, z: number, orientation: Orientation, isPlayer: boolean) {
-        const targetGroup = isPlayer ? this.playerBoardGroup : this.enemyBoardGroup;
-        ShipFactory.createShip(ship, x, z, orientation, isPlayer, targetGroup);
+        const isRogue = Config.rogueMode;
+        const targetGroup = isRogue ? this.enemyBoardGroup : (isPlayer ? this.playerBoardGroup : this.enemyBoardGroup);
+        const shipGroup = ShipFactory.createShip(ship, x, z, orientation, isPlayer, targetGroup);
+
+        if (Config.rogueMode && !isPlayer) {
+            shipGroup.visible = false;
+        }
 
         if (!this.allShips.includes(ship)) {
             this.allShips.push(ship);
@@ -226,9 +241,45 @@ export class EntityManager {
         this.updateWater(this.playerWaterUniforms, waterTimeIncrement);
         this.updateWater(this.enemyWaterUniforms, waterTimeIncrement);
 
-        // Rogue dynamic fog
+        // Rogue dynamic fog and enemy visibility
         if (this.fogManager.rogueMode) {
             this.fogManager.updateRogueFog(this.allShips);
+            
+            // Update enemy ship visibility based on fog
+            this.allShips.forEach(ship => {
+                if (!ship.isEnemy) return;
+                
+                // Find its 3D group
+                let shipGroup: THREE.Group | undefined;
+                [this.playerBoardGroup, this.enemyBoardGroup].forEach(bg => {
+                    bg.children.forEach(child => {
+                        if (child.userData.isShip && child.userData.ship?.id === ship.id) {
+                            shipGroup = child as THREE.Group;
+                        }
+                    });
+                });
+
+                if (shipGroup) {
+                    const coords = ship.getOccupiedCoordinates();
+                    let revealed = false;
+                    for (const c of coords) {
+                        const fogIdx = c.z * Config.board.width + c.x;
+                        const fogMesh = this.fogManager.getFogMesh(fogIdx);
+                        // If no fog mesh exists, it's revealed (opacity 0)
+                        if (!fogMesh) {
+                            revealed = true;
+                            break;
+                        } else {
+                            const mat = (fogMesh as THREE.Mesh).material as THREE.MeshStandardMaterial;
+                            if (mat.opacity < 0.2) {
+                                revealed = true;
+                                break;
+                            }
+                        }
+                    }
+                    shipGroup.visible = revealed || ship.isSunk();
+                }
+            });
         }
 
         // LED pulsing
@@ -264,6 +315,44 @@ export class EntityManager {
 
         // Ship highlighting
         this.updateShipHighlighting();
+
+        // Rogue Placement Area Highlighting
+        this.updatePlacementHighlight();
+    }
+
+    private isSetupPhase: boolean = false;
+
+    public setSetupPhase(isSetup: boolean) {
+        this.isSetupPhase = isSetup;
+    }
+
+    private updatePlacementHighlight() {
+        if (!Config.rogueMode || !this.isSetupPhase) {
+            // Reset any remaining highlights if we just left setup
+            return;
+        }
+
+        const throb = (Math.sin(this.time * 5) + 1) / 2;
+        const currentIntensity = 0.1 + throb * 0.3;
+        const highlightColor = new THREE.Color(0x00ffff);
+
+        this.playerGridTiles.forEach(tile => {
+            const { cellX, cellZ } = tile.userData;
+            // Player placement area: Top-Left 10x10 (0-9, 0-9)
+            const isInArea = cellX < 10 && cellZ < 10;
+            
+            const mesh = tile as THREE.Mesh;
+            const mat = mesh.material as THREE.MeshStandardMaterial;
+            
+            if (isInArea) {
+                mat.emissive.copy(highlightColor);
+                mat.emissiveIntensity = currentIntensity;
+                mat.opacity = 0.3;
+            } else {
+                mat.emissiveIntensity = 0;
+                mat.opacity = 0.1;
+            }
+        });
     }
 
     // ───── Private Helpers ─────

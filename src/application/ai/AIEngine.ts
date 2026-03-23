@@ -102,6 +102,14 @@ export class AIEngine {
         while (this.huntStack.length > 0) {
             const target = this.huntStack.pop()!;
             
+            // In Rogue mode, don't shoot own ships from hunt stack
+            if (Config.rogueMode) {
+                const ship = board.ships.find(s => s.occupies(target.x, target.z));
+                if (ship && ship.isEnemy) {
+                    continue; 
+                }
+            }
+
             const idx = getIndex(target.x, target.z, board.width);
             const state = board.gridState[idx];
             
