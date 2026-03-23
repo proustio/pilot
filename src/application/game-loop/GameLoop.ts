@@ -32,6 +32,7 @@ export class GameLoop {
     public rogueShipOrder: Ship[] = [];
     public activeEnemyRogueShipIndex: number = 0;
     public enemyRogueShipOrder: Ship[] = [];
+    public airStrikeOrientation: Orientation = Orientation.Horizontal;
 
     public aiEngine: AIEngine;
     public playerAIEngine: AIEngine;
@@ -103,6 +104,13 @@ export class GameLoop {
                 this.currentPlacementOrientation = this.currentPlacementOrientation === Orientation.Horizontal
                     ? Orientation.Vertical
                     : Orientation.Horizontal;
+            } else if (e.key.toLowerCase() === 'r' && this.currentState === GameState.PLAYER_TURN) {
+                const weapon = (window as any).selectedRogueWeapon;
+                if (weapon === 'airstrike') {
+                    this.airStrikeOrientation = this.airStrikeOrientation === Orientation.Horizontal
+                        ? Orientation.Vertical
+                        : Orientation.Horizontal;
+                }
             }
         });
 
@@ -276,7 +284,17 @@ export class GameLoop {
             } else if (weaponType === WeaponType.AirStrike) {
                 if (Ship.resources.airStrikes <= 0) return;
                 Ship.resources.airStrikes--;
-                const results = targetBoard.dispatchAirStrike(targetX, targetZ, directionX || 1, directionZ || 0);
+                
+                // Use provided direction, default to horizontal if missing
+                const dx = directionX !== undefined ? directionX : 1;
+                const dz = directionZ !== undefined ? directionZ : 0;
+                
+                // Center the 10-cell strike on the target
+                const length = 10;
+                const startX = targetX - dx * 4;
+                const startZ = targetZ - dz * 4;
+                
+                const results = targetBoard.dispatchAirStrike(startX, startZ, dx, dz, length);
                 this.isAnimating = true;
                 turnHandledAsync = true;
                 

@@ -19,6 +19,7 @@ export interface TurnExecutorState {
     currentPlacementOrientation: Orientation;
     aiEngine: AIEngine;
     playerAIEngine: AIEngine;
+    airStrikeOrientation: Orientation;
     shipPlacedListeners: ShipPlacedListener[];
     attackResultListeners: AttackResultListener[];
     onAnimationsComplete: (() => void) | null;
@@ -274,8 +275,8 @@ export class TurnExecutor {
                         targetX: x,
                         targetZ: z,
                         radius: 2, // default for sonar
-                        directionX: 1, // default for airstrike
-                        directionZ: 0
+                        directionX: this.s.airStrikeOrientation === Orientation.Horizontal ? 1 : 0,
+                        directionZ: this.s.airStrikeOrientation === Orientation.Vertical ? 1 : 0
                     }
                 }));
                 return;

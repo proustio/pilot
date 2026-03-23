@@ -298,7 +298,12 @@ export class InteractionManager {
           // Scale hover cursor for Air Strike (show a line)
           const weapon = (window as any).selectedRogueWeapon;
           if (Config.rogueMode && weapon === 'airstrike') {
-            this.hoverCursor.scale.set(10, 1, 1); // Highlight a wide area
+            const isVertical = this.gameLoop.airStrikeOrientation === Orientation.Vertical;
+            if (isVertical) {
+                this.hoverCursor.scale.set(1, 1, 10);
+            } else {
+                this.hoverCursor.scale.set(10, 1, 1);
+            }
           } else {
             this.hoverCursor.scale.set(1, 1, 1);
           }

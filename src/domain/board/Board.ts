@@ -254,15 +254,17 @@ export class Board {
         return found;
     }
 
-    public dispatchAirStrike(startX: number, startZ: number, directionX: -1|0|1, directionZ: -1|0|1): { x: number, z: number, result: AttackResult }[] {
+    public dispatchAirStrike(startX: number, startZ: number, directionX: -1|0|1, directionZ: -1|0|1, length: number = 999): { x: number, z: number, result: AttackResult }[] {
         const results: { x: number, z: number, result: AttackResult }[] = [];
         let cx = startX;
         let cz = startZ;
-        while (!this.isOutOfBounds(cx, cz)) {
+        let count = 0;
+        while (!this.isOutOfBounds(cx, cz) && count < length) {
             const res = this.receiveAttack(cx, cz);
             results.push({ x: cx, z: cz, result: res });
             cx += directionX;
             cz += directionZ;
+            count++;
         }
         return results;
     }
