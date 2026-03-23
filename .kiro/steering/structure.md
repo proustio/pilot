@@ -38,7 +38,7 @@ src/
 │   │   │   ├── ShipFactory.ts     # Voxel ship creation and instancing
 │   │   │   ├── ProjectileManager.ts # Projectile creation and arc animation
 │   │   │   ├── ImpactEffects.ts   # Visual effects for hits, explosions, and breaking/sinking
-│   │   │   ├── FogManager.ts      # Enemy board fog-of-war logic
+│   │   │   ├── FogManager.ts      # Enemy board fog-of-war logic (Classic) and dynamic unit-based visibility (Rogue: 5-cell radius around ships).
 │   │   │   └── ParticleSystem.ts  # Voxel-based particle effects
 │   │   ├── interaction/
 │   │   │   └── InteractionManager.ts  # Raycasting, hover highlights, click dispatch
