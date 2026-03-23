@@ -96,6 +96,20 @@ export class Ship {
     }
 
     /**
+     * Returns the "front" coordinate of the ship.
+     * Horizontal: highest X (headX + size - 1)
+     * Vertical: highest Z (headZ + size - 1)
+     */
+    public getFrontCoordinate(): { x: number, z: number } {
+        if (!this.isPlaced) return { x: this.headX, z: this.headZ };
+        if (this.orientation === Orientation.Horizontal) {
+            return { x: this.headX + this.size - 1, z: this.headZ };
+        } else {
+            return { x: this.headX, z: this.headZ + this.size - 1 };
+        }
+    }
+
+    /**
      * Resets action flags for the start of a turn in Rogue Mode
      */
     public resetTurnAction() {

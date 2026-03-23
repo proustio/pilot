@@ -100,16 +100,48 @@ export class GameLoop {
         });
 
         document.addEventListener('keydown', (e: KeyboardEvent) => {
-            if (e.key.toLowerCase() === 'r' && this.currentState === GameState.SETUP_BOARD) {
-                this.currentPlacementOrientation = this.currentPlacementOrientation === Orientation.Horizontal
-                    ? Orientation.Vertical
-                    : Orientation.Horizontal;
-            } else if (e.key.toLowerCase() === 'r' && this.currentState === GameState.PLAYER_TURN) {
-                const weapon = (window as any).selectedRogueWeapon;
-                if (weapon === 'airstrike') {
-                    this.airStrikeOrientation = this.airStrikeOrientation === Orientation.Horizontal
+            const key = e.key;
+            
+            const isMatch = (action: string) => {
+                const binds = this.config.keybindings[action];
+                return binds && binds.some((b: string) => b.toLowerCase() === key.toLowerCase() || b === key);
+            };
+
+            if (isMatch('RotateWeapon')) {
+                if (this.currentState === GameState.SETUP_BOARD) {
+                    this.currentPlacementOrientation = this.currentPlacementOrientation === Orientation.Horizontal
                         ? Orientation.Vertical
                         : Orientation.Horizontal;
+                } else if (this.currentState === GameState.PLAYER_TURN) {
+                    const weapon = (window as any).selectedRogueWeapon;
+                    if (weapon === 'airstrike') {
+                        this.airStrikeOrientation = this.airStrikeOrientation === Orientation.Horizontal
+                            ? Orientation.Vertical
+                            : Orientation.Horizontal;
+                    }
+                }
+            } else if (this.currentState === GameState.PLAYER_TURN && this.config.rogueMode) {
+                if (isMatch('ToggleMoveSection')) {
+                    document.dispatchEvent(new CustomEvent('SET_ROGUE_ACTION_SECTION', { detail: { section: 'move' } }));
+                } else if (isMatch('ToggleAttackSection')) {
+                    document.dispatchEvent(new CustomEvent('SET_ROGUE_ACTION_SECTION', { detail: { section: 'attack' } }));
+                } else if (isMatch('ActionSail')) {
+                    document.dispatchEvent(new CustomEvent('SET_ROGUE_ACTION_SECTION', { detail: { section: 'move' } }));
+                    document.dispatchEvent(new CustomEvent('SET_ROGUE_WEAPON', { detail: { weapon: 'sail' } }));
+                } else if (isMatch('ActionPing')) {
+                    document.dispatchEvent(new CustomEvent('SET_ROGUE_ACTION_SECTION', { detail: { section: 'move' } }));
+                    document.dispatchEvent(new CustomEvent('SET_ROGUE_WEAPON', { detail: { weapon: 'sonar' } }));
+                } else if (isMatch('ActionMine')) {
+                    document.dispatchEvent(new CustomEvent('SET_ROGUE_ACTION_SECTION', { detail: { section: 'move' } }));
+                    document.dispatchEvent(new CustomEvent('SET_ROGUE_WEAPON', { detail: { weapon: 'mine' } }));
+                } else if (isMatch('ActionCannon')) {
+                    document.dispatchEvent(new CustomEvent('SET_ROGUE_ACTION_SECTION', { detail: { section: 'attack' } }));
+                    document.dispatchEvent(new CustomEvent('SET_ROGUE_WEAPON', { detail: { weapon: 'cannon' } }));
+                } else if (isMatch('ActionAirStrike')) {
+                    document.dispatchEvent(new CustomEvent('SET_ROGUE_ACTION_SECTION', { detail: { section: 'attack' } }));
+                    document.dispatchEvent(new CustomEvent('SET_ROGUE_WEAPON', { detail: { weapon: 'airstrike' } }));
+                } else if (isMatch('SkipTurn')) {
+                    this.advanceRogueShipTurn();
                 }
             }
         });
@@ -155,31 +187,67 @@ export class GameLoop {
             const { targetX, targetZ } = ce.detail;
             
             if (!this.match || this.currentState !== GameState.PLAYER_TURN || this.config.autoBattler) return;
+            const sharedBoard = this.match.sharedBoard;
 
             const ship = this.rogueShipOrder[this.activeRogueShipIndex];
             if (!ship || ship.hasActedThisTurn || ship.movesRemaining <= 0) return;
 
-            const dx = Math.abs(ship.headX - targetX);
-            const dz = Math.abs(ship.headZ - targetZ);
+            // Weighted movement cost logic:
+            // Forward (towards front): 0.5 cost
+            // Backward (away from front): 2.0 cost
+            // Lateral/Other: 1.0 cost
             
-            // Only strictly vertical or horizontal movement, no diagonals?
-            // "maximum movement radius" typically means manhattan or chebyshev. 
-            // In a grid game without diagonals, let's just use Manhattan.
+            const dx = targetX - ship.headX;
+            const dz = targetZ - ship.headZ;
+            const dist = Math.abs(dx) + Math.abs(dz);
             
-            const dist = dx + dz;
-            if (dist > 0 && dist <= ship.movesRemaining) {
+            if (dist === 0) return;
+
+            let totalCost = 0;
+            
+            // Simplified path cost calculation (assuming Manhattan-like step-by-step)
+            // But since it's a grid, we can just check the overall vector direction.
+            // For now, let's just calculate the cost for the final destination.
+            
+            const isHorizontal = ship.orientation === Orientation.Horizontal;
+            const moveDirX = targetX > ship.headX ? 1 : (targetX < ship.headX ? -1 : 0);
+            const moveDirZ = targetZ > ship.headZ ? 1 : (targetZ < ship.headZ ? -1 : 0);
+            
+            // Forward direction: 
+            // Horizontal: front is headX + size - 1, so +X is forward.
+            // Vertical: front is headZ + size - 1, so +Z is forward.
+            
+            if (isHorizontal) {
+                // Horizontal ship
+                if (moveDirZ !== 0) {
+                    totalCost = dist; // Lateral
+                } else if (moveDirX > 0) {
+                    totalCost = dist * 0.5; // Forward
+                } else {
+                    totalCost = dist * 2.0; // Backward
+                }
+            } else {
+                // Vertical ship
+                if (moveDirX !== 0) {
+                    totalCost = dist; // Lateral
+                } else if (moveDirZ > 0) {
+                    totalCost = dist * 0.5; // Forward
+                } else {
+                    totalCost = dist * 2.0; // Backward
+                }
+            }
+
+            if (totalCost > 0 && totalCost <= ship.movesRemaining) {
                 // Determine new orientation: 
                 let newOrient = ship.orientation;
-                if (dx > dz) newOrient = Orientation.Horizontal;
-                else if (dz > dx) newOrient = Orientation.Vertical;
+                if (Math.abs(dx) > Math.abs(dz)) newOrient = Orientation.Horizontal;
+                else if (Math.abs(dz) > Math.abs(dx)) newOrient = Orientation.Vertical;
 
-                // Move ship with the new calculated orientation, 
-                // `moveShip` checks boundaries and collisions.
-                const moved = this.match.sharedBoard.moveShip(ship, targetX, targetZ, newOrient);
+                // Move ship with the new calculated orientation
+                const moved = sharedBoard.moveShip(ship, targetX, targetZ, newOrient);
                 if (moved) {
-                    ship.movesRemaining -= dist;
+                    ship.movesRemaining = Math.max(0, ship.movesRemaining - totalCost);
                     
-                    // Ability Dispersal Logic ... (as before)
                     const queuedAbility = (window as any).queuedRogueAbility;
                     if (queuedAbility) {
                         if (queuedAbility === 'sonar' && Ship.resources.sonars > 0) {
@@ -190,8 +258,6 @@ export class GameLoop {
                             this.disperseAbilityAlongPath(ship, targetX, targetZ, 'mine');
                         }
                         (window as any).queuedRogueAbility = null;
-                        
-                        // Using an ability DOES end the ship's turn action
                         ship.hasActedThisTurn = true;
                         ship.movesRemaining = 0;
                     }
@@ -406,6 +472,11 @@ export class GameLoop {
 
         const oldState = this.currentState;
         this.currentState = newState;
+
+        // Ensure global config is in sync for legacy/global systems
+        if (this.match) {
+            this.config.rogueMode = this.match.mode === MatchMode.Rogue;
+        }
 
         this.listeners.forEach(listener => listener(newState, oldState));
 

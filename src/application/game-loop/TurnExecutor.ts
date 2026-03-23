@@ -2,7 +2,6 @@ import { Ship, Orientation } from '../../domain/fleet/Ship';
 import { AIEngine } from '../ai/AIEngine';
 import { GameState } from './GameLoop';
 import { MatchMode } from '../../domain/match/Match';
-import { Config } from '../../infrastructure/config/Config';
 
 type AttackResultListener = (x: number, z: number, result: string, isPlayer: boolean, isReplay: boolean) => void;
 type ShipPlacedListener = (ship: Ship, x: number, z: number, orientation: Orientation, isPlayer: boolean) => void;
@@ -192,14 +191,13 @@ export class TurnExecutor {
     /**
      * Handles a click during SETUP_BOARD phase.
      */
-    public onSetupBoardClick(x: number, z: number, isPlayerSide?: boolean): void {
+    public onSetupBoardClick(x: number, z: number, _isPlayerSide?: boolean): void {
         if (!this.s.match || this.s.isPaused) return;
-        // In Rogue mode, the shared battlefield is on the player side visually (non-flipped).
-        if (!Config.rogueMode && isPlayerSide === false) return;
         if (this.s.playerShipsToPlace.length === 0) return;
 
+        const isRogue = this.s.match.mode === MatchMode.Rogue;
         const nextShip = this.s.playerShipsToPlace[0];
-        const targetBoard = Config.rogueMode ? this.s.match.sharedBoard : this.s.match.playerBoard;
+        const targetBoard = isRogue ? this.s.match.sharedBoard : this.s.match.playerBoard;
         
         const isValid = this.s.match.validatePlacement(
             targetBoard, nextShip, x, z, this.s.currentPlacementOrientation
@@ -258,16 +256,17 @@ export class TurnExecutor {
         if (!isRogue && isPlayerSide === true) return;
 
         if (isRogue) {
-            const actionMode = (window as any).selectedRogueAction || 'move';
-            if (actionMode === 'move') {
+            const actionMode = (window as any).selectedRogueAction || 'attack';
+            const weapon = (window as any).selectedRogueWeapon || 'cannon';
+
+            if (actionMode === 'move' && weapon === 'sail') {
                 document.dispatchEvent(new CustomEvent('ROGUE_ATTEMPT_MOVE', {
                     detail: { targetX: x, targetZ: z }
                 }));
                 return;
             }
 
-            const weapon = (window as any).selectedRogueWeapon || 'cannon';
-            if (weapon !== 'cannon') {
+            if (weapon !== 'cannon' && weapon !== 'sail') {
                 // Dispatch weapon event and let GameLoop handle it
                 document.dispatchEvent(new CustomEvent('ROGUE_USE_WEAPON', {
                     detail: {

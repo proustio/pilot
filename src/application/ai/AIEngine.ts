@@ -2,7 +2,6 @@ import { Board, CellState, AttackResult } from '../../domain/board/Board';
 import { Ship, Orientation } from '../../domain/fleet/Ship';
 import { MatchMode, Match } from '../../domain/match/Match';
 import { getIndex } from '../../domain/board/BoardUtils';
-import { Config } from '../../infrastructure/config/Config';
 
 export type AIDifficulty = 'easy' | 'normal' | 'hard';
 
@@ -84,12 +83,10 @@ export class AIEngine {
             const state = board.gridState[idx];
             
             if (state === CellState.Empty || state === CellState.Ship) {
-                // In Rogue mode, don't shoot own ships
-                if (Config.rogueMode) {
-                    const ship = board.ships.find(s => s.occupies(x, z));
-                    if (ship && ship.isEnemy) {
-                        continue; // skip own ship
-                    }
+                // In Rogue mode (shared board), don't shoot own ships
+                const ship = board.ships.find(s => s.occupies(x, z));
+                if (ship && ship.isEnemy) {
+                    continue; // skip own ship
                 }
                 valid = true;
             }
@@ -102,12 +99,10 @@ export class AIEngine {
         while (this.huntStack.length > 0) {
             const target = this.huntStack.pop()!;
             
-            // In Rogue mode, don't shoot own ships from hunt stack
-            if (Config.rogueMode) {
-                const ship = board.ships.find(s => s.occupies(target.x, target.z));
-                if (ship && ship.isEnemy) {
-                    continue; 
-                }
+            // In Rogue mode (shared board), don't shoot own ships from hunt stack
+            const ship = board.ships.find(s => s.occupies(target.x, target.z));
+            if (ship && ship.isEnemy) {
+                continue; 
             }
 
             const idx = getIndex(target.x, target.z, board.width);
@@ -163,10 +158,9 @@ export class AIEngine {
                 const state = board.gridState[idx];
                 
                 if (state === CellState.Empty || state === CellState.Ship) {
-                    if (Config.rogueMode) {
-                        const ship = board.ships.find(s => s.occupies(x, z));
-                        if (ship && ship.isEnemy) continue; // Skip own ship in heat map
-                    }
+                    const ship = board.ships.find(s => s.occupies(x, z));
+                    if (ship && ship.isEnemy) continue; // Skip own ship in heat map
+                    
                     if (heatMap[idx] > maxHeat) {
                         maxHeat = heatMap[idx];
                         bestTarget = { x, z };
@@ -191,13 +185,18 @@ export class AIEngine {
             return false;
         }
 
-        // Rogue mode: Enforce Northern/Southern split in AI's experimental fitting
+        // Rogue mode: Player (isEnemy=false) in Top-Left (0-6, 0-6), AI in Bottom-Right (13-19, 13-19)
         if (mode === MatchMode.Rogue) {
+            const shipTailX = orientation === Orientation.Horizontal ? headX + ship.size - 1 : headX;
             const shipTailZ = orientation === Orientation.Vertical ? headZ + ship.size - 1 : headZ;
-            // Case 1: AI (isEnemy=true) must be in rows 0-9
-            if (ship.isEnemy === true && shipTailZ >= 10) return false;
-            // Case 2: Player (isEnemy=false) must be in rows 10-19
-            if (ship.isEnemy !== true && headZ < 10) return false;
+            
+            if (ship.isEnemy === true) {
+                // Enemy must be in Bottom-Right quadrant (13-19, 13-19)
+                if (headX < 13 || headZ < 13) return false;
+            } else {
+                // Player must be in Top-Left quadrant (0-6, 0-6)
+                if (shipTailX >= 7 || shipTailZ >= 7) return false;
+            }
         }
 
         for (let i = 0; i < ship.size; i++) {

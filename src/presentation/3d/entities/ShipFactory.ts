@@ -142,10 +142,19 @@ export class ShipFactory {
                     for (let ly = 1; ly <= maxLy; ly++) {
                         let color = hullColor;
                         let isAccent = false;
+                        
+                        // Front (bow) distinction: Use accent color for the tip of the deck at the front
+                        const isFront = xNorm > 0.8;
+
                         if (ly === maxLy && !isEdge) {
                             color = deckColor;
                             if (isCarrier && !isEdge && shipWidthPos === Math.floor(center)) {
                                 color = darkAccent;
+                            }
+                            // Highlight the bow on the top deck
+                            if (isFront) {
+                                color = accentColor;
+                                isAccent = true;
                             }
                         } else if (isEdge && ly > 1) {
                             color = accentColor;

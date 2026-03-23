@@ -67,7 +67,7 @@ export class HUD extends BaseUIComponent {
                     </div>
 
                     <div id="rogue-action-bar" class="rogue-action-bar ${Config.rogueMode ? '' : 'hidden'}">
-                        <button id="btn-rogue-move" class="action-btn move-btn">MOVE (<span id="rogue-moves-count">0</span>)</button>
+                        <button id="btn-rogue-move" class="action-btn move-btn">MOVE</button>
                         <button id="btn-rogue-attack" class="action-btn attack-btn">ATTACK</button>
                         <button id="btn-rogue-skip" class="action-btn skip-btn">SKIP</button>
                     </div>
@@ -158,43 +158,59 @@ export class HUD extends BaseUIComponent {
 
         const setActiveTab = (mode: 'move' | 'attack') => {
             (window as any).selectedRogueAction = mode;
-            if (moveBtn) moveBtn.classList.toggle('active', mode === 'move');
-            if (attackBtn) attackBtn.classList.toggle('active', mode === 'attack');
-            
-            if (arsenalPanel && arsenalTitle && arsenalItems) {
-                arsenalPanel.classList.remove('collapsed');
-                const selected = (window as any).selectedRogueWeapon;
-                if (mode === 'move') {
-                    arsenalTitle.innerText = 'MOVE SYSTEMS';
-                    arsenalItems.innerHTML = `
-                        <button class="arsenal-btn ${selected === 'sonar' || !selected ? 'active' : ''}" data-weapon="sonar" title="Sonar Ping (${Ship.resources.sonars} Remaining)">📡</button>
-                        <button class="arsenal-btn ${selected === 'mine' ? 'active' : ''}" data-weapon="mine" title="Place Mine (${Ship.resources.mines} Remaining)">⚓</button>
-                    `;
-                    if (!selected || mode !== 'move') (window as any).selectedRogueWeapon = 'sonar';
-                } else {
-                    arsenalTitle.innerText = 'ATTACK SYSTEMS';
-                    arsenalItems.innerHTML = `
-                        <button class="arsenal-btn ${selected === 'cannon' || !selected ? 'active' : ''}" data-weapon="cannon" title="Normal Cannon (Infinite)">⚔️</button>
-                        <button class="arsenal-btn ${selected === 'airstrike' ? 'active' : ''}" data-weapon="airstrike" title="Air Strike (${Ship.resources.airStrikes} Remaining)">🚀</button>
-                    `;
-                    if (!selected || mode !== 'attack') (window as any).selectedRogueWeapon = 'cannon';
-                }
-                this.bindArsenalEvents();
-            }
-
-            document.dispatchEvent(new CustomEvent('ROGUE_ACTION_MODE_CHANGED', { detail: { mode } }));
-        };
-
-        if (moveBtn) moveBtn.addEventListener('click', () => setActiveTab('move'));
-        if (attackBtn) attackBtn.addEventListener('click', () => setActiveTab('attack'));
-
-        // Default to move
-        setActiveTab('move');
+        if (moveBtn) moveBtn.classList.toggle('active', mode === 'move');
+        if (attackBtn) attackBtn.classList.toggle('active', mode === 'attack');
         
+        if (arsenalPanel && arsenalTitle && arsenalItems) {
+            arsenalPanel.classList.remove('collapsed');
+            const selected = (window as any).selectedRogueWeapon;
+            if (mode === 'move') {
+                arsenalTitle.innerText = 'MOVE SYSTEMS';
+                arsenalItems.innerHTML = `
+                    <button class="arsenal-btn ${selected === 'sail' || !selected ? 'active' : ''} ${this.activeRogueShip?.movesRemaining <= 0 ? 'spent' : ''}" data-weapon="sail" title="Sailing (${this.activeRogueShip?.movesRemaining} Remaining)">⚓</button>
+                    <button class="arsenal-btn ${selected === 'sonar' ? 'active' : ''} ${Ship.resources.sonars <= 0 ? 'spent' : ''}" data-weapon="sonar" title="Sonar Ping (${Ship.resources.sonars} Remaining)">📡</button>
+                    <button class="arsenal-btn ${selected === 'mine' ? 'active' : ''} ${Ship.resources.mines <= 0 ? 'spent' : ''}" data-weapon="mine" title="Place Mine (${Ship.resources.mines} Remaining)">⚓</button>
+                `;
+                if (!selected || mode !== 'move') (window as any).selectedRogueWeapon = 'sail';
+            } else {
+                arsenalTitle.innerText = 'ATTACK SYSTEMS';
+                arsenalItems.innerHTML = `
+                    <button class="arsenal-btn ${selected === 'cannon' || !selected ? 'active' : ''}" data-weapon="cannon" title="Normal Cannon (Infinite)">⚔️</button>
+                    <button class="arsenal-btn ${selected === 'airstrike' ? 'active' : ''} ${Ship.resources.airStrikes <= 0 ? 'spent' : ''}" data-weapon="airstrike" title="Air Strike (${Ship.resources.airStrikes} Remaining)">🚀</button>
+                `;
+                if (!selected || mode !== 'attack') (window as any).selectedRogueWeapon = 'cannon';
+            }
+            this.bindArsenalEvents();
+        }
+
+        document.dispatchEvent(new CustomEvent('ROGUE_ACTION_MODE_CHANGED', { detail: { mode } }));
+    };
+
+    if (moveBtn) moveBtn.addEventListener('click', () => setActiveTab('move'));
+    if (attackBtn) attackBtn.addEventListener('click', () => setActiveTab('attack'));
+
+    // Default to attack
+    setActiveTab('attack');
+    
         // Listen for ship change to refresh default if needed
         document.addEventListener('ACTIVE_SHIP_CHANGED', () => {
-            if ((window as any).selectedRogueAction !== 'move') {
-                setActiveTab('move'); // automatically select move on turn start
+            if ((window as any).selectedRogueAction !== 'attack') {
+                setActiveTab('attack'); // automatically select attack on turn start
+            }
+        });
+
+        document.addEventListener('SET_ROGUE_ACTION_SECTION', (e: Event) => {
+            const ce = e as CustomEvent;
+            if (ce.detail?.section) {
+                setActiveTab(ce.detail.section);
+            }
+        });
+
+        document.addEventListener('SET_ROGUE_WEAPON', (e: Event) => {
+            const ce = e as CustomEvent;
+            if (ce.detail?.weapon) {
+                (window as any).selectedRogueWeapon = ce.detail.weapon;
+                setActiveTab((window as any).selectedRogueAction || 'attack'); // Refresh UI
             }
         });
     }

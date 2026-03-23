@@ -52,6 +52,8 @@ export class MatchSetup {
         });
 
         if (this.state.config.autoBattler) {
+            const isRogue = match.mode === MatchMode.Rogue;
+            const playerTargetBoard = isRogue ? match.sharedBoard : match.playerBoard;
             const playerShips = match.getRequiredFleet();
             for (const ship of playerShips) {
                 ship.id = `player-${ship.id}`;
@@ -59,12 +61,20 @@ export class MatchSetup {
                 let placed = false;
                 let attempts = 0;
                 while (!placed && attempts < 1000) {
-                    const x = Math.floor(Math.random() * match.playerBoard.width);
-                    const z = Math.floor(Math.random() * match.playerBoard.height);
-                    const orient = Math.random() > 0.5 ? Orientation.Horizontal : Orientation.Vertical;
+                    let x, z, orient;
+                    if (isRogue) {
+                        // Player Top-Left 7x7
+                        x = Math.floor(Math.random() * 7);
+                        z = Math.floor(Math.random() * 7);
+                        orient = Math.random() > 0.5 ? Orientation.Horizontal : Orientation.Vertical;
+                    } else {
+                        x = Math.floor(Math.random() * playerTargetBoard.width);
+                        z = Math.floor(Math.random() * playerTargetBoard.height);
+                        orient = Math.random() > 0.5 ? Orientation.Horizontal : Orientation.Vertical;
+                    }
 
-                    if (match.validatePlacement(match.playerBoard, ship, x, z, orient)) {
-                        placed = match.playerBoard.placeShip(ship, x, z, orient);
+                    if (match.validatePlacement(playerTargetBoard, ship, x, z, orient)) {
+                        placed = playerTargetBoard.placeShip(ship, x, z, orient);
                         if (placed) {
                             this.state.shipPlacedListeners.forEach(l => l(ship, x, z, orient, true));
                         }

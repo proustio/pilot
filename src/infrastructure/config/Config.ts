@@ -96,6 +96,9 @@ export const Config = {
                 if (parsedConfig.preferredMode !== undefined) {
                     this.preferredMode = parsedConfig.preferredMode;
                 }
+                if (parsedConfig.keybindings !== undefined) {
+                    this.keybindings = { ...this.keybindings, ...parsedConfig.keybindings };
+                }
             }
         } catch (e) {
             console.error('Failed to load user config', e);
@@ -127,11 +130,24 @@ export const Config = {
                 audio: {
                     masterVolume: this.audio.masterVolume
                 },
-                preferredMode: this.preferredMode
+                preferredMode: this.preferredMode,
+                keybindings: this.keybindings
             };
             localStorage.setItem('battleships_config', JSON.stringify(configToSave));
         } catch (e) {
             console.error('Failed to save user config', e);
         }
+    },
+
+    keybindings: {
+        'ToggleMoveSection': ['m'],
+        'ToggleAttackSection': ['a'],
+        'ActionSail': ['s'],
+        'ActionPing': ['p'],
+        'ActionMine': ['m'],
+        'ActionCannon': ['c'],
+        'ActionAirStrike': ['a'],
+        'RotateWeapon': ['r'],
+        'SkipTurn': ['Enter', ' ']
     }
 };
