@@ -57,7 +57,6 @@ export class UIManager {
 
         document.addEventListener('SHOW_SETTINGS', () => {
             this.settings.show();
-            InteractivityGuard.setMenuOpen(true);
         });
 
         document.addEventListener('TOGGLE_HUD', (e: any) => {
@@ -76,7 +75,6 @@ export class UIManager {
 
         document.addEventListener('SHOW_LOAD_DIALOG', () => {
             this.saveLoadDialog.openAs('load');
-            InteractivityGuard.setMenuOpen(true);
         });
 
         this.handleStateChange(this.gameLoop.currentState);
@@ -197,5 +195,18 @@ export class UIManager {
                              this.saveLoadDialog['isVisible'];
         
         InteractivityGuard.setMenuOpen(isAnyMenuOpen);
+
+        // Centralized Pause Management
+        const isPausingMenuOpen = this.pauseMenu['isVisible'] || 
+                                 this.settings['isVisible'] || 
+                                 this.saveLoadDialog['isVisible'];
+        
+        const isMainMenu = this.gameLoop.currentState === GameState.MAIN_MENU;
+
+        if (isPausingMenuOpen && !this.gameLoop.isPaused) {
+            document.dispatchEvent(new CustomEvent('PAUSE_GAME'));
+        } else if (!isPausingMenuOpen && this.gameLoop.isPaused && !isMainMenu) {
+            document.dispatchEvent(new CustomEvent('RESUME_GAME'));
+        }
     }
 }

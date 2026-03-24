@@ -12,16 +12,6 @@ export class PauseMenu extends BaseUIComponent {
         this.container.style.zIndex = '100';
     }
 
-    protected onShow(): void {
-        document.dispatchEvent(new CustomEvent('PAUSE_GAME'));
-        document.dispatchEvent(new CustomEvent('SET_INTERACTION_ENABLED', { detail: { enabled: false } }));
-    }
-
-    protected onHide(): void {
-        document.dispatchEvent(new CustomEvent('RESUME_GAME'));
-        document.dispatchEvent(new CustomEvent('SET_INTERACTION_ENABLED', { detail: { enabled: true } }));
-    }
-
     protected render(): void {
         this.container.innerHTML = `
             <h2 class="voxel-title" style="font-size: 2rem;">Pause</h2>
@@ -64,7 +54,7 @@ export class PauseMenu extends BaseUIComponent {
         // Settings
         const settingsBtn = this.container.querySelector('#btn-pause-settings') as HTMLButtonElement;
         settingsBtn.addEventListener('click', () => {
-            this.hide();
+            // Keep PauseMenu visible underneath settings
             document.dispatchEvent(new CustomEvent('SHOW_SETTINGS'));
         });
 

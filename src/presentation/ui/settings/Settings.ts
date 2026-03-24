@@ -23,16 +23,12 @@ export class Settings extends BaseUIComponent {
     }
 
     protected onShow(): void {
-        document.dispatchEvent(new CustomEvent('PAUSE_GAME'));
-        document.dispatchEvent(new CustomEvent('SET_INTERACTION_ENABLED', { detail: { enabled: false } }));
         this.render();
         document.addEventListener('click', this.onClickOutsideDropdowns);
     }
 
     protected onHide(): void {
         document.removeEventListener('click', this.onClickOutsideDropdowns);
-        // Return to pause menu instead of resuming
-        document.dispatchEvent(new CustomEvent('SHOW_PAUSE_MENU'));
     }
 
     protected render(): void {
