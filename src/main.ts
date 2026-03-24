@@ -64,6 +64,9 @@ const init = () => {
 
             if (newState === 'SETUP_BOARD') {
                 matchStartTime = performance.now();
+                if (!isRestoringState) {
+                    engine.hasManualMovement = false;
+                }
             }
 
             if (isRestoringState) return;
@@ -94,6 +97,137 @@ const init = () => {
                         document.dispatchEvent(new CustomEvent('SET_CAMERA_TARGET', { detail: { x: 5, y: 10, z: 14 } }));
                     }
                 }
+            }
+        });
+
+        // --- Unified Save & Restore Logic ---
+        const performSave = (slotId: number | 'session') => {
+            if (!gameLoop.match) return;
+
+            const isEnemyBoardShowing = entityManager.boardOrientation === 'enemy';
+            const vs: ViewState = {
+                cameraX: parseFloat(engine.camera.position.x.toFixed(4)),
+                cameraY: parseFloat(engine.camera.position.y.toFixed(4)),
+                cameraZ: parseFloat(engine.camera.position.z.toFixed(4)),
+                cameraDist: parseFloat(engine.orbitControls.getDistance().toFixed(4)),
+                targetX: parseFloat(engine.orbitControls.target.x.toFixed(4)),
+                targetY: parseFloat(engine.orbitControls.target.y.toFixed(4)),
+                targetZ: parseFloat(engine.orbitControls.target.z.toFixed(4)),
+                boardOrientation: isEnemyBoardShowing ? 'enemy' : 'player',
+                isDayMode: Config.visual.isDayMode,
+                gameSpeedMultiplier: Config.timing.gameSpeedMultiplier,
+                gameState: gameLoop.currentState
+            };
+
+            console.log(`%c💾 Saving View State [${slotId}]`, 'color: #00ff00; font-weight: bold;');
+            console.table(vs);
+
+            document.dispatchEvent(new CustomEvent('SAVE_GAME', {
+                detail: { 
+                    slotId, 
+                    viewState: vs,
+                    activeRogueShipIndex: gameLoop.activeRogueShipIndex,
+                    activeEnemyRogueShipIndex: gameLoop.activeEnemyRogueShipIndex
+                }
+            }));
+        };
+
+        document.addEventListener('REQUEST_AUTO_SAVE', (e: Event) => {
+            const ce = e as CustomEvent;
+            performSave(ce.detail?.slotId || 'session');
+        });
+
+        document.addEventListener('SAVE_GAME', (e: Event) => {
+            const ce = e as CustomEvent;
+            if (!ce.detail?.viewState && ce.detail?.slotId && ce.detail.slotId !== 'session') {
+                e.stopImmediatePropagation();
+                performSave(ce.detail.slotId);
+            }
+        }, true);
+
+        document.addEventListener('RESTORE_VIEW_STATE', (e: Event) => {
+            const ce = e as CustomEvent;
+            const vs: any = ce.detail;
+            
+            console.log(`%c🔄 Restoring View State [Source: ${vs?.source || 'Unknown'}]`, 'color: #00ffff; font-weight: bold;');
+            console.table(vs);
+            
+            const defPos = { x: 5.0233, y: 10.0466, z: 14.0652 };
+            const defTgt = { x: 0, y: 0, z: 0 };
+            const defDist = 18;
+
+            const camX = vs?.cameraX ?? defPos.x;
+            const camY = vs?.cameraY ?? defPos.y;
+            const camZ = vs?.cameraZ ?? defPos.z;
+            const tgtX = vs?.targetX ?? defTgt.x;
+            const tgtY = vs?.targetY ?? defTgt.y;
+            const tgtZ = vs?.targetZ ?? defTgt.z;
+            const camDist = vs?.cameraDist ?? defDist;
+
+            isRestoringState = true;
+            engine.hasManualMovement = vs ? true : false; 
+            engine.restoreViewState(camX, camY, camZ, tgtX, tgtY, tgtZ, camDist);
+
+            if (vs?.boardOrientation === 'enemy') {
+                entityManager.showEnemyBoard();
+            } else {
+                entityManager.showPlayerBoard();
+            }
+
+            setTimeout(() => { isRestoringState = false; }, 0);
+
+            const isDay = vs?.isDayMode ?? Config.visual.isDayMode;
+            Config.visual.isDayMode = isDay;
+            ThemeManager.getInstance().applyToDOM();
+            engine.setDayMode(isDay);
+            document.dispatchEvent(new CustomEvent('TOGGLE_DAY_NIGHT', { detail: { isDay } }));
+
+            const speed = vs?.gameSpeedMultiplier ?? Config.timing.gameSpeedMultiplier;
+            Config.timing.gameSpeedMultiplier = speed;
+            document.dispatchEvent(new CustomEvent('SET_GAME_SPEED', { detail: { speed: speed.toFixed(1) } }));
+        });
+
+        document.addEventListener('TOGGLE_PEEK', (e: Event) => {
+            const ce = e as CustomEvent;
+            const peeking = ce.detail?.peeking;
+            const currentState = gameLoop.currentState;
+            if (peeking) {
+                if (currentState === GameState.PLAYER_TURN) entityManager.showPlayerBoard();
+                else entityManager.showEnemyBoard();
+                document.dispatchEvent(new CustomEvent('SET_INTERACTION_ENABLED', { detail: { enabled: false } }));
+            } else {
+                if (currentState === GameState.PLAYER_TURN) entityManager.showEnemyBoard();
+                else entityManager.showPlayerBoard();
+                document.dispatchEvent(new CustomEvent('SET_INTERACTION_ENABLED', { detail: { enabled: true } }));
+            }
+        });
+
+        document.addEventListener('TURN_CHANGED', () => {
+            entityManager.onTurnChange();
+        });
+
+        let isQuitting = false;
+        document.addEventListener('EXIT_GAME', () => {
+            isQuitting = true;
+        });
+
+        window.addEventListener('beforeunload', () => {
+            if (!isQuitting && gameLoop.match && gameLoop.hasUnsavedProgress()) {
+                const isEnemyBoardShowing = entityManager.boardOrientation === 'enemy';
+                const vs: ViewState = {
+                    cameraX: engine.camera.position.x,
+                    cameraY: engine.camera.position.y,
+                    cameraZ: engine.camera.position.z,
+                    cameraDist: engine.orbitControls.getDistance(),
+                    targetX: engine.orbitControls.target.x,
+                    targetY: engine.orbitControls.target.y,
+                    targetZ: engine.orbitControls.target.z,
+                    boardOrientation: isEnemyBoardShowing ? 'enemy' : 'player',
+                    isDayMode: Config.visual.isDayMode,
+                    gameSpeedMultiplier: Config.timing.gameSpeedMultiplier,
+                    gameState: gameLoop.currentState
+                };
+                Storage.saveGame('session', gameLoop.match, vs, gameLoop.activeRogueShipIndex, gameLoop.activeEnemyRogueShipIndex);
             }
         });
 
@@ -174,126 +308,8 @@ const init = () => {
         engine.orbitControls.addEventListener('end', () => {
             if (cameraAutoSaveTimeout) clearTimeout(cameraAutoSaveTimeout);
             cameraAutoSaveTimeout = setTimeout(() => {
-                gameLoop.triggerAutoSave();
-            }, 1000); // 1 second debounce
-        });
-
-        document.addEventListener('SAVE_GAME', (e: Event) => {
-            const ce = e as CustomEvent;
-            if (!ce.detail?.viewState && gameLoop.match) {
-                const isEnemyBoardShowing = entityManager.boardOrientation === 'enemy';
-                const vs: ViewState = {
-                    cameraX: engine.camera.position.x,
-                    cameraY: engine.camera.position.y,
-                    cameraZ: engine.camera.position.z,
-                    cameraDist: engine.orbitControls.getDistance(),
-                    targetX: engine.orbitControls.target.x,
-                    targetY: engine.orbitControls.target.y,
-                    targetZ: engine.orbitControls.target.z,
-                    boardOrientation: isEnemyBoardShowing ? 'enemy' : 'player',
-                    isDayMode: Config.visual.isDayMode,
-                    gameSpeedMultiplier: Config.timing.gameSpeedMultiplier,
-                    gameState: gameLoop.currentState
-                };
-                document.dispatchEvent(new CustomEvent('SAVE_GAME', {
-                    detail: { 
-                        slotId: ce.detail?.slotId, 
-                        viewState: vs,
-                        activeRogueShipIndex: gameLoop.activeRogueShipIndex,
-                        activeEnemyRogueShipIndex: gameLoop.activeEnemyRogueShipIndex
-                    }
-                }));
-            }
-        }, true);
-
-        document.addEventListener('RESTORE_VIEW_STATE', (e: Event) => {
-            const ce = e as CustomEvent;
-            const vs: ViewState = ce.detail;
-            if (!vs) return;
-
-            isRestoringState = true;
-            engine.hasManualMovement = true; // Restored state counts as manual/persistent
-
-
-            // Also directly jump the current camera to the saved position so it doesn't animate from default
-            engine.restoreViewState(
-                vs.cameraX, vs.cameraY, vs.cameraZ,
-                vs.targetX, vs.targetY, vs.targetZ,
-                vs.cameraDist
-            );
-            engine.camera.position.set(vs.cameraX, vs.cameraY, vs.cameraZ);
-            engine.orbitControls.target.set(vs.targetX, vs.targetY, vs.targetZ);
-            engine.orbitControls.update();
-
-            if (vs.boardOrientation === 'enemy') {
-                entityManager.showEnemyBoard();
-            } else {
-                entityManager.showPlayerBoard();
-            }
-
-            // Clear restoring state after next tick so that state changes don't override the restored view
-            setTimeout(() => { isRestoringState = false; }, 0);
-
-            Config.visual.isDayMode = vs.isDayMode;
-            ThemeManager.getInstance().applyToDOM();
-            engine.setDayMode(vs.isDayMode);
-            document.dispatchEvent(new CustomEvent('TOGGLE_DAY_NIGHT', { detail: { isDay: vs.isDayMode } }));
-
-            Config.timing.gameSpeedMultiplier = vs.gameSpeedMultiplier;
-            document.dispatchEvent(new CustomEvent('SET_GAME_SPEED', { detail: { speed: vs.gameSpeedMultiplier.toFixed(1) } }));
-        });
-
-        document.addEventListener('TOGGLE_PEEK', (e: Event) => {
-            const ce = e as CustomEvent;
-            const peeking = ce.detail?.peeking;
-            const currentState = gameLoop.currentState;
-
-            if (peeking) {
-                // Peek always shows the OTHER side from what the state would normally show
-                if (currentState === GameState.PLAYER_TURN) {
-                    entityManager.showPlayerBoard();
-                } else {
-                    entityManager.showEnemyBoard();
-                }
-                document.dispatchEvent(new CustomEvent('SET_INTERACTION_ENABLED', { detail: { enabled: false } }));
-            } else {
-                // Back to current turn's side
-                if (currentState === GameState.PLAYER_TURN) {
-                    entityManager.showEnemyBoard();
-                } else {
-                    entityManager.showPlayerBoard();
-                }
-                document.dispatchEvent(new CustomEvent('SET_INTERACTION_ENABLED', { detail: { enabled: true } }));
-            }
-        });
-
-        document.addEventListener('TURN_CHANGED', () => {
-            entityManager.onTurnChange();
-        });
-
-        let isQuitting = false;
-        document.addEventListener('EXIT_GAME', () => {
-            isQuitting = true;
-        });
-
-        window.addEventListener('beforeunload', () => {
-            if (!isQuitting && gameLoop.match && gameLoop.hasUnsavedProgress()) {
-                const isEnemyBoardShowing = entityManager.boardOrientation === 'enemy';
-                const vs: ViewState = {
-                    cameraX: engine.camera.position.x,
-                    cameraY: engine.camera.position.y,
-                    cameraZ: engine.camera.position.z,
-                    cameraDist: engine.orbitControls.getDistance(),
-                    targetX: engine.orbitControls.target.x,
-                    targetY: engine.orbitControls.target.y,
-                    targetZ: engine.orbitControls.target.z,
-                    boardOrientation: isEnemyBoardShowing ? 'enemy' : 'player',
-                    isDayMode: Config.visual.isDayMode,
-                    gameSpeedMultiplier: Config.timing.gameSpeedMultiplier,
-                    gameState: gameLoop.currentState
-                };
-                Storage.saveGame('session', gameLoop.match, vs, gameLoop.activeRogueShipIndex, gameLoop.activeEnemyRogueShipIndex);
-            }
+                gameLoop.requestAutoSave();
+            }, 1000); 
         });
 
         animate(performance.now());

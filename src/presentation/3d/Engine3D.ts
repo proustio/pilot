@@ -8,7 +8,7 @@ export class Engine3D {
   public camera: THREE.PerspectiveCamera;
   public renderer: THREE.WebGLRenderer;
 
-  public targetCameraPos = new THREE.Vector3(5, 10, 14);
+  public targetCameraPos = new THREE.Vector3(5.0233, 10.0466, 14.0652); // Exact dist 18 from origin
   public targetLookAt = new THREE.Vector3(0, 0, 0);
   private currentLookAt = new THREE.Vector3(0, 0, 0);
 
@@ -33,7 +33,7 @@ export class Engine3D {
 
     const aspect = window.innerWidth / window.innerHeight;
     this.camera = new THREE.PerspectiveCamera(50, aspect, 0.1, 1000);
-    this.camera.position.set(5, 10, 14);
+    this.camera.position.set(5.0233, 10.0466, 14.0652);
     this.camera.lookAt(0, 0, 0);
 
     this.renderer = new THREE.WebGLRenderer({ antialias: Config.visual.antialias, alpha: true });
@@ -119,7 +119,7 @@ export class Engine3D {
     });
 
     document.addEventListener('RESET_CAMERA', () => {
-      this.targetCameraPos.set(5, 10, 14);
+      this.targetCameraPos.set(5.0233, 10.0466, 14.0652);
       this.targetLookAt.set(0, 0, 0);
       this.isTransitioning = true;
       InteractivityGuard.setCameraTransitioning(true);

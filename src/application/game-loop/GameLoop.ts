@@ -149,7 +149,7 @@ export class GameLoop {
         document.addEventListener('PAUSE_GAME', () => { this.isPaused = true; });
         document.addEventListener('RESUME_GAME', () => { this.isPaused = false; });
 
-        document.addEventListener('TRIGGER_AUTO_SAVE', () => { this.triggerAutoSave(); });
+        document.addEventListener('TRIGGER_AUTO_SAVE', () => { this.requestAutoSave(); });
 
         document.addEventListener('SAVE_GAME', (e: Event) => {
             const ce = e as CustomEvent;
@@ -269,7 +269,7 @@ export class GameLoop {
                     }
 
                     this.shipMovedListeners.forEach(listener => listener(ship, targetX, targetZ, newOrient));
-                    this.triggerAutoSave();
+                    this.requestAutoSave();
 
                     if (ship.movesRemaining <= 0 || ship.hasActedThisTurn) {
                         this.isAnimating = true;
@@ -300,7 +300,7 @@ export class GameLoop {
                 if (moved) {
                     ship.movesRemaining--;
                     this.shipMovedListeners.forEach(listener => listener(ship, newX, newZ, newOrientation as Orientation));
-                    this.triggerAutoSave();
+                    this.requestAutoSave();
                 }
             }
         });
@@ -331,7 +331,7 @@ export class GameLoop {
             if (weaponType === WeaponType.Mine) {
                 const placed = targetBoard.placeMine(targetX, targetZ);
                 if (!placed) return; // invalid placement, do not consume turn
-                this.triggerAutoSave();
+                this.requestAutoSave();
             } else if (weaponType === WeaponType.Sonar) {
                 const results = targetBoard.sonarPing(targetX, targetZ, radius || 2);
                 document.dispatchEvent(new CustomEvent('SONAR_RESULTS', { detail: { hits: results } }));
@@ -353,7 +353,7 @@ export class GameLoop {
                 const result = targetBoard.receiveAttack(targetX, targetZ);
                 if (result !== 'invalid') {
                     this.attackResultListeners.forEach(l => l(targetX, targetZ, result.toString(), true, false));
-                    this.triggerAutoSave();
+                    this.requestAutoSave();
                 } else {
                     return; // Don't consume turn for an invalid shot
                 }
@@ -379,7 +379,7 @@ export class GameLoop {
                         this.attackResultListeners.forEach(l => l(res.x, res.z, res.result, true, false));
                     }
                 });
-                this.triggerAutoSave();
+                this.requestAutoSave();
                 
                 const finalizeTurn = () => {
                     let status: 'ongoing' | 'player_wins' | 'enemy_wins' = 'ongoing';
@@ -471,9 +471,9 @@ export class GameLoop {
         this.shipMovedListeners.push(listener);
     }
 
-    public triggerAutoSave(): void {
+    public requestAutoSave(): void {
         if (!this.match || !this.hasUnsavedProgress()) return;
-        document.dispatchEvent(new CustomEvent('SAVE_GAME', {
+        document.dispatchEvent(new CustomEvent('REQUEST_AUTO_SAVE', {
             detail: { slotId: 'session' }
         }));
     }
@@ -498,7 +498,7 @@ export class GameLoop {
         document.dispatchEvent(new CustomEvent('GAME_STATE_CHANGED', { detail: { state: newState } }));
         document.dispatchEvent(new CustomEvent('TURN_CHANGED', { detail: { newState, oldState } }));
 
-        this.triggerAutoSave();
+        this.requestAutoSave();
 
         if (newState === GameState.GAME_OVER) {
             this.storage.clearSession();

@@ -25,7 +25,7 @@ export interface TurnExecutorState {
     transitionTo: (state: GameState) => void;
     advanceRogueShipTurn: () => void;
     advanceEnemyRogueShipTurn: () => void;
-    triggerAutoSave: () => void;
+    requestAutoSave: () => void;
     config: {
         timing: { boardFlipWaitMs: number; gameSpeedMultiplier: number; aiThinkingTimeMs: number };
         autoBattler: boolean;
@@ -210,7 +210,7 @@ export class TurnExecutor {
                 this.s.shipPlacedListeners.forEach(l =>
                     l(nextShip, x, z, this.s.currentPlacementOrientation, true)
                 );
-                this.s.triggerAutoSave();
+                this.s.requestAutoSave();
 
                 if (this.s.playerShipsToPlace.length === 0) {
                     if (this.s.match.mode === MatchMode.Rogue) {

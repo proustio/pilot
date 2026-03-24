@@ -141,7 +141,9 @@ export class UIManager {
                     loaded.activeEnemyRogueShipIndex
                 );
                 if (loaded.viewState) {
-                    document.dispatchEvent(new CustomEvent('RESTORE_VIEW_STATE', { detail: loaded.viewState }));
+                    document.dispatchEvent(new CustomEvent('RESTORE_VIEW_STATE', { 
+                        detail: { ...loaded.viewState, source: `Slot ${slotId}` } 
+                    }));
                 }
             }
         } else {
@@ -155,7 +157,9 @@ export class UIManager {
                     sessionLoaded.activeEnemyRogueShipIndex
                 );
                 if (sessionLoaded.viewState) {
-                    document.dispatchEvent(new CustomEvent('RESTORE_VIEW_STATE', { detail: sessionLoaded.viewState }));
+                    document.dispatchEvent(new CustomEvent('RESTORE_VIEW_STATE', { 
+                        detail: { ...sessionLoaded.viewState, source: 'Session' } 
+                    }));
                 }
             }
         }
