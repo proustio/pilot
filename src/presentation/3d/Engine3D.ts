@@ -58,6 +58,11 @@ export class Engine3D {
     this.orbitControls.addEventListener('change', () => {
       if (!this.isTransitioning) {
         this.hasManualMovement = true;
+        
+        // Debounced camera save
+        if (!InteractivityGuard.isCameraMoving()) {
+            this.triggerDebouncedSave();
+        }
       }
     });
 
@@ -67,6 +72,7 @@ export class Engine3D {
     });
     this.orbitControls.addEventListener('end', () => {
       InteractivityGuard.setCameraInteracting(false);
+      this.triggerDebouncedSave();
     });
 
     this.renderer.domElement.addEventListener('pointerdown', (event: PointerEvent) => {
@@ -183,12 +189,40 @@ export class Engine3D {
 
   public restoreViewState(
     camX: number, camY: number, camZ: number,
-    tgtX: number, tgtY: number, tgtZ: number
+    tgtX: number, tgtY: number, tgtZ: number,
+    camDist?: number
   ) {
     this.targetCameraPos.set(camX, camY, camZ);
     this.targetLookAt.set(tgtX, tgtY, tgtZ);
+    
+    if (camDist !== undefined) {
+        // If distance is provided, we might want to adjust the targetCameraPos 
+        // to maintain that distance along the vector.
+        // For simplicity, we'll just set the min/max distance or trust the position.
+        this.orbitControls.minDistance = Math.min(this.orbitControls.minDistance, camDist);
+        this.orbitControls.maxDistance = Math.max(this.orbitControls.maxDistance, camDist);
+    }
+    
     this.isTransitioning = true;
     InteractivityGuard.setCameraTransitioning(true);
+  }
+
+  public getCameraState() {
+    return {
+        pos: this.camera.position.clone(),
+        tgt: this.orbitControls.target.clone(),
+        dist: this.orbitControls.getDistance()
+    };
+  }
+
+  private saveTimeout: any = null;
+  private triggerDebouncedSave() {
+    if (this.saveTimeout) clearTimeout(this.saveTimeout);
+    this.saveTimeout = setTimeout(() => {
+        if (!InteractivityGuard.isCameraMoving() && !this.isTransitioning) {
+            document.dispatchEvent(new CustomEvent('TRIGGER_AUTO_SAVE'));
+        }
+    }, 1000);
   }
 
 

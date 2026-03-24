@@ -172,6 +172,16 @@ export class EntityManager {
                 if (sunkShip) {
                     sunkShip.getOccupiedCoordinates().forEach((c: {x: number, z: number}) => {
                         this.fogManager.revealCellPermanently(c.x, c.z);
+                        // Reveal padding around sunk ship
+                        for (let dx = -1; dx <= 1; dx++) {
+                            for (let dz = -1; dz <= 1; dz++) {
+                                const rx = c.x + dx;
+                                const rz = c.z + dz;
+                                if (rx >= 0 && rx < Config.board.width && rz >= 0 && rz < Config.board.height) {
+                                    this.fogManager.revealCellPermanently(rx, rz);
+                                }
+                            }
+                        }
                     });
                 }
             }
@@ -284,9 +294,13 @@ export class EntityManager {
             if (shipGroup) {
                 let isVisible: boolean;
                 if (Config.rogueMode) {
-                    // In Rogue mode, if any part is revealed, the ship is visible
+                    // In Rogue mode, we always keep the group visible, but hide individual segments
                     const coords = ship.getOccupiedCoordinates();
-                    isVisible = coords.some(c => this.fogManager.isCellRevealed(c.x, c.z));
+                    isVisible = coords.some(c => this.fogManager.isCellRevealed(c.x, c.z)) || ship.isSunk();
+                    
+                    if (isVisible) {
+                        this.updateShipPartialVisibility(ship, shipGroup);
+                    }
                 } else {
                     // In Classic/Russian, ships are only revealed when fully sunk
                     isVisible = ship.isSunk();
@@ -445,6 +459,59 @@ export class EntityManager {
                     }
                 }
             });
+        });
+    }
+
+    private updateShipPartialVisibility(ship: Ship, shipGroup: THREE.Group) {
+        if (!Config.rogueMode || !ship.isEnemy) return;
+
+        const coords = ship.getOccupiedCoordinates();
+        const instancedMesh = shipGroup.userData.instancedMesh as THREE.InstancedMesh;
+        // Find the wireframe instanced mesh
+        const instancedLines = shipGroup.children.find(c => c instanceof THREE.InstancedMesh && c !== instancedMesh) as THREE.InstancedMesh;
+
+        const updateMesh = (im: THREE.InstancedMesh) => {
+            if (!im) return;
+            const dummy = new THREE.Object3D();
+            let needsUpdate = false;
+
+            for (let i = 0; i < im.count; i++) {
+                im.getMatrixAt(i, dummy.matrix);
+                dummy.matrix.decompose(dummy.position, dummy.quaternion, dummy.scale);
+
+                // Segment index is based on local X position in ShipFactory
+                const segmentIndex = Math.floor(dummy.position.x + 0.5);
+                if (segmentIndex >= 0 && segmentIndex < coords.length) {
+                    const cell = coords[segmentIndex];
+                    const revealed = this.fogManager.isCellRevealed(cell.x, cell.z);
+                    const targetScale = revealed ? 1.0 : 0.0;
+
+                    if (Math.abs(dummy.scale.x - targetScale) > 0.001) {
+                        dummy.scale.setScalar(targetScale);
+                        dummy.updateMatrix();
+                        im.setMatrixAt(i, dummy.matrix);
+                        needsUpdate = true;
+                    }
+                }
+            }
+            if (needsUpdate) {
+                im.instanceMatrix.needsUpdate = true;
+            }
+        };
+
+        updateMesh(instancedMesh);
+        updateMesh(instancedLines);
+
+        // Update turrets and other non-instanced children
+        shipGroup.children.forEach(child => {
+            if (child instanceof THREE.Group && !child.userData.isShip) {
+                // Turret groups are positioned at segment-based X in ShipFactory
+                const segmentIndex = Math.floor(child.position.x + 0.5);
+                if (segmentIndex >= 0 && segmentIndex < coords.length) {
+                    const cell = coords[segmentIndex];
+                    child.visible = this.fogManager.isCellRevealed(cell.x, cell.z);
+                }
+            }
         });
     }
 

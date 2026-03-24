@@ -45,7 +45,7 @@ export class ImpactEffects {
         const worldX = cellX - boardOffset + 0.5;
         const worldZ = cellZ - boardOffset + 0.5;
         const isRogue = Config.rogueMode;
-        const targetGroup = isRogue ? this.enemyBoardGroup : (isPlayer ? this.enemyBoardGroup : this.playerBoardGroup);
+        const targetGroup = isRogue ? this.playerBoardGroup : (isPlayer ? this.enemyBoardGroup : this.playerBoardGroup);
         const impactPos = new THREE.Vector3(worldX, 0.4, worldZ);
 
         if (!isReplay) {
@@ -111,14 +111,17 @@ export class ImpactEffects {
             if (ship) {
                 const hitCount = ship.segments.filter((s: boolean) => !s).length;
                 intensity = 0.5 + (hitCount - 1) * 0.4;
+                if (isRogue) intensity *= 1.5; // More dramatic fire in Rogue mode
             }
 
             const shouldAttachToShip = shipFound && (Config.rogueMode || (ship && ship.isSunk()));
 
             if (shouldAttachToShip) {
                 // Rogue mode or sunk: attach fire to the ship so it moves/leans with it
-                this.addPersistentFireToShipCell(shipFound as THREE.Group, cellX, cellZ, boardOffset, intensity, 
-                    result === 'sunk' ? this.particleSystem.blackSmokeMat.color.getStyle() : undefined);
+                const smokeColor = (isRogue || result === 'sunk') 
+                    ? this.particleSystem.blackSmokeMat.color.getStyle() 
+                    : this.particleSystem.greySmokeMat.color.getStyle();
+                this.addPersistentFireToShipCell(shipFound as THREE.Group, cellX, cellZ, boardOffset, intensity, smokeColor);
             } else {
                 // Classic hit on hidden ship: attach fire to the board group so it's visible
                 this.particleSystem.addEmitter(

@@ -179,7 +179,6 @@ const init = () => {
         });
 
         document.addEventListener('SAVE_GAME', (e: Event) => {
-
             const ce = e as CustomEvent;
             if (!ce.detail?.viewState && gameLoop.match) {
                 const isEnemyBoardShowing = entityManager.boardOrientation === 'enemy';
@@ -187,6 +186,7 @@ const init = () => {
                     cameraX: engine.camera.position.x,
                     cameraY: engine.camera.position.y,
                     cameraZ: engine.camera.position.z,
+                    cameraDist: engine.orbitControls.getDistance(),
                     targetX: engine.orbitControls.target.x,
                     targetY: engine.orbitControls.target.y,
                     targetZ: engine.orbitControls.target.z,
@@ -196,7 +196,12 @@ const init = () => {
                     gameState: gameLoop.currentState
                 };
                 document.dispatchEvent(new CustomEvent('SAVE_GAME', {
-                    detail: { slotId: ce.detail?.slotId, viewState: vs }
+                    detail: { 
+                        slotId: ce.detail?.slotId, 
+                        viewState: vs,
+                        activeRogueShipIndex: gameLoop.activeRogueShipIndex,
+                        activeEnemyRogueShipIndex: gameLoop.activeEnemyRogueShipIndex
+                    }
                 }));
             }
         }, true);
@@ -211,6 +216,11 @@ const init = () => {
 
 
             // Also directly jump the current camera to the saved position so it doesn't animate from default
+            engine.restoreViewState(
+                vs.cameraX, vs.cameraY, vs.cameraZ,
+                vs.targetX, vs.targetY, vs.targetZ,
+                vs.cameraDist
+            );
             engine.camera.position.set(vs.cameraX, vs.cameraY, vs.cameraZ);
             engine.orbitControls.target.set(vs.targetX, vs.targetY, vs.targetZ);
             engine.orbitControls.update();
@@ -273,6 +283,7 @@ const init = () => {
                     cameraX: engine.camera.position.x,
                     cameraY: engine.camera.position.y,
                     cameraZ: engine.camera.position.z,
+                    cameraDist: engine.orbitControls.getDistance(),
                     targetX: engine.orbitControls.target.x,
                     targetY: engine.orbitControls.target.y,
                     targetZ: engine.orbitControls.target.z,
@@ -281,7 +292,7 @@ const init = () => {
                     gameSpeedMultiplier: Config.timing.gameSpeedMultiplier,
                     gameState: gameLoop.currentState
                 };
-                Storage.saveGame('session', gameLoop.match, vs);
+                Storage.saveGame('session', gameLoop.match, vs, gameLoop.activeRogueShipIndex, gameLoop.activeEnemyRogueShipIndex);
             }
         });
 

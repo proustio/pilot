@@ -62,7 +62,7 @@ export class ProjectileManager {
         }
 
         const isRogue = Config.rogueMode;
-        const targetGroup = isRogue ? this.enemyBoardGroup : (isPlayer ? this.enemyBoardGroup : this.playerBoardGroup);
+        const targetGroup = isRogue ? this.playerBoardGroup : (isPlayer ? this.enemyBoardGroup : this.playerBoardGroup);
 
         // ───── Missile Material ─────
         const activeMat = new THREE.MeshStandardMaterial({
@@ -169,7 +169,7 @@ export class ProjectileManager {
         }
 
         // ───── Live Shot Arc ─────
-        const sourceGroup = isRogue ? this.enemyBoardGroup : (isPlayer ? this.playerBoardGroup : this.enemyBoardGroup);
+        const sourceGroup = isRogue ? this.playerBoardGroup : (isPlayer ? this.playerBoardGroup : this.enemyBoardGroup);
         let startPos = new THREE.Vector3((Math.random() - 0.5) * 10, 5, (Math.random() - 0.5) * 10);
 
         const friendlyShips: THREE.Group[] = [];
@@ -281,6 +281,18 @@ export class ProjectileManager {
 
                 if (m.result === 'hit' || m.result === 'sunk') {
                     this.impactEffects.applyImpactEffects(m.cellX, m.cellZ, m.result, m.isPlayer, false, addRipple);
+                    
+                    if (isRogue) {
+                        // Reparent marker to the ship so it moves with it
+                        const shipMesh = targetGroup.children.find(c => c.userData.isShip && c.userData.coversCell(m.cellX, m.cellZ));
+                        if (shipMesh) {
+                            const worldPos = new THREE.Vector3();
+                            m.mesh.getWorldPosition(worldPos);
+                            shipMesh.add(m.mesh);
+                            shipMesh.worldToLocal(worldPos);
+                            m.mesh.position.copy(worldPos);
+                        }
+                    }
                 } else {
                     // Miss: sink into water partially
                     m.mesh.position.y = -0.15;

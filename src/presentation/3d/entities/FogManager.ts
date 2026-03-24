@@ -120,11 +120,11 @@ export class FogManager {
         const boardHeight = Config.board.height;
 
         // Get all cell coordinates occupied by any ship
-        const shipCells: {x: number, z: number, ship: Ship}[] = [];
+        const shipCells: {x: number, z: number, ship: Ship, segmentIndex: number}[] = [];
         for (const ship of shipsOnBoard) {
             const coords = ship.getOccupiedCoordinates();
-            for (const c of coords) {
-                shipCells.push({ x: c.x, z: c.z, ship });
+            for (let i = 0; i < coords.length; i++) {
+                shipCells.push({ x: coords[i].x, z: coords[i].z, ship, segmentIndex: i });
             }
         }
 
@@ -171,11 +171,15 @@ export class FogManager {
                     targetOpacity = 0.0;
                 }
 
-                // Rule 5: Reveal fog on any sunk ships
+                // Rule 5: Reveal fog on any sunk ships or hit segments
                 for (const cell of shipCells) {
-                    if (cell.ship.isSunk() && cell.x === x && cell.z === z) {
-                        targetOpacity = 0.0;
-                        break;
+                    if (cell.x === x && cell.z === z) {
+                        const isSunk = cell.ship.isSunk();
+                        const isHit = cell.ship.segments[cell.segmentIndex] === false;
+                        if (isSunk || isHit) {
+                            targetOpacity = 0.0;
+                            break;
+                        }
                     }
                 }
 

@@ -11,6 +11,8 @@ type AttackResultListener = (x: number, z: number, result: string, isPlayer: boo
 export interface MatchSetupState {
     match: Match | null;
     playerShipsToPlace: Ship[];
+    activeRogueShipIndex: number;
+    activeEnemyRogueShipIndex: number;
     aiEngine: AIEngine;
     playerAIEngine: AIEngine;
     shipPlacedListeners: ShipPlacedListener[];
@@ -126,8 +128,26 @@ export class MatchSetup {
      * Resumes an existing saved match by replaying all ship placements and
      * attack results, then transitioning straight to PLAYER_TURN.
      */
-    public loadMatch(match: Match): void {
+    public loadMatch(
+        match: Match,
+        resources?: { airStrikes: number; sonars: number; mines: number },
+        activeRogueShipIndex?: number,
+        activeEnemyRogueShipIndex?: number
+    ): void {
         this.state.match = match;
+
+        // Restore global resources if available
+        if (resources) {
+            Ship.resources = { ...resources };
+        }
+
+        // Restore active rogue indices
+        if (activeRogueShipIndex !== undefined) {
+            this.state.activeRogueShipIndex = activeRogueShipIndex;
+        }
+        if (activeEnemyRogueShipIndex !== undefined) {
+            this.state.activeEnemyRogueShipIndex = activeEnemyRogueShipIndex;
+        }
 
         this.replayShips(match);
         this.replayAttacks(match);

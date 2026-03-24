@@ -136,7 +136,12 @@ export class UIManager {
             const loaded = Storage.loadGame(slotId);
             if (loaded) {
                 console.log(`Auto-loading game from slot ${slotId}`);
-                this.gameLoop.loadMatch(loaded.match);
+                this.gameLoop.loadMatch(
+                    loaded.match, 
+                    loaded.resources, 
+                    loaded.activeRogueShipIndex, 
+                    loaded.activeEnemyRogueShipIndex
+                );
                 if (loaded.viewState) {
                     document.dispatchEvent(new CustomEvent('RESTORE_VIEW_STATE', { detail: loaded.viewState }));
                 }
@@ -145,7 +150,12 @@ export class UIManager {
             const sessionLoaded = Storage.loadGame('session');
             if (sessionLoaded) {
                 console.log(`Resuming previous session`);
-                this.gameLoop.loadMatch(sessionLoaded.match);
+                this.gameLoop.loadMatch(
+                    sessionLoaded.match,
+                    sessionLoaded.resources,
+                    sessionLoaded.activeRogueShipIndex,
+                    sessionLoaded.activeEnemyRogueShipIndex
+                );
                 if (sessionLoaded.viewState) {
                     document.dispatchEvent(new CustomEvent('RESTORE_VIEW_STATE', { detail: sessionLoaded.viewState }));
                 }
