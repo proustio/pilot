@@ -115,6 +115,15 @@ export class HUD extends BaseUIComponent {
                     <div class="geek-stats-row"><span class="gs-label">FPS</span><span class="gs-value" id="gs-fps">--</span></div>
                     <div class="geek-stats-row"><span class="gs-label">FRAME</span><span class="gs-value" id="gs-frame">-- ms</span></div>
                     <div class="geek-stats-row"><span class="gs-label">RAM</span><span class="gs-value" id="gs-ram">-- MB</span></div>
+                    <div class="geek-stats-row"><span class="gs-label">CPU</span><span class="gs-value" id="gs-cpu">-- %</span></div>
+                    <div class="geek-stats-row" title="Three.js Render Info: Draw Calls / Triangles">
+                        <span class="gs-label">GPU</span>
+                        <span class="gs-value"><span id="gs-gpu-calls">--</span> calls / <span id="gs-gpu-tris">--</span> tris</span>
+                    </div>
+                    <div class="geek-stats-row">
+                        <span><span class="gs-label">NET ⬇️</span><span class="gs-value" id="gs-net-down">--</span></span>
+                        <span><span class="gs-label">⬆️</span><span class="gs-value" id="gs-net-up">--</span></span>
+                    </div>
                     <div class="geek-stats-row" title="Distance from camera target"><span class="gs-label">DIST</span><span class="gs-value" id="gs-zoom">--</span></div>
                     <div class="geek-stats-row" title="Camera World Position"><span class="gs-label">POS</span><span class="gs-value" id="gs-pos">--</span></div>
                     <div class="geek-stats-row" title="Camera Target Position"><span class="gs-label">TGT</span><span class="gs-value" id="gs-tgt">--</span></div>

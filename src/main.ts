@@ -55,6 +55,7 @@ const init = () => {
         });
 
         let matchStartTime: number | null = null;
+        let elapsedActiveTime: number = 0;
         let isRestoringState = false;
 
         gameLoop.onStateChange((newState) => {
@@ -64,6 +65,7 @@ const init = () => {
 
             if (newState === 'SETUP_BOARD') {
                 matchStartTime = performance.now();
+                elapsedActiveTime = 0;
                 if (!isRestoringState) {
                     engine.hasManualMovement = false;
                 }
@@ -258,8 +260,10 @@ const init = () => {
         let framesRendered = 0;
         let lastFpsUpdateTime = performance.now();
         let lastFrameTimeMs = 0;
+        let lastTotalNetDown = 0;
 
         const animate = (time: DOMHighResTimeStamp) => {
+            const animateStart = performance.now();
             requestAnimationFrame(animate);
 
             const deltaTime = time - lastFrameTime;
@@ -273,17 +277,37 @@ const init = () => {
             lastFrameTime = time;
             lastFrameTimeMs = deltaTime;
 
+            if (!gameLoop.isPaused) {
+                elapsedActiveTime += deltaTime;
+            }
+
             framesRendered++;
             if (time - lastFpsUpdateTime >= 1000) {
                 const fpsValue = Math.round((framesRendered * 1000) / (time - lastFpsUpdateTime));
+                
                 const mem = (performance as any).memory;
                 const ramMB = mem ? (mem.usedJSHeapSize / (1024 * 1024)).toFixed(1) : 'N/A';
+
+                const totalNetDown = performance.getEntriesByType('resource')
+                    .reduce((acc, entry) => acc + (entry as PerformanceResourceTiming).transferSize, 0);
+                const netDownSpeed = Math.max(0, totalNetDown - lastTotalNetDown);
+                lastTotalNetDown = totalNetDown;
+
+                const animateEnd = performance.now();
+                const jsDuration = animateEnd - animateStart;
+                const cpuLoad = Math.min(100, (jsDuration / frameInterval) * 100);
 
                 document.dispatchEvent(new CustomEvent('UPDATE_GEEK_STATS', {
                     detail: {
                         fps: fpsValue,
                         frameTime: lastFrameTimeMs,
                         ram: ramMB,
+                        cpuLoad: cpuLoad,
+                        gpuCalls: engine.renderer.info.render.calls,
+                        gpuTris: engine.renderer.info.render.triangles,
+                        netDown: netDownSpeed,
+                        netUp: undefined, // Not typically trackable in JS without interception
+                        elapsedActiveTime,
                         matchStartTime,
                         zoom: engine.orbitControls.getDistance(),
                         cameraPos: engine.camera.position,

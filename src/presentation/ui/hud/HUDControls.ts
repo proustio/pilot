@@ -158,16 +158,65 @@ export function bindHUDControls(container: HTMLElement): void {
         const fpsEl = container.querySelector('#gs-fps');
         const frameEl = container.querySelector('#gs-frame');
         const ramEl = container.querySelector('#gs-ram');
+        const cpuEl = container.querySelector('#gs-cpu');
+        const gpuCallsEl = container.querySelector('#gs-gpu-calls');
+        const gpuTrisEl = container.querySelector('#gs-gpu-tris');
+        const netDownEl = container.querySelector('#gs-net-down');
+        const netUpEl = container.querySelector('#gs-net-up');
         const zoomEl = container.querySelector('#gs-zoom');
         const posEl = container.querySelector('#gs-pos');
         const tgtEl = container.querySelector('#gs-tgt');
         const timeEl = container.querySelector('#gs-time');
+
+        const updateRowVisibility = (el: Element | null, value: any) => {
+            if (!el) return;
+            const row = el.closest('.geek-stats-row') as HTMLElement;
+            if (row) {
+                row.style.display = (value === undefined || value === 'N/A') ? 'none' : 'flex';
+            }
+        };
 
         if (fpsEl) fpsEl.textContent = `${d.fps}`;
         if (frameEl) frameEl.textContent = `${d.frameTime.toFixed(1)}ms`;
 
         if (ramEl) {
             ramEl.textContent = d.ram === 'N/A' ? 'N/A' : `${d.ram} MB`;
+            updateRowVisibility(ramEl, d.ram);
+        }
+
+        if (cpuEl) {
+            cpuEl.textContent = d.cpuLoad !== undefined ? `${d.cpuLoad.toFixed(1)}%` : '-- %';
+            updateRowVisibility(cpuEl, d.cpuLoad);
+        }
+
+        if (gpuCallsEl && gpuTrisEl) {
+            gpuCallsEl.textContent = d.gpuCalls !== undefined ? d.gpuCalls.toString() : '--';
+            gpuTrisEl.textContent = d.gpuTris !== undefined ? d.gpuTris.toString() : '--';
+            updateRowVisibility(gpuCallsEl, d.gpuCalls);
+        }
+
+        const formatBytes = (bytes: number | undefined) => {
+            if (bytes === undefined) return '--';
+            if (bytes < 1024) return `${bytes} B/s`;
+            if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB/s`;
+            return `${(bytes / (1024 * 1024)).toFixed(1)} MB/s`;
+        };
+
+        if (netDownEl) {
+            const downSpan = netDownEl.parentElement;
+            if (downSpan) downSpan.style.display = d.netDown === undefined ? 'none' : 'inline';
+            netDownEl.textContent = formatBytes(d.netDown);
+        }
+        if (netUpEl) {
+            const upSpan = netUpEl.parentElement;
+            if (upSpan) upSpan.style.display = d.netUp === undefined ? 'none' : 'inline';
+            netUpEl.textContent = formatBytes(d.netUp);
+        }
+        
+        // Hide entire net row if both are missing
+        if (netDownEl && netUpEl) {
+            const row = netDownEl.closest('.geek-stats-row') as HTMLElement;
+            if (row) row.style.display = (d.netDown === undefined && d.netUp === undefined) ? 'none' : 'flex';
         }
 
         if (zoomEl && d.zoom !== undefined) {
@@ -182,10 +231,10 @@ export function bindHUDControls(container: HTMLElement): void {
             tgtEl.textContent = `${d.targetPos.x.toFixed(1)} ${d.targetPos.y.toFixed(1)} ${d.targetPos.z.toFixed(1)}`;
         }
 
-        if (timeEl && d.matchStartTime) {
-            const elapsed = Math.floor((performance.now() - d.matchStartTime) / 1000);
-            const mins = String(Math.floor(elapsed / 60)).padStart(2, '0');
-            const secs = String(elapsed % 60).padStart(2, '0');
+        if (timeEl && d.elapsedActiveTime !== undefined) {
+            const elapsedSeconds = Math.floor(d.elapsedActiveTime / 1000);
+            const mins = String(Math.floor(elapsedSeconds / 60)).padStart(2, '0');
+            const secs = String(elapsedSeconds % 60).padStart(2, '0');
             timeEl.textContent = `${mins}:${secs}`;
         }
     });
