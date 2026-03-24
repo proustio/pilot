@@ -73,7 +73,7 @@ export class MainMenu extends BaseUIComponent {
 
                 <!-- Right: Monitor Port -->
                 <div class="monitor-port" style="flex-direction: column; padding: 20px; justify-content: flex-start; gap: 15px;">
-                    <div style="width: 100%; max-width: 240px; z-index: 20;">
+                    <div style="width: 100%; max-width: 240px; z-index: 40;">
                         <label class="console-label" style="color: #0f0; text-shadow: 0 0 5px rgba(0,255,0,0.5);">Select Engagement:</label>
                         <div id="mode-dropdown" class="custom-dropdown">
                             <div class="custom-dropdown-selected" id="dropdown-selected">
