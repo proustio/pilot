@@ -118,7 +118,7 @@ export class HUD extends BaseUIComponent {
                     <div class="geek-stats-row"><span class="gs-label">CPU</span><span class="gs-value" id="gs-cpu">-- %</span></div>
                     <div class="geek-stats-row" title="Three.js Render Info: Draw Calls / Triangles">
                         <span class="gs-label">GPU</span>
-                        <span class="gs-value"><span id="gs-gpu-calls">--</span> calls / <span id="gs-gpu-tris">--</span> tris</span>
+                        <span class="gs-value"><span id="gs-gpu-calls">--</span> 🎨🔔 / <span id="gs-gpu-tris">--</span> △s</span>
                     </div>
                     <div class="geek-stats-row">
                         <span><span class="gs-label">NET ⬇️</span><span class="gs-value" id="gs-net-down">--</span></span>
@@ -128,6 +128,7 @@ export class HUD extends BaseUIComponent {
                     <div class="geek-stats-row" title="Camera World Position"><span class="gs-label">POS</span><span class="gs-value" id="gs-pos">--</span></div>
                     <div class="geek-stats-row" title="Camera Target Position"><span class="gs-label">TGT</span><span class="gs-value" id="gs-tgt">--</span></div>
                     <div class="geek-stats-row"><span class="gs-label">STATUS</span><span class="gs-value gs-online" id="gs-status">● LOCAL</span></div>
+                    <div class="geek-stats-row"><span class="gs-label">ENGINE</span><span class="gs-value" id="gs-engine">--</span></div>
                     <div class="geek-stats-row"><span class="gs-label">TIME</span><span class="gs-value" id="gs-time">00:00</span></div>
                 </div>
             </div>

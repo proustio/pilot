@@ -248,7 +248,18 @@ export class ShipFactory {
             if (instancedMesh.instanceColor) instancedMesh.instanceColor.needsUpdate = true;
         };
         
-        document.addEventListener('THEME_CHANGED', updateShipTheme);
+        const themeListener = () => updateShipTheme();
+        document.addEventListener('THEME_CHANGED', themeListener);
+        shipGroup.userData.themeListener = themeListener;
+        shipGroup.userData.dispose = () => {
+            document.removeEventListener('THEME_CHANGED', themeListener);
+            instancedMesh.dispose();
+            instancedLines.dispose();
+            instancedMesh.geometry.dispose();
+            (instancedMesh.material as THREE.Material).dispose();
+            instancedLines.geometry.dispose();
+            (instancedLines.material as THREE.Material).dispose();
+        };
 
         shipGroup.add(instancedLines);
 

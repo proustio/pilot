@@ -320,4 +320,8 @@ export class ProjectileManager {
         }
     }
 
+    public clear() {
+        this.fallingMarkers.forEach(m => m.mesh.parent?.remove(m.mesh));
+        this.fallingMarkers = [];
+    }
 }

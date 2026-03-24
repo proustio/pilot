@@ -36,7 +36,12 @@ export class Engine3D {
     this.camera.position.set(5.0233, 10.0466, 14.0652);
     this.camera.lookAt(0, 0, 0);
 
-    this.renderer = new THREE.WebGLRenderer({ antialias: Config.visual.antialias, alpha: true });
+    this.renderer = new THREE.WebGLRenderer({ 
+        antialias: Config.visual.antialias, 
+        alpha: true,
+        powerPreference: 'high-performance',
+        precision: 'highp'
+    });
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
     this.renderer.shadowMap.enabled = Config.visual.shadowsEnabled;

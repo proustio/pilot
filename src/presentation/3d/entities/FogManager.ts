@@ -240,4 +240,66 @@ export class FogManager {
         const mat = (fogMesh as THREE.Mesh).material as THREE.MeshStandardMaterial;
         return mat.opacity < 0.2; // Treat as revealed if opacity is low
     }
+
+    private createFogMesh(x: number, z: number): THREE.InstancedMesh | null {
+        if (!this.fogGeo || !this.fogMatProto) return null;
+        
+        const boardWidth = Config.board.width;
+        const offset = boardWidth / 2;
+        const worldX = x - offset + 0.5;
+        const worldZ = z - offset + 0.5;
+        
+        const numVoxels = 250;
+        let mat = this.fogMatProto;
+        let ownsMaterial = false;
+
+        if (this.rogueMode) {
+            mat = this.fogMatProto.clone();
+            mat.transparent = true;
+            mat.opacity = 0;
+            if (this.fogMatProto.onBeforeCompile) mat.onBeforeCompile = this.fogMatProto.onBeforeCompile;
+            ownsMaterial = true;
+        }
+
+        const fogMesh = new THREE.InstancedMesh(this.fogGeo, mat, numVoxels);
+        fogMesh.position.set(worldX, 0.0, worldZ);
+        
+        const identity = new THREE.Matrix4();
+        for (let i = 0; i < numVoxels; i++) {
+            fogMesh.setMatrixAt(i, identity);
+        }
+        
+        fogMesh.userData = { isFog: true, ownsMaterial };
+        return fogMesh;
+    }
+
+    public reset() {
+        this.fogMeshes.forEach(mesh => {
+            if (mesh) {
+                mesh.parent?.remove(mesh);
+                if (mesh.userData.ownsMaterial) {
+                    (mesh.material as THREE.Material).dispose();
+                }
+            }
+        });
+        
+        const w = Config.board.width;
+        this.fogMeshes = new Array(w * w).fill(null);
+        this.temporarilyRevealedCells.clear();
+        this.permanentlyRevealedCells.clear();
+        this.isInitialized = false;
+
+        // For Classic/Russian modes, we re-instantiate the static fog immediately
+        if (!this.rogueMode && this.fogGeo && this.fogMatProto) {
+            for (let z = 0; z < w; z++) {
+                for (let x = 0; x < w; x++) {
+                    const mesh = this.createFogMesh(x, z);
+                    if (mesh) {
+                        this.enemyBoardGroup.add(mesh);
+                        this.fogMeshes[z * w + x] = mesh;
+                    }
+                }
+            }
+        }
+    }
 }

@@ -323,4 +323,23 @@ export class ParticleSystem {
             }
         }
     }
+    public clear() {
+        this.particles.forEach(p => p.group.remove(p.mesh));
+        this.particles = [];
+        this.emitters = [];
+    }
+
+    public dispose() {
+        this.clear();
+        this.explosionGeo.dispose();
+        this.smokeGeo.dispose();
+        this.fireGeo.dispose();
+        this.fireMat.dispose();
+        this.secondaryFireMat.dispose();
+        this.greySmokeMat.dispose();
+        this.blackSmokeMat.dispose();
+        this.splashMatWhite.dispose();
+        this.splashMatBlue.dispose();
+        this.shipVoxelMat.dispose();
+    }
 }

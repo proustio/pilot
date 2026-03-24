@@ -130,6 +130,10 @@ export class EntityManager {
         this.fogManager.clearFogCell(x, z);
     }
 
+    public isCellRevealed(x: number, z: number): boolean {
+        return this.fogManager.isCellRevealed(x, z);
+    }
+
     public addShip(ship: Ship, x: number, z: number, orientation: Orientation, isPlayer: boolean) {
         const isRogue = Config.rogueMode;
         // In Rogue mode, everything happens on the playerBoardGroup (top side, non-flipped)
@@ -277,37 +281,37 @@ export class EntityManager {
         // Dynamic fog and enemy visibility
         this.fogManager.updateRogueFog(this.allShips);
         
-        // Update enemy ship visibility based on fog/sink status
-        this.allShips.forEach(ship => {
-            if (!ship.isEnemy) return;
-            
-            // Find its 3D group
-            let shipGroup: THREE.Group | undefined;
-            [this.playerBoardGroup, this.enemyBoardGroup].forEach(bg => {
-                bg.children.forEach(child => {
-                    if (child.userData.isShip && child.userData.ship?.id === ship.id) {
-                        shipGroup = child as THREE.Group;
-                    }
+        // Update enemy ship visibility based on fog/sink status (Throttled)
+        if (Math.floor(this.time * 60) % 5 === 0) { // Every 5 frames (~12fps)
+            this.allShips.forEach(ship => {
+                if (!ship.isEnemy) return;
+                
+                // Find its 3D group
+                let shipGroup: THREE.Group | undefined;
+                [this.playerBoardGroup, this.enemyBoardGroup].forEach(bg => {
+                    bg.children.forEach(child => {
+                        if (child.userData.isShip && child.userData.ship?.id === ship.id) {
+                            shipGroup = child as THREE.Group;
+                        }
+                    });
                 });
-            });
 
-            if (shipGroup) {
-                let isVisible: boolean;
-                if (Config.rogueMode) {
-                    // In Rogue mode, we always keep the group visible, but hide individual segments
-                    const coords = ship.getOccupiedCoordinates();
-                    isVisible = coords.some(c => this.fogManager.isCellRevealed(c.x, c.z)) || ship.isSunk();
-                    
-                    if (isVisible) {
-                        this.updateShipPartialVisibility(ship, shipGroup);
+                if (shipGroup) {
+                    let isVisible: boolean;
+                    if (Config.rogueMode) {
+                        const coords = ship.getOccupiedCoordinates();
+                        isVisible = coords.some(c => this.fogManager.isCellRevealed(c.x, c.z)) || ship.isSunk();
+                        
+                        if (isVisible) {
+                            this.updateShipPartialVisibility(ship, shipGroup);
+                        }
+                    } else {
+                        isVisible = ship.isSunk();
                     }
-                } else {
-                    // In Classic/Russian, ships are only revealed when fully sunk
-                    isVisible = ship.isSunk();
+                    shipGroup.visible = isVisible;
                 }
-                shipGroup.visible = isVisible;
-            }
-        });
+            });
+        }
 
         // LED pulsing
         this.staticGroup.children.forEach(child => {
@@ -542,7 +546,37 @@ export class EntityManager {
         });
     }
 
-    public isCellRevealed(x: number, z: number): boolean {
-        return this.fogManager.isCellRevealed(x, z);
+    public resetMatch() {
+        const disposeShip = (obj: any) => {
+            if (obj.userData.isShip) {
+                if (obj.userData.dispose) obj.userData.dispose(); // Call ShipFactory's disposal
+                if (obj.geometry) obj.geometry.dispose();
+                if (obj.material) {
+                    if (Array.isArray(obj.material)) obj.material.forEach((m: any) => m.dispose());
+                    else obj.material.dispose();
+                }
+            }
+            if (obj.children) {
+                // Pre-collect to avoid concurrent modification issues
+                const children = [...obj.children];
+                children.forEach(child => {
+                    if (child.userData.isShip || child.userData.isAttackMarker) {
+                        disposeShip(child);
+                        obj.remove(child);
+                    }
+                });
+            }
+        };
+
+        disposeShip(this.playerBoardGroup);
+        disposeShip(this.enemyBoardGroup);
+        
+        this.allShips = [];
+
+        this.particleSystem.clear();
+        this.projectileManager.clear();
+        
+        // Reset fog
+        this.fogManager.reset();
     }
 }

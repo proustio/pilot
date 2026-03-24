@@ -8,6 +8,7 @@ import { Config } from './infrastructure/config/Config';
 import { Storage, ViewState } from './infrastructure/storage/Storage';
 import { AudioEngine } from './infrastructure/audio/AudioEngine';
 import { ThemeManager } from './presentation/theme/ThemeManager';
+import { GameRunner } from './application/game-loop/GameRunner';
 
 const init = () => {
     try {
@@ -54,8 +55,6 @@ const init = () => {
             entityManager.addAttackMarker(x, z, result, isPlayer, isReplay);
         });
 
-        let matchStartTime: number | null = null;
-        let elapsedActiveTime: number = 0;
         let isRestoringState = false;
 
         gameLoop.onStateChange((newState) => {
@@ -64,8 +63,8 @@ const init = () => {
             entityManager.setSetupPhase(newState === 'SETUP_BOARD');
 
             if (newState === 'SETUP_BOARD') {
-                matchStartTime = performance.now();
-                elapsedActiveTime = 0;
+                gameRunner.elapsedActiveTime = 0;
+                entityManager.resetMatch();
                 if (!isRestoringState) {
                     engine.hasManualMovement = false;
                 }
@@ -236,6 +235,14 @@ const init = () => {
         const uiManager = new UIManager(gameLoop, entityManager);
         (window as any).uiManager = uiManager;
 
+        const gameRunner = new GameRunner(
+            engine,
+            entityManager,
+            interactionManager,
+            gameLoop,
+            uiManager
+        );
+
         // Global Audio Resume on first interaction
         window.addEventListener('mousedown', () => {
             AudioEngine.getInstance().resume();
@@ -244,99 +251,7 @@ const init = () => {
             AudioEngine.getInstance().resume();
         }, { once: true });
 
-        let currentFpsCap = Config.visual.fpsCap || 60;
-        let frameInterval = 1000 / currentFpsCap;
-
-        document.addEventListener('SET_FPS_CAP', (e: Event) => {
-            const ce = e as CustomEvent;
-            if (ce.detail && ce.detail.fpsCap) {
-                currentFpsCap = ce.detail.fpsCap;
-                frameInterval = 1000 / currentFpsCap;
-            }
-        });
-
-        let lastFrameTime = performance.now();
-
-        let framesRendered = 0;
-        let lastFpsUpdateTime = performance.now();
-        let lastFrameTimeMs = 0;
-        let lastTotalNetDown = 0;
-
-        const animate = (time: DOMHighResTimeStamp) => {
-            const animateStart = performance.now();
-            requestAnimationFrame(animate);
-
-            const deltaTime = time - lastFrameTime;
-
-            // allow a tiny epsilon for floating point inaccuracy in rAF
-            if (deltaTime < frameInterval - 0.1) {
-                return;
-            }
-
-            // Simple update to last frame time without strict modulo to fix jitter
-            lastFrameTime = time;
-            lastFrameTimeMs = deltaTime;
-
-            if (!gameLoop.isPaused) {
-                elapsedActiveTime += deltaTime;
-            }
-
-            framesRendered++;
-            if (time - lastFpsUpdateTime >= 1000) {
-                const fpsValue = Math.round((framesRendered * 1000) / (time - lastFpsUpdateTime));
-                
-                const mem = (performance as any).memory;
-                const ramMB = mem ? (mem.usedJSHeapSize / (1024 * 1024)).toFixed(1) : 'N/A';
-
-                const totalNetDown = performance.getEntriesByType('resource')
-                    .reduce((acc, entry) => acc + (entry as PerformanceResourceTiming).transferSize, 0);
-                const netDownSpeed = Math.max(0, totalNetDown - lastTotalNetDown);
-                lastTotalNetDown = totalNetDown;
-
-                const animateEnd = performance.now();
-                const jsDuration = animateEnd - animateStart;
-                const cpuLoad = Math.min(100, (jsDuration / frameInterval) * 100);
-
-                document.dispatchEvent(new CustomEvent('UPDATE_GEEK_STATS', {
-                    detail: {
-                        fps: fpsValue,
-                        frameTime: lastFrameTimeMs,
-                        ram: ramMB,
-                        cpuLoad: cpuLoad,
-                        gpuCalls: engine.renderer.info.render.calls,
-                        gpuTris: engine.renderer.info.render.triangles,
-                        netDown: netDownSpeed,
-                        netUp: undefined, // Not typically trackable in JS without interception
-                        elapsedActiveTime,
-                        matchStartTime,
-                        zoom: engine.orbitControls.getDistance(),
-                        cameraPos: engine.camera.position,
-                        targetPos: engine.orbitControls.target
-                    }
-                }));
-                framesRendered = 0;
-                lastFpsUpdateTime = time;
-            }
-
-            if (!gameLoop.isPaused) {
-                interactionManager.update();
-                entityManager.update(engine.camera);
-            }
-            uiManager.update();
-
-            engine.render();
-        };
-
-        // Persistent Camera Sync
-        let cameraAutoSaveTimeout: any = null;
-        engine.orbitControls.addEventListener('end', () => {
-            if (cameraAutoSaveTimeout) clearTimeout(cameraAutoSaveTimeout);
-            cameraAutoSaveTimeout = setTimeout(() => {
-                gameLoop.requestAutoSave();
-            }, 1000); 
-        });
-
-        animate(performance.now());
+        gameRunner.start();
         console.log('App successfully initialized, loop running.');
 
     } catch (error) {

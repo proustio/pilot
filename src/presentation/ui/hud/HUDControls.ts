@@ -100,7 +100,7 @@ export function bindHUDControls(container: HTMLElement): void {
 
     // 6. FPS Cap cycling
     const fpsBtn = container.querySelector('#hud-btn-fps') as HTMLButtonElement;
-    const fpsCycle = [30, 60, 120];
+    const fpsCycle = [30, 60, 120, 144, 240];
     if (fpsBtn) {
         fpsBtn.addEventListener('click', () => {
             let currentIndex = fpsCycle.indexOf(Config.visual.fpsCap);
@@ -111,14 +111,14 @@ export function bindHUDControls(container: HTMLElement): void {
 
             Config.visual.fpsCap = nextFps;
             Config.saveConfig();
-            fpsBtn.innerHTML = `${nextFps}<br>FPS`;
+            fpsBtn.innerHTML = `${nextFps}<br>`;
             document.dispatchEvent(new CustomEvent('SET_FPS_CAP', { detail: { fpsCap: nextFps } }));
         });
 
         document.addEventListener('SET_FPS_CAP', (e: Event) => {
             const customEvent = e as CustomEvent;
             if (customEvent.detail && customEvent.detail.fpsCap) {
-                fpsBtn.innerHTML = `${customEvent.detail.fpsCap}<br>FPS`;
+                fpsBtn.innerHTML = `${customEvent.detail.fpsCap}<br>`;
             }
         });
     }
@@ -166,21 +166,32 @@ export function bindHUDControls(container: HTMLElement): void {
         const zoomEl = container.querySelector('#gs-zoom');
         const posEl = container.querySelector('#gs-pos');
         const tgtEl = container.querySelector('#gs-tgt');
+        const engineEl = container.querySelector('#gs-engine');
         const timeEl = container.querySelector('#gs-time');
 
         const updateRowVisibility = (el: Element | null, value: any) => {
             if (!el) return;
             const row = el.closest('.geek-stats-row') as HTMLElement;
             if (row) {
-                row.style.display = (value === undefined || value === 'N/A') ? 'none' : 'flex';
+                // Hide if value is explicitly undefined OR if it's a string starting with "N/A"
+                const isNoMeasurement = value === undefined || (typeof value === 'string' && value.startsWith('N/A'));
+                row.style.display = isNoMeasurement ? 'none' : 'flex';
             }
         };
 
-        if (fpsEl) fpsEl.textContent = `${d.fps}`;
-        if (frameEl) frameEl.textContent = `${d.frameTime.toFixed(1)}ms`;
+        if (fpsEl) {
+            const vsync = d.vsync && d.vsync !== 'OFF' ? ` <small style="font-size: 0.6rem; opacity: 0.6; color: #ff0;">(${d.vsync})</small>` : '';
+            fpsEl.innerHTML = `${d.fps}${vsync}`;
+            updateRowVisibility(fpsEl, d.fps);
+        }
+        
+        if (frameEl) {
+            frameEl.textContent = `${d.frameTime.toFixed(1)}ms`;
+            updateRowVisibility(frameEl, d.frameTime);
+        }
 
         if (ramEl) {
-            ramEl.textContent = d.ram === 'N/A' ? 'N/A' : `${d.ram} MB`;
+            ramEl.textContent = d.ram === undefined ? '--' : (d.ram.includes('MB') || d.ram.includes('GB') ? d.ram : `${d.ram} MB`);
             updateRowVisibility(ramEl, d.ram);
         }
 
@@ -204,38 +215,53 @@ export function bindHUDControls(container: HTMLElement): void {
 
         if (netDownEl) {
             const downSpan = netDownEl.parentElement;
-            if (downSpan) downSpan.style.display = d.netDown === undefined ? 'none' : 'inline';
+            if (downSpan) downSpan.style.display = d.netDown === undefined || d.netDown === 0 ? 'none' : 'inline';
             netDownEl.textContent = formatBytes(d.netDown);
         }
         if (netUpEl) {
             const upSpan = netUpEl.parentElement;
-            if (upSpan) upSpan.style.display = d.netUp === undefined ? 'none' : 'inline';
+            if (upSpan) upSpan.style.display = d.netUp === undefined || d.netUp === 0 ? 'none' : 'inline';
             netUpEl.textContent = formatBytes(d.netUp);
         }
         
-        // Hide entire net row if both are missing
+        // Hide entire net row if both are missing or zero
         if (netDownEl && netUpEl) {
             const row = netDownEl.closest('.geek-stats-row') as HTMLElement;
-            if (row) row.style.display = (d.netDown === undefined && d.netUp === undefined) ? 'none' : 'flex';
+            if (row) {
+                const noDown = d.netDown === undefined || d.netDown === 0;
+                const noUp = d.netUp === undefined || d.netUp === 0;
+                row.style.display = (noDown && noUp) ? 'none' : 'flex';
+            }
         }
 
-        if (zoomEl && d.zoom !== undefined) {
-            zoomEl.textContent = `${d.zoom.toFixed(1)}`;
+        if (zoomEl) {
+            zoomEl.textContent = d.zoom !== undefined ? `${d.zoom.toFixed(1)}` : '--';
+            updateRowVisibility(zoomEl, d.zoom);
         }
 
-        if (posEl && d.cameraPos) {
-            posEl.textContent = `${d.cameraPos.x.toFixed(1)} ${d.cameraPos.y.toFixed(1)} ${d.cameraPos.z.toFixed(1)}`;
+        if (posEl) {
+            posEl.textContent = d.cameraPos ? `${d.cameraPos.x.toFixed(1)} ${d.cameraPos.y.toFixed(1)} ${d.cameraPos.z.toFixed(1)}` : '--';
+            updateRowVisibility(posEl, d.cameraPos);
         }
 
-        if (tgtEl && d.targetPos) {
-            tgtEl.textContent = `${d.targetPos.x.toFixed(1)} ${d.targetPos.y.toFixed(1)} ${d.targetPos.z.toFixed(1)}`;
+        if (tgtEl) {
+            tgtEl.textContent = d.targetPos ? `${d.targetPos.x.toFixed(1)} ${d.targetPos.y.toFixed(1)} ${d.targetPos.z.toFixed(1)}` : '--';
+            updateRowVisibility(tgtEl, d.targetPos);
         }
 
-        if (timeEl && d.elapsedActiveTime !== undefined) {
-            const elapsedSeconds = Math.floor(d.elapsedActiveTime / 1000);
-            const mins = String(Math.floor(elapsedSeconds / 60)).padStart(2, '0');
-            const secs = String(elapsedSeconds % 60).padStart(2, '0');
-            timeEl.textContent = `${mins}:${secs}`;
+        if (engineEl) {
+            engineEl.textContent = d.engine || '--';
+            updateRowVisibility(engineEl, d.engine);
+        }
+
+        if (timeEl) {
+            if (d.elapsedActiveTime !== undefined) {
+                const elapsedSeconds = Math.floor(d.elapsedActiveTime / 1000);
+                const mins = String(Math.floor(elapsedSeconds / 60)).padStart(2, '0');
+                const secs = String(elapsedSeconds % 60).padStart(2, '0');
+                timeEl.textContent = `${mins}:${secs}`;
+            }
+            updateRowVisibility(timeEl, d.elapsedActiveTime);
         }
     });
 
