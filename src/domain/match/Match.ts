@@ -68,15 +68,21 @@ export class Match {
 
         // Rogue mode: Player (isEnemy=false) in Top-Left (0-6, 0-6), AI in Bottom-Right (13-19, 13-19)
         if (this.mode === MatchMode.Rogue) {
-            const shipTailX = orientation === Orientation.Horizontal ? headX + shipToPlace.size - 1 : headX;
-            const shipTailZ = orientation === Orientation.Vertical ? headZ + shipToPlace.size - 1 : headZ;
-            
-            if (shipToPlace.isEnemy === true) {
-                // Enemy must be in Bottom-Right quadrant (13-19, 13-19)
-                if (headX < 13 || headZ < 13) return false;
-            } else {
-                // Player must be in Top-Left quadrant (0-6, 0-6)
-                if (shipTailX >= 7 || shipTailZ >= 7) return false;
+            for (let i = 0; i < shipToPlace.size; i++) {
+                let cx = headX;
+                let cz = headZ;
+                if (orientation === Orientation.Horizontal) cx = headX + i;
+                else if (orientation === Orientation.Vertical) cz = headZ + i;
+                else if (orientation === Orientation.Left) cx = headX - i;
+                else if (orientation === Orientation.Up) cz = headZ - i;
+                
+                if (shipToPlace.isEnemy === true) {
+                    // Enemy must be in Bottom-Right quadrant (13-19, 13-19)
+                    if (cx < 13 || cz < 13) return false;
+                } else {
+                    // Player must be in Top-Left quadrant (0-6, 0-6)
+                    if (cx >= 7 || cz >= 7) return false;
+                }
             }
         }
 

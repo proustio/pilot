@@ -210,7 +210,11 @@ export class UnifiedBoardUI extends BaseUIComponent {
                     cell.classList.add('cell-miss');
                     break;
                 default:
-                    if (!isPlayer && !isRogue) {
+                    if (isRogue) {
+                        if (this.entityManager && !this.entityManager.isCellRevealed(x, z)) {
+                            cell.classList.add('cell-fog');
+                        }
+                    } else if (!isPlayer) {
                         cell.classList.add('cell-fog');
                     }
                     break;

@@ -4,7 +4,8 @@ import { getIndex } from '../../../domain/board/BoardUtils';
 import { Ship } from '../../../domain/fleet/Ship';
 
 export class FogManager {
-    private fogMeshes: (THREE.Mesh | null)[];
+    private fogMeshes: (THREE.InstancedMesh | null)[];
+    private isInitialized: boolean = false;
     private enemyBoardGroup: THREE.Group;
     public rogueMode: boolean;
     private isSetupPhase: boolean = false;
@@ -85,8 +86,35 @@ export class FogManager {
         this.isSetupPhase = isSetup;
     }
 
+    private temporarilyRevealedCells: Map<number, number> = new Map();
+    private permanentlyRevealedCells: Set<number> = new Set();
+
+    public revealCellTemporarily(x: number, z: number, duration: number = 2) {
+        const boardWidth = Config.board.width;
+        const index = z * boardWidth + x;
+        this.temporarilyRevealedCells.set(index, duration);
+    }
+
+    public revealCellPermanently(x: number, z: number) {
+        const boardWidth = Config.board.width;
+        const index = z * boardWidth + x;
+        this.permanentlyRevealedCells.add(index);
+    }
+
+    public onTurnChange() {
+        // Decrement all temporary reveals
+        for (const [index, duration] of this.temporarilyRevealedCells.entries()) {
+            if (duration <= 1) {
+                this.temporarilyRevealedCells.delete(index);
+            } else {
+                this.temporarilyRevealedCells.set(index, duration - 1);
+            }
+        }
+    }
+
     public updateRogueFog(shipsOnBoard: Ship[]) {
         if (!this.rogueMode) return;
+        this.isInitialized = true;
         
         const boardWidth = Config.board.width;
         const boardHeight = Config.board.height;
@@ -125,12 +153,30 @@ export class FogManager {
                 
                 // Rule 1: Radius-based fog around ships
                 if (minDist <= 1.0) { // Using normalizedDist, so 1.0 means within radius
-                    targetOpacity = 0.1;
+                    targetOpacity = 0.0;
                 }
                 
                 // Rule 2: During setup, reveal player quadrant (0-6, 0-6)
                 if (this.isSetupPhase && x < 7 && z < 7) {
-                    targetOpacity = 0.1;
+                    targetOpacity = 0.0;
+                }
+
+                // Rule 3: Temporary reveals from attacks
+                if (this.temporarilyRevealedCells.has(fogIdx)) {
+                    targetOpacity = 0.0;
+                }
+                
+                // Rule 4: Permanent reveals (e.g. sunk ships)
+                if (this.permanentlyRevealedCells.has(fogIdx)) {
+                    targetOpacity = 0.0;
+                }
+
+                // Rule 5: Reveal fog on any sunk ships
+                for (const cell of shipCells) {
+                    if (cell.ship.isSunk() && cell.x === x && cell.z === z) {
+                        targetOpacity = 0.0;
+                        break;
+                    }
                 }
 
                 let fogMesh = this.fogMeshes[fogIdx] as THREE.InstancedMesh;
@@ -180,11 +226,14 @@ export class FogManager {
     }
 
     public isCellRevealed(x: number, z: number): boolean {
+        // In Rogue mode, if not yet initialized, nothing is revealed
+        if (this.rogueMode && !this.isInitialized) return false;
+
         const fogIdx = z * Config.board.width + x;
         const fogMesh = this.fogMeshes[fogIdx];
-        if (!fogMesh) return true; // Permanently cleared
+        if (!fogMesh) return true; // No mesh means fully revealed (for Classic) or target opacity was 0 (for Rogue)
         
         const mat = (fogMesh as THREE.Mesh).material as THREE.MeshStandardMaterial;
-        return mat.opacity < 0.2; // Dynamically revealed by proximity
+        return mat.opacity < 0.2; // Treat as revealed if opacity is low
     }
 }

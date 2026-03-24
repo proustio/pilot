@@ -136,8 +136,8 @@ export class EntityManager {
         const targetGroup = isRogue ? this.playerBoardGroup : (isPlayer ? this.playerBoardGroup : this.enemyBoardGroup);
         const shipGroup = ShipFactory.createShip(ship, x, z, orientation, isPlayer, targetGroup);
 
-        if (Config.rogueMode && !isPlayer) {
-            shipGroup.visible = false;
+        if (!isPlayer) {
+            shipGroup.visible = false; // Initially hidden for all enemy ships
         }
 
         if (!this.allShips.includes(ship)) {
@@ -146,14 +146,36 @@ export class EntityManager {
 
         // Trigger water ripple at ship center
         const boardOffset = Config.board.width / 2;
-        const cx = orientation === Orientation.Horizontal ? x + Math.floor(ship.size / 2) : x;
-        const cz = orientation === Orientation.Vertical ? z + Math.floor(ship.size / 2) : z;
+        let cx = x;
+        let cz = z;
+
+        if (orientation === Orientation.Horizontal) cx += Math.floor(ship.size / 2);
+        else if (orientation === Orientation.Vertical) cz += Math.floor(ship.size / 2);
+        else if (orientation === Orientation.Left) cx -= Math.floor(ship.size / 2);
+        else if (orientation === Orientation.Up) cz -= Math.floor(ship.size / 2);
+
         const rippleWorldX = cx - boardOffset + 0.5;
         const rippleWorldZ = cz - boardOffset + 0.5;
         this.addRipple(rippleWorldX, rippleWorldZ, isPlayer);
     }
 
+    public onTurnChange() {
+        this.fogManager.onTurnChange();
+    }
+
     public addAttackMarker(x: number, z: number, result: string, isPlayer: boolean, isReplay: boolean = false) {
+        if (isPlayer && Config.rogueMode) {
+            this.fogManager.revealCellTemporarily(x, z);
+            
+            if (result === 'sunk') {
+                const sunkShip = this.allShips.find(s => s.isEnemy && s.getOccupiedCoordinates().some(c => c.x === x && c.z === z));
+                if (sunkShip) {
+                    sunkShip.getOccupiedCoordinates().forEach((c: {x: number, z: number}) => {
+                        this.fogManager.revealCellPermanently(c.x, c.z);
+                    });
+                }
+            }
+        }
         this.projectileManager.addAttackMarker(
             x, z, result, isPlayer, isReplay,
             this.addRipple.bind(this)
@@ -242,46 +264,36 @@ export class EntityManager {
         this.updateWater(this.playerWaterUniforms, waterTimeIncrement);
         this.updateWater(this.enemyWaterUniforms, waterTimeIncrement);
 
-        // Rogue dynamic fog and enemy visibility
-        if (this.fogManager.rogueMode) {
-            this.fogManager.updateRogueFog(this.allShips);
+        // Dynamic fog and enemy visibility
+        this.fogManager.updateRogueFog(this.allShips);
+        
+        // Update enemy ship visibility based on fog/sink status
+        this.allShips.forEach(ship => {
+            if (!ship.isEnemy) return;
             
-            // Update enemy ship visibility based on fog
-            this.allShips.forEach(ship => {
-                if (!ship.isEnemy) return;
-                
-                // Find its 3D group
-                let shipGroup: THREE.Group | undefined;
-                [this.playerBoardGroup, this.enemyBoardGroup].forEach(bg => {
-                    bg.children.forEach(child => {
-                        if (child.userData.isShip && child.userData.ship?.id === ship.id) {
-                            shipGroup = child as THREE.Group;
-                        }
-                    });
-                });
-
-                if (shipGroup) {
-                    const coords = ship.getOccupiedCoordinates();
-                    let revealed = false;
-                    for (const c of coords) {
-                        const fogIdx = c.z * Config.board.width + c.x;
-                        const fogMesh = this.fogManager.getFogMesh(fogIdx);
-                        // If no fog mesh exists, it's revealed (opacity 0)
-                        if (!fogMesh) {
-                            revealed = true;
-                            break;
-                        } else {
-                            const mat = (fogMesh as THREE.Mesh).material as THREE.MeshStandardMaterial;
-                            if (mat.opacity < 0.2) {
-                                revealed = true;
-                                break;
-                            }
-                        }
+            // Find its 3D group
+            let shipGroup: THREE.Group | undefined;
+            [this.playerBoardGroup, this.enemyBoardGroup].forEach(bg => {
+                bg.children.forEach(child => {
+                    if (child.userData.isShip && child.userData.ship?.id === ship.id) {
+                        shipGroup = child as THREE.Group;
                     }
-                    shipGroup.visible = revealed || ship.isSunk();
-                }
+                });
             });
-        }
+
+            if (shipGroup) {
+                let isVisible: boolean;
+                if (Config.rogueMode) {
+                    // In Rogue mode, if any part is revealed, the ship is visible
+                    const coords = ship.getOccupiedCoordinates();
+                    isVisible = coords.some(c => this.fogManager.isCellRevealed(c.x, c.z));
+                } else {
+                    // In Classic/Russian, ships are only revealed when fully sunk
+                    isVisible = ship.isSunk();
+                }
+                shipGroup.visible = isVisible;
+            }
+        });
 
         // LED pulsing
         this.staticGroup.children.forEach(child => {

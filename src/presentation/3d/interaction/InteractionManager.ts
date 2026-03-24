@@ -256,8 +256,12 @@ export class InteractionManager {
           const mat = mesh.material as THREE.MeshBasicMaterial;
           mat.color.setHex(color);
 
-          const cx = orientation === Orientation.Horizontal ? index : 0;
-          const cz = orientation === Orientation.Vertical ? index : 0;
+          let cx = 0;
+          let cz = 0;
+          if (orientation === Orientation.Horizontal) cx = index;
+          else if (orientation === Orientation.Vertical) cz = index;
+          else if (orientation === Orientation.Left) cx = -index;
+          else if (orientation === Orientation.Up) cz = -index;
 
           mesh.position.set(cx, 0, cz);
         });

@@ -109,9 +109,9 @@ export class GameLoop {
 
             if (isMatch('RotateWeapon')) {
                 if (this.currentState === GameState.SETUP_BOARD) {
-                    this.currentPlacementOrientation = this.currentPlacementOrientation === Orientation.Horizontal
-                        ? Orientation.Vertical
-                        : Orientation.Horizontal;
+                    const cycle = [Orientation.Horizontal, Orientation.Vertical, Orientation.Left, Orientation.Up];
+                    let nextIdx = (cycle.indexOf(this.currentPlacementOrientation) + 1) % cycle.length;
+                    this.currentPlacementOrientation = cycle[nextIdx];
                 } else if (this.currentState === GameState.PLAYER_TURN) {
                     const weapon = (window as any).selectedRogueWeapon;
                     if (weapon === 'airstrike') {
@@ -485,6 +485,7 @@ export class GameLoop {
         // Wait, I need to check how GameLoop communicates with the presentation layer.
         // It uses listeners. I'll fire a custom event instead to be safe.
         document.dispatchEvent(new CustomEvent('GAME_STATE_CHANGED', { detail: { state: newState } }));
+        document.dispatchEvent(new CustomEvent('TURN_CHANGED', { detail: { newState, oldState } }));
 
         this.triggerAutoSave();
 

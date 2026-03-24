@@ -1,6 +1,8 @@
 export enum Orientation {
     Horizontal = 'horizontal',
     Vertical = 'vertical',
+    Left = 'left',
+    Up = 'up',
 }
 
 export class Ship {
@@ -50,9 +52,15 @@ export class Ship {
             if (this.orientation === Orientation.Horizontal) {
                 // Horizontal expands to the right (+x)
                 coords.push({ x: this.headX + i, z: this.headZ });
-            } else {
+            } else if (this.orientation === Orientation.Vertical) {
                 // Vertical expands downward (+z)
                 coords.push({ x: this.headX, z: this.headZ + i });
+            } else if (this.orientation === Orientation.Left) {
+                // Left expands to the left (-x)
+                coords.push({ x: this.headX - i, z: this.headZ });
+            } else if (this.orientation === Orientation.Up) {
+                // Up expands upward (-z)
+                coords.push({ x: this.headX, z: this.headZ - i });
             }
         }
         return coords;
@@ -104,8 +112,12 @@ export class Ship {
         if (!this.isPlaced) return { x: this.headX, z: this.headZ };
         if (this.orientation === Orientation.Horizontal) {
             return { x: this.headX + this.size - 1, z: this.headZ };
-        } else {
+        } else if (this.orientation === Orientation.Vertical) {
             return { x: this.headX, z: this.headZ + this.size - 1 };
+        } else if (this.orientation === Orientation.Left) {
+            return { x: this.headX - this.size + 1, z: this.headZ };
+        } else {
+            return { x: this.headX, z: this.headZ - this.size + 1 };
         }
     }
 

@@ -236,26 +236,29 @@ const init = () => {
         document.addEventListener('TOGGLE_PEEK', (e: Event) => {
             const ce = e as CustomEvent;
             const peeking = ce.detail?.peeking;
+            const currentState = gameLoop.currentState;
 
             if (peeking) {
-                // Peek always shows the OTHER side
-                const currentState = gameLoop.currentState;
-                if (currentState === GameState.PLAYER_TURN || currentState === GameState.SETUP_BOARD) {
-                    entityManager.showEnemyBoard();
-                } else {
+                // Peek always shows the OTHER side from what the state would normally show
+                if (currentState === GameState.PLAYER_TURN) {
                     entityManager.showPlayerBoard();
+                } else {
+                    entityManager.showEnemyBoard();
                 }
                 document.dispatchEvent(new CustomEvent('SET_INTERACTION_ENABLED', { detail: { enabled: false } }));
             } else {
                 // Back to current turn's side
-                const currentState = gameLoop.currentState;
-                if (currentState === GameState.PLAYER_TURN || currentState === GameState.SETUP_BOARD) {
-                    entityManager.showPlayerBoard();
-                } else {
+                if (currentState === GameState.PLAYER_TURN) {
                     entityManager.showEnemyBoard();
+                } else {
+                    entityManager.showPlayerBoard();
                 }
                 document.dispatchEvent(new CustomEvent('SET_INTERACTION_ENABLED', { detail: { enabled: true } }));
             }
+        });
+
+        document.addEventListener('TURN_CHANGED', () => {
+            entityManager.onTurnChange();
         });
 
         let isQuitting = false;

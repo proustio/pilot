@@ -27,11 +27,8 @@ export class ShipFactory {
             ship: ship, // Store reference to domain object
             shipOrientation: orientation,
             coversCell: (tx: number, tz: number) => {
-                if (orientation === Orientation.Horizontal) {
-                    return tz === z && tx >= x && tx < x + ship.size;
-                } else {
-                    return tx === x && tz >= z && tz < z + ship.size;
-                }
+                const coords = ship.getOccupiedCoordinates();
+                return coords.some(c => c.x === tx && c.z === tz);
             }
         };
 
@@ -39,6 +36,15 @@ export class ShipFactory {
         const originWorldX = x - boardOffset + 0.5;
         const originWorldZ = z - boardOffset + 0.5;
         shipGroup.position.set(originWorldX, 0, originWorldZ);
+
+        // Apply rotation based on orientation
+        if (orientation === Orientation.Vertical) {
+            shipGroup.rotation.y = -Math.PI / 2;
+        } else if (orientation === Orientation.Left) {
+            shipGroup.rotation.y = Math.PI;
+        } else if (orientation === Orientation.Up) {
+            shipGroup.rotation.y = Math.PI / 2;
+        }
         
         // In Rogue mode, all ships on the same board are visible initially? 
         // No, they should be hidden by fog. 
@@ -69,8 +75,8 @@ export class ShipFactory {
         const voxelSize = 0.1;
         const voxelGeo = new THREE.BoxGeometry(voxelSize, voxelSize, voxelSize);
 
-        const length = orientation === Orientation.Horizontal ? ship.size : 1;
-        const width = orientation === Orientation.Vertical ? ship.size : 1;
+        const length = ship.size;
+        const width = 1;
 
         const voxelsData: { pos: THREE.Vector3, color: THREE.Color, isAccent: boolean }[] = [];
 
@@ -119,8 +125,8 @@ export class ShipFactory {
 
         for (let lx = 0; lx < length * 10; lx++) {
             for (let lz = 0; lz < width * 10; lz++) {
-                const shipLengthPos = orientation === Orientation.Horizontal ? lx : lz;
-                const shipWidthPos = orientation === Orientation.Horizontal ? lz : lx;
+                const shipLengthPos = lx;
+                const shipWidthPos = lz;
 
                 const xNorm = (shipLengthPos - centerX) / (L / 2);
                 const halfWidth = getHullWidth(xNorm);
@@ -254,13 +260,13 @@ export class ShipFactory {
         shipGroup.add(instancedMesh);
 
         // ───── Turrets ─────
-        ShipFactory.addTurrets(shipGroup, ship, orientation, isPlayer);
+        ShipFactory.addTurrets(shipGroup, ship, isPlayer);
 
         targetGroup.add(shipGroup);
         return shipGroup;
     }
 
-    private static addTurrets(shipGroup: THREE.Group, ship: Ship, orientation: Orientation, isPlayer: boolean) {
+    private static addTurrets(shipGroup: THREE.Group, ship: Ship, isPlayer: boolean) {
         const turretCount = ship.size <= 2 ? 1 : ship.size <= 4 ? 2 : 3;
         let turretBaseColor = new THREE.Color(0x2a2a2a);
         let barrelColor = new THREE.Color(0x555555);
@@ -288,15 +294,11 @@ export class ShipFactory {
             const barrelMesh = new THREE.Mesh(barrelGeo, barrelMat);
             barrelMesh.castShadow = true;
 
-            if (orientation === Orientation.Horizontal) {
-                barrelMesh.rotation.z = Math.PI / 2;
-                barrelMesh.position.x = 0.12;
-                turretGroup.position.set(tPos, 0.2, 0);
-            } else {
-                barrelMesh.rotation.x = Math.PI / 2;
-                barrelMesh.position.z = 0.12;
-                turretGroup.position.set(0, 0.2, tPos);
-            }
+            // Always use horizontal layout for turrets as the group is rotated
+            barrelMesh.rotation.z = Math.PI / 2;
+            barrelMesh.position.x = 0.12;
+            turretGroup.position.set(tPos, 0.2, 0);
+            
             barrelMesh.position.y = 0.02;
             turretGroup.add(barrelMesh);
 

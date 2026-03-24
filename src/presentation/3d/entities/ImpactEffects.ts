@@ -99,10 +99,6 @@ export class ImpactEffects {
 
                 if (result === 'sunk') {
                     this.handleSinking(child, cellX, cellZ, boardOffset, isReplay, isPlayer, addRipple);
-                } else if (result === 'hit') {
-                    const hCount = (child.userData.ship as Ship)?.segments.filter((s: boolean) => !s).length || 1;
-                    const intens = 0.5 + (hCount - 1) * 0.4;
-                    this.addPersistentFireToShipCell(child as THREE.Group, cellX, cellZ, boardOffset, intens);
                 }
             }
         }
@@ -110,24 +106,29 @@ export class ImpactEffects {
         if (result === 'hit' || result === 'sunk') {
             const ship = shipFound?.userData?.ship as Ship | undefined;
             let intensity = 1.0;
-            let shipId = 'unknown';
+            let shipId = ship?.id || 'unknown';
 
             if (ship) {
-                shipId = ship.id;
-                // Hit count (segments that are false)
                 const hitCount = ship.segments.filter((s: boolean) => !s).length;
-                // Start tiny (0.5) and grow by 0.4 per hit
                 intensity = 0.5 + (hitCount - 1) * 0.4;
             }
 
-            // Always add a persistent emitter to the board group at the hit cell
-            this.particleSystem.addEmitter(
-                worldX, 0.4, worldZ, 
-                true, targetGroup, 
-                result === 'sunk' ? this.particleSystem.blackSmokeMat.color.getStyle() : this.particleSystem.greySmokeMat.color.getStyle(), 
-                intensity, 
-                `ship-flame-${shipId}-${cellX}-${cellZ}`
-            );
+            const shouldAttachToShip = shipFound && (Config.rogueMode || (ship && ship.isSunk()));
+
+            if (shouldAttachToShip) {
+                // Rogue mode or sunk: attach fire to the ship so it moves/leans with it
+                this.addPersistentFireToShipCell(shipFound as THREE.Group, cellX, cellZ, boardOffset, intensity, 
+                    result === 'sunk' ? this.particleSystem.blackSmokeMat.color.getStyle() : undefined);
+            } else {
+                // Classic hit on hidden ship: attach fire to the board group so it's visible
+                this.particleSystem.addEmitter(
+                    worldX, 0.4, worldZ, 
+                    true, targetGroup, 
+                    result === 'sunk' ? this.particleSystem.blackSmokeMat.color.getStyle() : this.particleSystem.greySmokeMat.color.getStyle(), 
+                    intensity, 
+                    `ship-flame-${shipId}-${cellX}-${cellZ}`
+                );
+            }
         }
 
         if (voxelsRemoved > 0 && !isReplay) {

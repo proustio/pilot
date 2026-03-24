@@ -163,22 +163,23 @@ export class HUD extends BaseUIComponent {
         
         if (arsenalPanel && arsenalTitle && arsenalItems) {
             arsenalPanel.classList.remove('collapsed');
-            const selected = (window as any).selectedRogueWeapon;
             if (mode === 'move') {
                 arsenalTitle.innerText = 'MOVE SYSTEMS';
+                // Always default to 'sail' when entering Move mode
+                (window as any).selectedRogueWeapon = 'sail';
                 arsenalItems.innerHTML = `
-                    <button class="arsenal-btn ${selected === 'sail' || !selected ? 'active' : ''} ${this.activeRogueShip?.movesRemaining <= 0 ? 'spent' : ''}" data-weapon="sail" title="Sailing (${this.activeRogueShip?.movesRemaining} Remaining)">⚓</button>
-                    <button class="arsenal-btn ${selected === 'sonar' ? 'active' : ''} ${Ship.resources.sonars <= 0 ? 'spent' : ''}" data-weapon="sonar" title="Sonar Ping (${Ship.resources.sonars} Remaining)">📡</button>
-                    <button class="arsenal-btn ${selected === 'mine' ? 'active' : ''} ${Ship.resources.mines <= 0 ? 'spent' : ''}" data-weapon="mine" title="Place Mine (${Ship.resources.mines} Remaining)">⚓</button>
+                    <button class="arsenal-btn active ${this.activeRogueShip?.movesRemaining <= 0 ? 'spent' : ''}" data-weapon="sail" title="Sailing (${this.activeRogueShip?.movesRemaining} Remaining)">⚓</button>
+                    <button class="arsenal-btn ${(window as any).selectedRogueWeapon === 'sonar' ? 'active' : ''} ${Ship.resources.sonars <= 0 ? 'spent' : ''}" data-weapon="sonar" title="Sonar Ping (${Ship.resources.sonars} Remaining)">📡</button>
+                    <button class="arsenal-btn ${(window as any).selectedRogueWeapon === 'mine' ? 'active' : ''} ${Ship.resources.mines <= 0 ? 'spent' : ''}" data-weapon="mine" title="Place Mine (${Ship.resources.mines} Remaining)">⚓</button>
                 `;
-                if (!selected || mode !== 'move') (window as any).selectedRogueWeapon = 'sail';
             } else {
                 arsenalTitle.innerText = 'ATTACK SYSTEMS';
+                // Always default to 'cannon' when entering Attack mode
+                (window as any).selectedRogueWeapon = 'cannon';
                 arsenalItems.innerHTML = `
-                    <button class="arsenal-btn ${selected === 'cannon' || !selected ? 'active' : ''}" data-weapon="cannon" title="Normal Cannon (Infinite)">⚔️</button>
-                    <button class="arsenal-btn ${selected === 'airstrike' ? 'active' : ''} ${Ship.resources.airStrikes <= 0 ? 'spent' : ''}" data-weapon="airstrike" title="Air Strike (${Ship.resources.airStrikes} Remaining)">🚀</button>
+                    <button class="arsenal-btn active" data-weapon="cannon" title="Normal Cannon (Infinite)">⚔️</button>
+                    <button class="arsenal-btn ${(window as any).selectedRogueWeapon === 'airstrike' ? 'active' : ''} ${Ship.resources.airStrikes <= 0 ? 'spent' : ''}" data-weapon="airstrike" title="Air Strike (${Ship.resources.airStrikes} Remaining)">🚀</button>
                 `;
-                if (!selected || mode !== 'attack') (window as any).selectedRogueWeapon = 'cannon';
             }
             this.bindArsenalEvents();
         }
