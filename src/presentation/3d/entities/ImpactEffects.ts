@@ -205,13 +205,14 @@ export class ImpactEffects {
                 const ex = sx - boardOffset + 0.5;
                 const ez = sz - boardOffset + 0.5;
 
+                const speed = Config.timing.gameSpeedMultiplier;
                 setTimeout(() => {
                     this.particleSystem.spawnExplosion(ex, 0.4, ez, targetGroup);
                     this.particleSystem.spawnVoxelExplosion(ex, 0.4, ez, 10, targetGroup);
                     const rippleOnPlayerBoard = Config.rogueMode ? false : !isPlayer;
                     addRipple(ex, ez, rippleOnPlayerBoard);
                     this.addPersistentFireToShipCell(shipGroup, sx, sz, boardOffset, 2.0, this.particleSystem.blackSmokeMat.color.getStyle());
-                }, delay * 1000);
+                }, (delay * 1000) / speed);
             }
         }
     }
@@ -241,14 +242,15 @@ export class ImpactEffects {
             targetFireGroup = isPartA ? shipGroup.userData.halfA : shipGroup.userData.halfB;
         }
 
-        const lX = targetWorldX - shipGroup.position.x
-            - (targetFireGroup === shipGroup ? 0 : shipGroup.userData.pivotPos?.x || 0);
-        const lZ = targetWorldZ - shipGroup.position.z
-            - (targetFireGroup === shipGroup ? 0 : shipGroup.userData.pivotPos?.z || 0);
+        // Use worldToLocal to handle ship rotation and board position correctly
+        const boardGroup = shipGroup.parent || this.playerBoardGroup;
+        const worldPos = new THREE.Vector3(targetWorldX, 0.4, targetWorldZ);
+        boardGroup.localToWorld(worldPos);
+        targetFireGroup.worldToLocal(worldPos);
 
         const shipId = shipGroup.userData.ship?.id || 'unknown';
         this.particleSystem.addEmitter(
-            lX, 0.4, lZ, 
+            worldPos.x, worldPos.y, worldPos.z,
             true, targetFireGroup, 
             smokeColor, 
             intensity, 

@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { ThemeManager } from '../../theme/ThemeManager';
 import { eventBus, GameEventType } from '../../../application/events/GameEventBus';
+import { Config } from '../../../infrastructure/config/Config';
 
 interface Particle {
     mesh: THREE.Mesh;
@@ -251,16 +252,17 @@ export class ParticleSystem {
 
     public update() {
         const now = Date.now();
+        const speed = Config.timing.gameSpeedMultiplier;
         for (const emitter of this.emitters) {
             if (now > emitter.nextSpawn) {
                 if (emitter.hasFire) {
                     this.spawnFire(emitter.x, emitter.y, emitter.z, emitter.group, emitter.intensity);
                     this.spawnSmoke(emitter.x, emitter.y + 0.2, emitter.z, emitter.color, emitter.group, emitter.intensity);
-                    // Spawn frequency scales with intensity
-                    emitter.nextSpawn = now + (150 / emitter.intensity);
+                    // Spawn frequency scales with intensity and game speed
+                    emitter.nextSpawn = now + (150 / (emitter.intensity * speed));
                 } else {
                     this.spawnSmoke(emitter.x, emitter.y, emitter.z, emitter.color, emitter.group, emitter.intensity);
-                    emitter.nextSpawn = now + (200 / emitter.intensity);
+                    emitter.nextSpawn = now + (200 / (emitter.intensity * speed));
                 }
             }
         }
@@ -268,14 +270,14 @@ export class ParticleSystem {
         for (let i = this.particles.length - 1; i >= 0; i--) {
             const p = this.particles[i];
 
-            p.mesh.position.add(p.velocity);
+            p.mesh.position.addScaledVector(p.velocity, speed);
 
             if (p.isSmoke) {
                 // Smoke drifts and expands slightly, and rises
-                p.mesh.scale.addScalar(0.005); // Slower expansion
+                p.mesh.scale.addScalar(0.005 * speed); // Slower expansion
                 // add slight wind/wobble
-                p.velocity.x += (Math.random() - 0.5) * 0.001;
-                p.velocity.z += (Math.random() - 0.5) * 0.001;
+                p.velocity.x += (Math.random() - 0.5) * 0.001 * speed;
+                p.velocity.z += (Math.random() - 0.5) * 0.001 * speed;
 
                 // Gradual transparency fade
                 if (p.mesh.material instanceof THREE.MeshStandardMaterial) {
@@ -283,9 +285,9 @@ export class ParticleSystem {
                 }
             } else if (p.isFire) {
                 // Fire rises and flickers
-                p.mesh.scale.multiplyScalar(0.96);
-                p.velocity.x += (Math.random() - 0.5) * 0.005;
-                p.velocity.z += (Math.random() - 0.5) * 0.005;
+                p.mesh.scale.multiplyScalar(Math.pow(0.96, speed));
+                p.velocity.x += (Math.random() - 0.5) * 0.005 * speed;
+                p.velocity.z += (Math.random() - 0.5) * 0.005 * speed;
 
                 // Randomly pulsate emissive intensity for flicker
                 if (p.mesh.material instanceof THREE.MeshStandardMaterial) {
@@ -293,14 +295,14 @@ export class ParticleSystem {
                 }
             } else {
                 // Gravity for explosion/splash pieces
-                p.velocity.y -= 0.005;
+                p.velocity.y -= 0.005 * speed;
             }
 
             // Rotate
-            p.mesh.rotation.x += 0.05;
-            p.mesh.rotation.y += 0.05;
+            p.mesh.rotation.x += 0.05 * speed;
+            p.mesh.rotation.y += 0.05 * speed;
 
-            p.life -= 0.016;
+            p.life -= 0.016 * speed;
 
             // Scale down at end of life
             if (p.life < p.maxLife * 0.3) {
