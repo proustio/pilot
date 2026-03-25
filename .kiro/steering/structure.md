@@ -17,7 +17,9 @@ src/
 ├── application/               # Orchestration and use cases
 │   ├── ai/AIEngine.ts         # AI opponent (Easy=random, Normal=hunt/target, Hard=heatmap)
 │   └── game-loop/
-│       ├── GameLoop.ts        # State machine (MAIN_MENU → SETUP_BOARD → PLAYER_TURN ↔ ENEMY_TURN → GAME_OVER)
+│       ├── GameLoop.ts        # State machine orchestration; delegates event/mode logic
+│       ├── GameEventManager.ts # Centralized DOM/Game event registration and routing
+│       ├── RogueActionHandler.ts # Dedicated Rogue-mode movement and ability logic
 │       ├── MatchSetup.ts      # Match initialization, loading, and replay logic
 │       └── TurnExecutor.ts    # Turn handling for AI, auto-player, and player interaction
 │
@@ -33,7 +35,9 @@ src/
 │   ├── 3d/
 │   │   ├── Engine3D.ts        # Three.js scene, camera, renderer, orbit controls, lighting
 │   │   ├── entities/
-│   │   │   ├── EntityManager.ts   # Scene orchestration, water, and sinking updates
+│   │   │   ├── EntityManager.ts   # Scene orchestration, disposal, and sub-task delegation
+│   │   │   ├── WaterShaderManager.ts # Ripple effects and water shader animation timing
+│   │   │   ├── VesselVisibilityManager.ts # Ship visibility, sinking, and rogue fog revelation
 │   │   │   ├── BoardBuilder.ts    # Procedural generation of board meshes and materials
 │   │   │   ├── ShipFactory.ts     # Voxel ship creation and instancing
 │   │   │   ├── ProjectileManager.ts # Projectile creation and arc animation
