@@ -198,7 +198,8 @@ export class ImpactEffects {
             }
         } else {
             for (let s = 0; s < shipLength; s++) {
-                const delay = s * 0.2 + (Math.random() * 0.1);
+                // More dramatic, slower explosion sequence for sinking
+                const delay = s * 0.4 + (Math.random() * 0.2);
                 const sx = minX + (isHorizontal ? s : 0);
                 const sz = minZ + (!isHorizontal ? s : 0);
 
@@ -208,7 +209,7 @@ export class ImpactEffects {
                 const speed = Config.timing.gameSpeedMultiplier;
                 setTimeout(() => {
                     this.particleSystem.spawnExplosion(ex, 0.4, ez, targetGroup);
-                    this.particleSystem.spawnVoxelExplosion(ex, 0.4, ez, 10, targetGroup);
+                    this.particleSystem.spawnVoxelExplosion(ex, 0.4, ez, 15, targetGroup);
                     const rippleOnPlayerBoard = Config.rogueMode ? false : !isPlayer;
                     addRipple(ex, ez, rippleOnPlayerBoard);
                     this.addPersistentFireToShipCell(shipGroup, sx, sz, boardOffset, 2.0, this.particleSystem.blackSmokeMat.color.getStyle());

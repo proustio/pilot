@@ -289,6 +289,11 @@ export class TurnExecutor {
             this.s.isAnimating = true;
 
             const finalizeTurn = () => {
+                if (this.s.isPaused) {
+                    setTimeout(finalizeTurn, 100);
+                    return;
+                }
+
                 let status: 'ongoing' | 'player_wins' | 'enemy_wins' = 'ongoing';
                 try {
                     status = this.s.match!.checkGameEnd();

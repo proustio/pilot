@@ -199,6 +199,8 @@ export class GameLoop {
     }
 
     public startNewMatch(match: Match): void {
+        this.isAnimating = false;
+        this.onAnimationsComplete = null;
         this.matchSetup.startNewMatch(match);
     }
 
@@ -208,6 +210,8 @@ export class GameLoop {
         activeRogueShipIndex?: number,
         activeEnemyRogueShipIndex?: number
     ): void {
+        this.isAnimating = false;
+        this.onAnimationsComplete = null;
         this.config.preferredMode = match.mode;
         this.config.saveConfig();
         this.matchSetup.loadMatch(match, resources, activeRogueShipIndex, activeEnemyRogueShipIndex);

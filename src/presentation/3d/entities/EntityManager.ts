@@ -85,6 +85,13 @@ export class EntityManager {
         eventBus.on(GameEventType.ACTIVE_SHIP_CHANGED, (payload) => {
             this.activeRogueShipId = payload.ship?.id || null;
         });
+
+        // Ensure animations complete signal is sent after resuming if no animations are active
+        eventBus.on(GameEventType.RESUME_GAME, () => {
+            if (!this.isBusy()) {
+                eventBus.emit(GameEventType.GAME_ANIMATIONS_COMPLETE, undefined as any);
+            }
+        });
     }
 
     public setPlayerTurn(isPlayerTurn: boolean) {
@@ -274,7 +281,7 @@ export class EntityManager {
     }
 
     private updateShipAnimations() {
-        const descentRate = 0.005 * Config.timing.gameSpeedMultiplier;
+        const descentRate = 0.001 * Config.timing.gameSpeedMultiplier;
         const sinkFloor = Config.visual.sinkingFloor;
         const moveLerpFactor = 0.1 * Config.timing.gameSpeedMultiplier;
 
