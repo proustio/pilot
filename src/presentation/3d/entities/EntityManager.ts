@@ -6,6 +6,8 @@ import { ShipFactory } from './ShipFactory';
 import { ProjectileManager } from './ProjectileManager';
 import { FogManager } from './FogManager';
 import { ParticleSystem } from './ParticleSystem';
+import { WaterShaderManager } from './WaterShaderManager';
+import { VesselVisibilityManager } from './VesselVisibilityManager';
 
 export class EntityManager {
     private scene: THREE.Scene;
@@ -25,20 +27,14 @@ export class EntityManager {
     }
 
     private time: number = 0;
-    private playerWaterUniforms: any = null;
-    private enemyWaterUniforms: any = null;
-
-    private playerRippleIndex: number = 0;
-    private enemyRippleIndex: number = 0;
-
     private wasBusy: boolean = false;
 
     // Sub-managers
     private particleSystem: ParticleSystem;
     private fogManager: FogManager;
     private projectileManager: ProjectileManager;
-
-    private allShips: Ship[] = []; // Stores references to domain ships for rogue fog
+    private waterManager: WaterShaderManager;
+    private visibilityManager: VesselVisibilityManager;
 
     private activeRogueShipId: string | null = null;
     private isPlayerTurn: boolean = false;
@@ -54,10 +50,9 @@ export class EntityManager {
         this.particleSystem = new ParticleSystem();
         this.fogManager = new FogManager(this.enemyBoardGroup, Config.rogueMode);
 
-        // Position faces: Player points UP, Enemy points DOWN
         this.playerBoardGroup.position.y = 1.2;
         this.enemyBoardGroup.position.y = -1.2;
-        this.enemyBoardGroup.rotation.x = Math.PI; // Flipped upside down
+        this.enemyBoardGroup.rotation.x = Math.PI;
 
         this.masterBoardGroup.add(this.playerBoardGroup);
         this.masterBoardGroup.add(this.enemyBoardGroup);
@@ -65,7 +60,6 @@ export class EntityManager {
         this.scene.add(this.masterBoardGroup);
         this.scene.add(this.staticGroup);
 
-        // Build the board meshes via BoardBuilder
         const buildResult = BoardBuilder.build(
             this.masterBoardGroup,
             this.staticGroup,
@@ -76,10 +70,10 @@ export class EntityManager {
 
         this.playerGridTiles = buildResult.playerGridTiles;
         this.enemyGridTiles = buildResult.enemyGridTiles;
-        this.playerWaterUniforms = buildResult.playerWaterUniforms;
-        this.enemyWaterUniforms = buildResult.enemyWaterUniforms;
+        
+        this.waterManager = new WaterShaderManager(buildResult.playerWaterUniforms, buildResult.enemyWaterUniforms);
+        this.visibilityManager = new VesselVisibilityManager(this.fogManager, this.playerBoardGroup, this.enemyBoardGroup);
 
-        // Create projectile manager with bound addRipple
         this.projectileManager = new ProjectileManager(
             this.particleSystem,
             this.fogManager,
@@ -99,31 +93,19 @@ export class EntityManager {
 
     // ───── Public API ─────
 
-    /**
-     * Returns the list of objects that the Raycaster should test against.
-     * Only returns the tiles that are currently facing UP.
-     */
     public getInteractableObjects(): readonly THREE.Object3D[] {
         const isEnemyUp = Math.abs(this.masterBoardGroup.rotation.x - Math.PI) < 0.1;
         return isEnemyUp ? this.enemyGridTiles : this.playerGridTiles;
     }
 
     public showPlayerBoard() {
-        if (Config.rogueMode) {
-            this.targetRotationX = 0; // No flipping in Rogue mode
-            this.fogManager.setParent(this.enemyBoardGroup); // Shared board is enemy side
-        } else {
-            this.targetRotationX = 0;
-        }
+        this.targetRotationX = 0;
+        if (Config.rogueMode) this.fogManager.setParent(this.enemyBoardGroup);
     }
 
     public showEnemyBoard() {
-        if (Config.rogueMode) {
-            this.targetRotationX = 0; // No flipping in Rogue mode
-            this.fogManager.setParent(this.enemyBoardGroup); // Keep fog on actual board, even when peeking at bottom
-        } else {
-            this.targetRotationX = Math.PI;
-        }
+        this.targetRotationX = Config.rogueMode ? 0 : Math.PI;
+        if (Config.rogueMode) this.fogManager.setParent(this.enemyBoardGroup);
     }
 
     public clearFogCell(x: number, z: number) {
@@ -136,31 +118,21 @@ export class EntityManager {
 
     public addShip(ship: Ship, x: number, z: number, orientation: Orientation, isPlayer: boolean) {
         const isRogue = Config.rogueMode;
-        // In Rogue mode, everything happens on the playerBoardGroup (top side, non-flipped)
         const targetGroup = isRogue ? this.playerBoardGroup : (isPlayer ? this.playerBoardGroup : this.enemyBoardGroup);
         const shipGroup = ShipFactory.createShip(ship, x, z, orientation, isPlayer, targetGroup);
 
-        if (!isPlayer) {
-            shipGroup.visible = false; // Initially hidden for all enemy ships
-        }
+        if (!isPlayer) shipGroup.visible = false;
+        this.visibilityManager.trackShip(ship);
 
-        if (!this.allShips.includes(ship)) {
-            this.allShips.push(ship);
-        }
-
-        // Trigger water ripple at ship center
+        // Trigger water ripple
         const boardOffset = Config.board.width / 2;
-        let cx = x;
-        let cz = z;
-
+        let cx = x, cz = z;
         if (orientation === Orientation.Horizontal) cx += Math.floor(ship.size / 2);
         else if (orientation === Orientation.Vertical) cz += Math.floor(ship.size / 2);
         else if (orientation === Orientation.Left) cx -= Math.floor(ship.size / 2);
         else if (orientation === Orientation.Up) cz -= Math.floor(ship.size / 2);
 
-        const rippleWorldX = cx - boardOffset + 0.5;
-        const rippleWorldZ = cz - boardOffset + 0.5;
-        this.addRipple(rippleWorldX, rippleWorldZ, isPlayer);
+        this.addRipple(cx - boardOffset + 0.5, cz - boardOffset + 0.5, isPlayer);
     }
 
     public onTurnChange() {
@@ -170,35 +142,28 @@ export class EntityManager {
     public addAttackMarker(x: number, z: number, result: string, isPlayer: boolean, isReplay: boolean = false) {
         if (isPlayer && Config.rogueMode) {
             this.fogManager.revealCellTemporarily(x, z);
-            
-            if (result === 'sunk') {
-                const sunkShip = this.allShips.find(s => s.isEnemy && s.getOccupiedCoordinates().some(c => c.x === x && c.z === z));
-                if (sunkShip) {
-                    sunkShip.getOccupiedCoordinates().forEach((c: {x: number, z: number}) => {
-                        this.fogManager.revealCellPermanently(c.x, c.z);
-                        // Reveal padding around sunk ship
-                        for (let dx = -1; dx <= 1; dx++) {
-                            for (let dz = -1; dz <= 1; dz++) {
-                                const rx = c.x + dx;
-                                const rz = c.z + dz;
-                                if (rx >= 0 && rx < Config.board.width && rz >= 0 && rz < Config.board.height) {
-                                    this.fogManager.revealCellPermanently(rx, rz);
-                                }
-                            }
-                        }
-                    });
-                }
-            }
+            if (result === 'sunk') this.revealSunkShip(x, z);
         }
-        this.projectileManager.addAttackMarker(
-            x, z, result, isPlayer, isReplay,
-            this.addRipple.bind(this)
-        );
+        this.projectileManager.addAttackMarker(x, z, result, isPlayer, isReplay, this.addRipple.bind(this));
     }
 
-    /**
-     * Smoothly translates the ship's THREE.Group to new board coordinates via lerp in update().
-     */
+    private revealSunkShip(x: number, z: number) {
+        const sunkShip = this.visibilityManager.allShips.find(s => s.isEnemy && s.getOccupiedCoordinates().some(c => c.x === x && c.z === z));
+        if (sunkShip) {
+            sunkShip.getOccupiedCoordinates().forEach((c: {x: number, z: number}) => {
+                this.fogManager.revealCellPermanently(c.x, c.z);
+                for (let dx = -1; dx <= 1; dx++) {
+                    for (let dz = -1; dz <= 1; dz++) {
+                        const rx = c.x + dx, rz = c.z + dz;
+                        if (rx >= 0 && rx < Config.board.width && rz >= 0 && rz < Config.board.height) {
+                            this.fogManager.revealCellPermanently(rx, rz);
+                        }
+                    }
+                }
+            });
+        }
+    }
+
     public moveShip3D(ship: Ship, x: number, z: number, orientation: Orientation) {
         let targetGroup: THREE.Group | undefined;
         let parentGroup: THREE.Group | undefined;
@@ -214,28 +179,18 @@ export class EntityManager {
 
         if (!targetGroup || !parentGroup) return;
 
-        // If orientation changed, we should rebuild the mesh because ShipFactory 
-        // bakes orientation into the Voxel Geometry, instead of rotating a shared mesh.
         if (targetGroup.userData.shipOrientation !== orientation) {
             const isPlayer = parentGroup === this.playerBoardGroup;
             parentGroup.remove(targetGroup);
-            
-            // Create a new one at the exact same world position as previous so it can Lerp
             const newShipGroup = ShipFactory.createShip(ship, ship.headX, ship.headZ, orientation, isPlayer, parentGroup);
             newShipGroup.position.copy(targetGroup.position); 
             targetGroup = newShipGroup;
         }
 
         const boardOffset = Config.board.width / 2;
-        const targetWorldX = x - boardOffset + 0.5;
-        const targetWorldZ = z - boardOffset + 0.5;
-
-        targetGroup.userData.targetPosition = new THREE.Vector3(targetWorldX, 0, targetWorldZ);
+        targetGroup.userData.targetPosition = new THREE.Vector3(x - boardOffset + 0.5, 0, z - boardOffset + 0.5);
     }
 
-    /**
-     * Returns true if there are any active animations (projectiles, particles, sinking ships, moving ships).
-     */
     public isBusy(): boolean {
         if (this.projectileManager.hasFallingMarkers()) return true;
         if (this.particleSystem.hasActiveParticles()) return true;
@@ -244,138 +199,65 @@ export class EntityManager {
         const sinkFloor = Config.visual.sinkingFloor;
         [this.playerBoardGroup, this.enemyBoardGroup].forEach(group => {
             group.children.forEach((child: THREE.Object3D) => {
-                if (child.userData.isShip && child.userData.isSinking) {
-                    if (child.position.y > sinkFloor) {
-                        isAnimating = true;
-                    }
-                }
-                if (child.userData.isShip && child.userData.targetPosition) {
-                    if (child.position.distanceToSquared(child.userData.targetPosition) > 0.001) {
-                        isAnimating = true;
-                    }
+                if (child.userData.isShip && ((child.userData.isSinking && child.position.y > sinkFloor) || 
+                    (child.userData.targetPosition && child.position.distanceToSquared(child.userData.targetPosition) > 0.001))) {
+                    isAnimating = true;
                 }
             });
         });
-
         return isAnimating;
     }
 
     // ───── Update Loop ─────
 
     public update(camera: THREE.Camera) {
-        // Board rotation lerp
-        const actualFlipSpeed = Config.timing.boardFlipSpeed * Config.timing.gameSpeedMultiplier;
-        this.masterBoardGroup.rotation.x += (this.targetRotationX - this.masterBoardGroup.rotation.x) * actualFlipSpeed;
-
-        // Water shader time
-        const waterTimeIncrement = 0.016 * Config.timing.gameSpeedMultiplier;
-        this.time += waterTimeIncrement;
-
-        // Fog animation
-        this.fogManager.updateAnimation(this.time, camera);
-
-        // Water uniforms
-        this.updateWater(this.playerWaterUniforms, waterTimeIncrement);
-        this.updateWater(this.enemyWaterUniforms, waterTimeIncrement);
-
-        // Dynamic fog and enemy visibility
-        this.fogManager.updateRogueFog(this.allShips);
+        const gameSpeed = Config.timing.gameSpeedMultiplier;
         
-        // Update enemy ship visibility based on fog/sink status (Throttled)
-        if (Math.floor(this.time * 60) % 5 === 0) { // Every 5 frames (~12fps)
-            this.allShips.forEach(ship => {
-                if (!ship.isEnemy) return;
-                
-                // Find its 3D group
-                let shipGroup: THREE.Group | undefined;
-                [this.playerBoardGroup, this.enemyBoardGroup].forEach(bg => {
-                    bg.children.forEach(child => {
-                        if (child.userData.isShip && child.userData.ship?.id === ship.id) {
-                            shipGroup = child as THREE.Group;
-                        }
-                    });
-                });
+        this.masterBoardGroup.rotation.x += (this.targetRotationX - this.masterBoardGroup.rotation.x) * Config.timing.boardFlipSpeed * gameSpeed;
+        this.time += 0.016 * gameSpeed;
 
-                if (shipGroup) {
-                    let isVisible: boolean;
-                    if (Config.rogueMode) {
-                        const coords = ship.getOccupiedCoordinates();
-                        isVisible = coords.some(c => this.fogManager.isCellRevealed(c.x, c.z)) || ship.isSunk();
-                        
-                        if (isVisible) {
-                            this.updateShipPartialVisibility(ship, shipGroup);
-                        }
-                    } else {
-                        isVisible = ship.isSunk();
-                    }
-                    shipGroup.visible = isVisible;
-                }
-            });
-        }
-
-        // LED pulsing
-        this.staticGroup.children.forEach(child => {
-            if (child.userData.isStatusLED) {
-                const led = child as THREE.Mesh;
-                const mat = led.material as THREE.MeshBasicMaterial;
-                child.userData.phase += 0.05;
-                const glow = 0.5 + Math.sin(child.userData.phase) * 0.5;
-                mat.opacity = 0.3 + glow * 0.7;
-            }
-        });
-
-        // Particle system
+        this.fogManager.updateAnimation(this.time, camera);
+        this.waterManager.update(this.time, gameSpeed);
+        this.visibilityManager.update(this.time);
+        
+        this.updateStaticAnimations();
         this.particleSystem.update();
+        this.projectileManager.updateProjectiles(this.addRipple.bind(this), null, null); 
 
-        // Projectile arcs
-        this.projectileManager.updateProjectiles(
-            this.addRipple.bind(this),
-            this.playerWaterUniforms,
-            this.enemyWaterUniforms
-        );
-
-        // Busy state change event
         const currentBusy = this.isBusy();
-        if (this.wasBusy && !currentBusy) {
-            document.dispatchEvent(new CustomEvent('GAME_ANIMATIONS_COMPLETE'));
-        }
+        if (this.wasBusy && !currentBusy) document.dispatchEvent(new CustomEvent('GAME_ANIMATIONS_COMPLETE'));
         this.wasBusy = currentBusy;
 
-        // Ship animations (sinking & movement)
         this.updateShipAnimations();
-
-        // Ship highlighting
         this.updateShipHighlighting();
-
-        // Rogue Placement Area Highlighting
         this.updatePlacementHighlight();
     }
 
-    private isSetupPhase: boolean = false;
+    private updateStaticAnimations() {
+        this.staticGroup.children.forEach(child => {
+            if (child.userData.isStatusLED) {
+                const mat = (child as THREE.Mesh).material as THREE.MeshBasicMaterial;
+                child.userData.phase += 0.05;
+                mat.opacity = 0.3 + (0.5 + Math.sin(child.userData.phase) * 0.5) * 0.7;
+            }
+        });
+    }
 
+    private isSetupPhase: boolean = false;
     public setSetupPhase(isSetup: boolean) {
         this.isSetupPhase = isSetup;
         this.fogManager.setSetupPhase(isSetup);
     }
 
     private updatePlacementHighlight() {
-        if (!Config.rogueMode || !this.isSetupPhase) {
-            // Reset any remaining highlights if we just left setup
-            return;
-        }
-
-        const throb = (Math.sin(this.time * 5) + 1) / 2;
-        const currentIntensity = 0.1 + throb * 0.3;
+        if (!Config.rogueMode || !this.isSetupPhase) return;
+        const currentIntensity = 0.1 + ((Math.sin(this.time * 5) + 1) / 2) * 0.3;
         const highlightColor = new THREE.Color(0x00ffff);
 
         this.playerGridTiles.forEach(tile => {
             const { cellX, cellZ } = tile.userData;
-            // Player placement area: Top-Left 10x10 (0-9, 0-9)
             let isInArea = cellX < 7 && cellZ < 7;
-            
-            const mesh = tile as THREE.Mesh;
-            const mat = mesh.material as THREE.MeshStandardMaterial;
-            
+            const mat = (tile as THREE.Mesh).material as THREE.MeshStandardMaterial;
             if (isInArea) {
                 mat.emissive.copy(highlightColor);
                 mat.emissiveIntensity = currentIntensity;
@@ -387,36 +269,8 @@ export class EntityManager {
         });
     }
 
-    // ───── Private Helpers ─────
-
     private addRipple(worldX: number, worldZ: number, isPlayerBoard: boolean) {
-        const uniforms = isPlayerBoard ? this.playerWaterUniforms : this.enemyWaterUniforms;
-        let rIndex = isPlayerBoard ? this.playerRippleIndex : this.enemyRippleIndex;
-
-        if (uniforms) {
-            uniforms.rippleCenters.value[rIndex].set(worldX, -worldZ);
-            uniforms.rippleTimes.value[rIndex] = 0.01;
-            rIndex = (rIndex + 1) % 5;
-
-            if (isPlayerBoard) this.playerRippleIndex = rIndex;
-            else this.enemyRippleIndex = rIndex;
-        }
-    }
-
-    private updateWater(uniforms: any, waterTimeIncrement: number) {
-        if (!uniforms) return;
-        uniforms.time.value = this.time;
-        for (let i = 0; i < 5; i++) {
-            if (uniforms.rippleTimes.value[i] > 0) {
-                uniforms.rippleTimes.value[i] += waterTimeIncrement;
-                if (uniforms.rippleTimes.value[i] > (2.0 / Config.timing.gameSpeedMultiplier)) {
-                    uniforms.rippleTimes.value[i] = 0;
-                }
-            }
-        }
-        if (uniforms.globalTurbulence.value > 0) {
-            uniforms.globalTurbulence.value = Math.max(0, uniforms.globalTurbulence.value - waterTimeIncrement * 0.2);
-        }
+        this.waterManager.addRipple(worldX, worldZ, isPlayerBoard);
     }
 
     private updateShipAnimations() {
@@ -426,115 +280,45 @@ export class EntityManager {
 
         [this.playerBoardGroup, this.enemyBoardGroup].forEach(group => {
             group.children.forEach((child: THREE.Object3D) => {
-                if (child.userData.isShip) {
-                    // Sinking logic
-                    if (child.userData.isSinking && child.position.y > sinkFloor) {
-                        child.position.y -= descentRate;
-                        const sinkProgress = Math.min(1.0, -child.position.y / Math.abs(sinkFloor));
+                if (!child.userData.isShip) return;
+                if (child.userData.isSinking && child.position.y > sinkFloor) {
+                    child.position.y -= descentRate;
+                    const sinkProgress = Math.min(1.0, -child.position.y / Math.abs(sinkFloor));
+                    child.rotation.z = sinkProgress * (child.userData.sinkAngleZ ?? 0.15);
+                    child.rotation.x = sinkProgress * (child.userData.sinkAngleX ?? 0.08);
 
-                        const targetZ = child.userData.sinkAngleZ ?? 0.15;
-                        const targetX = child.userData.sinkAngleX ?? 0.08;
-
-                        child.rotation.z = sinkProgress * targetZ;
-                        child.rotation.x = sinkProgress * targetX;
-
-                        // V-Shape Breaking Animation
-                        if (child.userData.isBroken && child.userData.halfA && child.userData.halfB) {
-                            const breakAngle = sinkProgress * 0.4;
-                            const isHorizontal = child.userData.shipOrientation === Orientation.Horizontal;
-
-                            if (isHorizontal) {
-                                child.userData.halfA.rotation.z = breakAngle;
-                                child.userData.halfB.rotation.z = -breakAngle;
-                            } else {
-                                child.userData.halfA.rotation.x = -breakAngle;
-                                child.userData.halfB.rotation.x = breakAngle;
-                            }
+                    if (child.userData.isBroken && child.userData.halfA && child.userData.halfB) {
+                        const breakAngle = sinkProgress * 0.4;
+                        if (child.userData.shipOrientation === Orientation.Horizontal) {
+                            child.userData.halfA.rotation.z = breakAngle;
+                            child.userData.halfB.rotation.z = -breakAngle;
+                        } else {
+                            child.userData.halfA.rotation.x = -breakAngle;
+                            child.userData.halfB.rotation.x = breakAngle;
                         }
                     }
-
-                    // Movement logic
-                    if (child.userData.targetPosition) {
-                        child.position.lerp(child.userData.targetPosition, moveLerpFactor);
-                        if (child.position.distanceToSquared(child.userData.targetPosition) < 0.001) {
-                            child.position.copy(child.userData.targetPosition);
-                            child.userData.targetPosition = null;
-                        }
+                }
+                if (child.userData.targetPosition) {
+                    child.position.lerp(child.userData.targetPosition, moveLerpFactor);
+                    if (child.position.distanceToSquared(child.userData.targetPosition) < 0.001) {
+                        child.position.copy(child.userData.targetPosition);
+                        child.userData.targetPosition = null;
                     }
                 }
             });
         });
     }
 
-    private updateShipPartialVisibility(ship: Ship, shipGroup: THREE.Group) {
-        if (!Config.rogueMode || !ship.isEnemy) return;
-
-        const coords = ship.getOccupiedCoordinates();
-        const instancedMesh = shipGroup.userData.instancedMesh as THREE.InstancedMesh;
-        // Find the wireframe instanced mesh
-        const instancedLines = shipGroup.children.find(c => c instanceof THREE.InstancedMesh && c !== instancedMesh) as THREE.InstancedMesh;
-
-        const updateMesh = (im: THREE.InstancedMesh) => {
-            if (!im) return;
-            const dummy = new THREE.Object3D();
-            let needsUpdate = false;
-
-            for (let i = 0; i < im.count; i++) {
-                im.getMatrixAt(i, dummy.matrix);
-                dummy.matrix.decompose(dummy.position, dummy.quaternion, dummy.scale);
-
-                // Segment index is based on local X position in ShipFactory
-                const segmentIndex = Math.floor(dummy.position.x + 0.5);
-                if (segmentIndex >= 0 && segmentIndex < coords.length) {
-                    const cell = coords[segmentIndex];
-                    const revealed = this.fogManager.isCellRevealed(cell.x, cell.z);
-                    const targetScale = revealed ? 1.0 : 0.0;
-
-                    if (Math.abs(dummy.scale.x - targetScale) > 0.001) {
-                        dummy.scale.setScalar(targetScale);
-                        dummy.updateMatrix();
-                        im.setMatrixAt(i, dummy.matrix);
-                        needsUpdate = true;
-                    }
-                }
-            }
-            if (needsUpdate) {
-                im.instanceMatrix.needsUpdate = true;
-            }
-        };
-
-        updateMesh(instancedMesh);
-        updateMesh(instancedLines);
-
-        // Update turrets and other non-instanced children
-        shipGroup.children.forEach(child => {
-            if (child instanceof THREE.Group && !child.userData.isShip) {
-                // Turret groups are positioned at segment-based X in ShipFactory
-                const segmentIndex = Math.floor(child.position.x + 0.5);
-                if (segmentIndex >= 0 && segmentIndex < coords.length) {
-                    const cell = coords[segmentIndex];
-                    child.visible = this.fogManager.isCellRevealed(cell.x, cell.z);
-                }
-            }
-        });
-    }
-
     private updateShipHighlighting() {
         const shouldHighlight = Config.rogueMode && this.isPlayerTurn && this.activeRogueShipId;
-        
-        // Throb between 0.2 and 0.8
-        const throb = (Math.sin(this.time * 5) + 1) / 2;
-        const currentIntensity = 0.2 + throb * 0.6;
-        const highlightColor = new THREE.Color(0xffff00);
-        const defaultColor = new THREE.Color(0x000000);
+        const currentIntensity = 0.2 + ((Math.sin(this.time * 5) + 1) / 2) * 0.6;
+        const highlightColor = new THREE.Color(0xffff00), defaultColor = new THREE.Color(0x000000);
 
         this.playerBoardGroup.children.forEach(child => {
             if (child.userData.isShip) {
-                const isActive = shouldHighlight && child.userData.ship?.id === this.activeRogueShipId;
                 const instancedMesh = child.userData.instancedMesh as THREE.InstancedMesh;
-                
-                if (instancedMesh && instancedMesh.material instanceof THREE.MeshStandardMaterial) {
-                    if (isActive) {
+                if (instancedMesh?.material instanceof THREE.MeshStandardMaterial) {
+                    if (shouldHighlight && child.userData.ship?.id === this.activeRogueShipId) {
                         instancedMesh.material.emissive.copy(highlightColor);
                         instancedMesh.material.emissiveIntensity = currentIntensity;
                     } else if (instancedMesh.material.emissiveIntensity > 0) {
@@ -547,9 +331,9 @@ export class EntityManager {
     }
 
     public resetMatch() {
-        const disposeShip = (obj: any) => {
+        const disposeShipAndMarkers = (obj: any) => {
             if (obj.userData.isShip) {
-                if (obj.userData.dispose) obj.userData.dispose(); // Call ShipFactory's disposal
+                if (obj.userData.dispose) obj.userData.dispose();
                 if (obj.geometry) obj.geometry.dispose();
                 if (obj.material) {
                     if (Array.isArray(obj.material)) obj.material.forEach((m: any) => m.dispose());
@@ -557,26 +341,20 @@ export class EntityManager {
                 }
             }
             if (obj.children) {
-                // Pre-collect to avoid concurrent modification issues
-                const children = [...obj.children];
-                children.forEach(child => {
+                [...obj.children].forEach(child => {
                     if (child.userData.isShip || child.userData.isAttackMarker) {
-                        disposeShip(child);
+                        disposeShipAndMarkers(child);
                         obj.remove(child);
                     }
                 });
             }
         };
 
-        disposeShip(this.playerBoardGroup);
-        disposeShip(this.enemyBoardGroup);
-        
-        this.allShips = [];
-
+        disposeShipAndMarkers(this.playerBoardGroup);
+        disposeShipAndMarkers(this.enemyBoardGroup);
+        this.visibilityManager.reset();
         this.particleSystem.clear();
         this.projectileManager.clear();
-        
-        // Reset fog
         this.fogManager.reset();
     }
 }

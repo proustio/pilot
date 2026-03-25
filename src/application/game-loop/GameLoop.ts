@@ -4,6 +4,8 @@ import { WeaponType } from '../../domain/board/Board';
 import { AIEngine, AIDifficulty } from '../ai/AIEngine';
 import { MatchSetup, MatchSetupState } from './MatchSetup';
 import { TurnExecutor, TurnExecutorState } from './TurnExecutor';
+import { GameEventManager } from './GameEventManager';
+import { RogueActionHandler } from './RogueActionHandler';
 
 export enum GameState {
     MAIN_MENU = 'MAIN_MENU',
@@ -45,6 +47,8 @@ export class GameLoop {
 
     private matchSetup: MatchSetup;
     private turnExecutor: TurnExecutor;
+    private eventManager: GameEventManager;
+    private rogueActionHandler: RogueActionHandler;
 
     private config: any;
     private storage: any;
@@ -59,394 +63,56 @@ export class GameLoop {
         this.aiEngine.setDifficulty(this.config.aiDifficulty as AIDifficulty);
         this.playerAIEngine.setDifficulty(this.config.aiDifficulty as AIDifficulty);
 
-        // Build a shared-state view that both helpers read/write through.
-        // Using `this` directly keeps all state in one place; the interfaces
-        // just document which fields each helper touches.
         const sharedState = this as unknown as MatchSetupState & TurnExecutorState;
 
         this.matchSetup = new MatchSetup(sharedState);
         this.turnExecutor = new TurnExecutor(sharedState);
+        this.eventManager = new GameEventManager(this);
+        this.rogueActionHandler = new RogueActionHandler(this);
 
-        this.registerEventListeners();
+        this.eventManager.registerEventListeners();
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // Event wiring
+    // Internal Getters for Managers
     // ─────────────────────────────────────────────────────────────────────────
 
-    private registerEventListeners(): void {
-        document.addEventListener('SET_AI_DIFFICULTY', (e: Event) => {
-            const ce = e as CustomEvent;
-            if (ce.detail?.difficulty) {
-                this.aiEngine.setDifficulty(ce.detail.difficulty as AIDifficulty);
-                this.playerAIEngine.setDifficulty(ce.detail.difficulty as AIDifficulty);
-            }
-        });
+    public getConfig() { return this.config; }
+    public getStorage() { return this.storage; }
+    public getTurnExecutor() { return this.turnExecutor; }
+    public getRogueActionHandler() { return this.rogueActionHandler; }
 
-        document.addEventListener('SET_GAME_SPEED', (e: Event) => {
-            const ce = e as CustomEvent;
-            if (ce.detail?.speed) {
-                this.config.timing.gameSpeedMultiplier = parseFloat(ce.detail.speed);
-            }
-        });
+    public invokeOnAnimationsComplete(): void {
+        if (this.onAnimationsComplete) {
+            const callback = this.onAnimationsComplete;
+            this.onAnimationsComplete = null;
+            callback();
+        }
+    }
 
-        document.addEventListener('TOGGLE_AUTO_BATTLER', (e: Event) => {
-            const ce = e as CustomEvent;
-            if (ce.detail !== undefined) {
-                if (this.config.autoBattler && this.currentState === GameState.PLAYER_TURN && !this.isAnimating) {
-                    this.turnExecutor.handleAutoPlayerTurn();
-                }
-            }
-        });
+    public onShipMovedInvoke(ship: Ship, x: number, z: number, orient: Orientation): void {
+        this.shipMovedListeners.forEach(l => l(ship, x, z, orient));
+    }
 
-        document.addEventListener('keydown', (e: KeyboardEvent) => {
-            const key = e.key;
-            
-            const isMatch = (action: string) => {
-                const binds = this.config.keybindings[action];
-                return binds && binds.some((b: string) => b.toLowerCase() === key.toLowerCase() || b === key);
-            };
-
-            if (isMatch('RotateWeapon')) {
-                if (this.currentState === GameState.SETUP_BOARD) {
-                    const cycle = [Orientation.Horizontal, Orientation.Vertical, Orientation.Left, Orientation.Up];
-                    let nextIdx = (cycle.indexOf(this.currentPlacementOrientation) + 1) % cycle.length;
-                    this.currentPlacementOrientation = cycle[nextIdx];
-                } else if (this.currentState === GameState.PLAYER_TURN) {
-                    const weapon = (window as any).selectedRogueWeapon;
-                    if (weapon === 'airstrike') {
-                        this.airStrikeOrientation = this.airStrikeOrientation === Orientation.Horizontal
-                            ? Orientation.Vertical
-                            : Orientation.Horizontal;
-                    }
-                }
-            } else if (this.currentState === GameState.PLAYER_TURN && this.config.rogueMode) {
-                if (isMatch('ToggleMoveSection')) {
-                    document.dispatchEvent(new CustomEvent('SET_ROGUE_ACTION_SECTION', { detail: { section: 'move' } }));
-                } else if (isMatch('ToggleAttackSection')) {
-                    document.dispatchEvent(new CustomEvent('SET_ROGUE_ACTION_SECTION', { detail: { section: 'attack' } }));
-                } else if (isMatch('ActionSail')) {
-                    document.dispatchEvent(new CustomEvent('SET_ROGUE_ACTION_SECTION', { detail: { section: 'move' } }));
-                    document.dispatchEvent(new CustomEvent('SET_ROGUE_WEAPON', { detail: { weapon: 'sail' } }));
-                } else if (isMatch('ActionPing')) {
-                    document.dispatchEvent(new CustomEvent('SET_ROGUE_ACTION_SECTION', { detail: { section: 'move' } }));
-                    document.dispatchEvent(new CustomEvent('SET_ROGUE_WEAPON', { detail: { weapon: 'sonar' } }));
-                } else if (isMatch('ActionMine')) {
-                    document.dispatchEvent(new CustomEvent('SET_ROGUE_ACTION_SECTION', { detail: { section: 'move' } }));
-                    document.dispatchEvent(new CustomEvent('SET_ROGUE_WEAPON', { detail: { weapon: 'mine' } }));
-                } else if (isMatch('ActionCannon')) {
-                    document.dispatchEvent(new CustomEvent('SET_ROGUE_ACTION_SECTION', { detail: { section: 'attack' } }));
-                    document.dispatchEvent(new CustomEvent('SET_ROGUE_WEAPON', { detail: { weapon: 'cannon' } }));
-                } else if (isMatch('ActionAirStrike')) {
-                    document.dispatchEvent(new CustomEvent('SET_ROGUE_ACTION_SECTION', { detail: { section: 'attack' } }));
-                    document.dispatchEvent(new CustomEvent('SET_ROGUE_WEAPON', { detail: { weapon: 'airstrike' } }));
-                } else if (isMatch('SkipTurn')) {
-                    this.advanceRogueShipTurn();
-                }
-            }
-        });
-
-        document.addEventListener('PAUSE_GAME', () => { this.isPaused = true; });
-        document.addEventListener('RESUME_GAME', () => { this.isPaused = false; });
-
-        document.addEventListener('TRIGGER_AUTO_SAVE', () => { this.requestAutoSave(); });
-
-        document.addEventListener('SAVE_GAME', (e: Event) => {
-            const ce = e as CustomEvent;
-            const slotId = ce.detail?.slotId;
-            const viewState = ce.detail?.viewState;
-            if (slotId && this.match) {
-                this.storage.saveGame(
-                    slotId, 
-                    this.match, 
-                    viewState,
-                    ce.detail?.activeRogueShipIndex ?? this.activeRogueShipIndex,
-                    ce.detail?.activeEnemyRogueShipIndex ?? this.activeEnemyRogueShipIndex
-                );
-            }
-        });
-
-        document.addEventListener('LOAD_GAME', (e: Event) => {
-            const ce = e as CustomEvent;
-            const slotId = ce.detail?.slotId;
-            if (slotId) {
-                const loaded = this.storage.loadGame(slotId);
-                if (loaded) {
-                    sessionStorage.setItem('battleships_autoload', slotId.toString());
-                    window.location.reload();
-                } else {
-                    console.error(`Failed to load from slot ${slotId}`);
-                }
-            }
-        });
-
-        document.addEventListener('GAME_ANIMATIONS_COMPLETE', () => {
-            if (this.onAnimationsComplete) {
-                const callback = this.onAnimationsComplete;
-                this.onAnimationsComplete = null;
-                callback();
-            }
-        });
-
-        document.addEventListener('ROGUE_ATTEMPT_MOVE', (e: Event) => {
-            const ce = e as CustomEvent;
-            const { targetX, targetZ } = ce.detail;
-            
-            if (!this.match || this.currentState !== GameState.PLAYER_TURN || this.config.autoBattler) return;
-            const sharedBoard = this.match.sharedBoard;
-
-            const ship = this.rogueShipOrder[this.activeRogueShipIndex];
-            if (!ship || ship.hasActedThisTurn || ship.movesRemaining <= 0) return;
-
-            // Weighted movement cost logic:
-            // Forward (towards front): 0.5 cost
-            // Backward (away from front): 2.0 cost
-            // Lateral/Other: 1.0 cost
-            
-            const dx = targetX - ship.headX;
-            const dz = targetZ - ship.headZ;
-            const dist = Math.abs(dx) + Math.abs(dz);
-            
-            if (dist === 0) return;
-
-            let totalCost = 0;
-            
-            // Simplified path cost calculation (assuming Manhattan-like step-by-step)
-            // But since it's a grid, we can just check the overall vector direction.
-            // For now, let's just calculate the cost for the final destination.
-            
-            const isHorizontal = ship.orientation === Orientation.Horizontal;
-            const moveDirX = targetX > ship.headX ? 1 : (targetX < ship.headX ? -1 : 0);
-            const moveDirZ = targetZ > ship.headZ ? 1 : (targetZ < ship.headZ ? -1 : 0);
-            
-            // Forward direction: 
-            // Horizontal: front is headX + size - 1, so +X is forward.
-            // Vertical: front is headZ + size - 1, so +Z is forward.
-            
-            if (isHorizontal) {
-                // Horizontal ship
-                if (moveDirZ !== 0) {
-                    totalCost = dist; // Lateral
-                } else if (moveDirX > 0) {
-                    totalCost = dist * 0.5; // Forward
-                } else {
-                    totalCost = dist * 2.0; // Backward
-                }
-            } else {
-                // Vertical ship
-                if (moveDirX !== 0) {
-                    totalCost = dist; // Lateral
-                } else if (moveDirZ > 0) {
-                    totalCost = dist * 0.5; // Forward
-                } else {
-                    totalCost = dist * 2.0; // Backward
-                }
-            }
-
-            if (totalCost > 0 && totalCost <= ship.movesRemaining) {
-                // Determine new orientation: 
-                let newOrient = ship.orientation;
-                if (Math.abs(dx) > Math.abs(dz)) newOrient = Orientation.Horizontal;
-                else if (Math.abs(dz) > Math.abs(dx)) newOrient = Orientation.Vertical;
-
-                // Move ship with the new calculated orientation
-                const moved = sharedBoard.moveShip(ship, targetX, targetZ, newOrient);
-                if (moved) {
-                    ship.movesRemaining = Math.max(0, ship.movesRemaining - totalCost);
-                    
-                    const queuedAbility = (window as any).queuedRogueAbility;
-                    if (queuedAbility) {
-                        if (queuedAbility === 'sonar' && Ship.resources.sonars > 0) {
-                            Ship.resources.sonars--;
-                            this.disperseAbilityAlongPath(ship, targetX, targetZ, 'sonar');
-                        } else if (queuedAbility === 'mine' && Ship.resources.mines > 0) {
-                            Ship.resources.mines--;
-                            this.disperseAbilityAlongPath(ship, targetX, targetZ, 'mine');
-                        }
-                        (window as any).queuedRogueAbility = null;
-                        ship.hasActedThisTurn = true;
-                        ship.movesRemaining = 0;
-                    }
-
-                    this.shipMovedListeners.forEach(listener => listener(ship, targetX, targetZ, newOrient));
-                    this.requestAutoSave();
-
-                    if (ship.movesRemaining <= 0 || ship.hasActedThisTurn) {
-                        this.isAnimating = true;
-                        setTimeout(() => {
-                            this.isAnimating = false;
-                            this.advanceRogueShipTurn();
-                        }, 800);
-                    }
-                }
-            }
-        });
-
-        document.addEventListener('ROGUE_MOVE_SHIP', (e: Event) => {
-            const ce = e as CustomEvent;
-            const { shipId, newX, newZ, newOrientation } = ce.detail;
-            if (!this.match || this.currentState !== GameState.PLAYER_TURN) return;
-
-            const ship = this.match.sharedBoard.ships.find(s => s.id === shipId);
-            if (!ship) return;
-
-            const activeShip = this.rogueShipOrder[this.activeRogueShipIndex];
-            if (activeShip && activeShip.id !== ship.id) {
-                return; // Can only move the currently active ship
-            }
-
-            if (ship.movesRemaining > 0 && !ship.hasActedThisTurn) {
-                const moved = this.match.sharedBoard.moveShip(ship, newX, newZ, newOrientation as Orientation);
-                if (moved) {
-                    ship.movesRemaining--;
-                    this.shipMovedListeners.forEach(listener => listener(ship, newX, newZ, newOrientation as Orientation));
-                    this.requestAutoSave();
-                }
-            }
-        });
-
-        document.addEventListener('ROGUE_USE_ABILITY', (e: Event) => {
-            const ce = e as CustomEvent;
-            const { type } = ce.detail;
-            
-            if (type === 'sonar' && Ship.resources.sonars > 0) {
-                (window as any).queuedRogueAbility = 'sonar';
-                document.dispatchEvent(new CustomEvent('ROGUE_ABILITY_QUEUED', { detail: { type: 'sonar' } }));
-            } else if (type === 'mine' && Ship.resources.mines > 0) {
-                (window as any).queuedRogueAbility = 'mine';
-                document.dispatchEvent(new CustomEvent('ROGUE_ABILITY_QUEUED', { detail: { type: 'mine' } }));
-            }
-        });
-
-        document.addEventListener('ROGUE_USE_WEAPON', (e: Event) => {
-            const ce = e as CustomEvent;
-            const { weaponType, targetX, targetZ, directionX, directionZ, radius } = ce.detail;
-            
-            if (!this.match || this.currentState !== GameState.PLAYER_TURN || this.config.autoBattler) return;
-
-            const targetBoard = this.match.mode === MatchMode.Rogue ? this.match.sharedBoard : this.match.enemyBoard;
-
-            let turnHandledAsync = false;
-
-            if (weaponType === WeaponType.Mine) {
-                const placed = targetBoard.placeMine(targetX, targetZ);
-                if (!placed) return; // invalid placement, do not consume turn
-                this.requestAutoSave();
-            } else if (weaponType === WeaponType.Sonar) {
-                const results = targetBoard.sonarPing(targetX, targetZ, radius || 2);
-                document.dispatchEvent(new CustomEvent('SONAR_RESULTS', { detail: { hits: results } }));
-                // Trigger visual feedback
-                this.isAnimating = true;
-                turnHandledAsync = true;
-                
-                const finalizeTurn = () => {
-                    this.isAnimating = false;
-                    if (this.match!.mode === MatchMode.Rogue) {
-                        this.advanceRogueShipTurn();
-                    } else {
-                        this.transitionTo(GameState.ENEMY_TURN);
-                    }
-                };
-                setTimeout(finalizeTurn, 1000); // Temporary visual delay for sonar
-                
-            } else if (weaponType === WeaponType.Cannon || weaponType === 'normal') {
-                const result = targetBoard.receiveAttack(targetX, targetZ);
-                if (result !== 'invalid') {
-                    this.attackResultListeners.forEach(l => l(targetX, targetZ, result.toString(), true, false));
-                    this.requestAutoSave();
-                } else {
-                    return; // Don't consume turn for an invalid shot
-                }
-            } else if (weaponType === WeaponType.AirStrike) {
-                if (Ship.resources.airStrikes <= 0) return;
-                Ship.resources.airStrikes--;
-                
-                // Use provided direction, default to horizontal if missing
-                const dx = directionX !== undefined ? directionX : 1;
-                const dz = directionZ !== undefined ? directionZ : 0;
-                
-                // Center the 10-cell strike on the target
-                const length = 10;
-                const startX = targetX - dx * 4;
-                const startZ = targetZ - dz * 4;
-                
-                const results = targetBoard.dispatchAirStrike(startX, startZ, dx, dz, length);
-                this.isAnimating = true;
-                turnHandledAsync = true;
-                
-                results.forEach(res => {
-                    if (res.result !== 'invalid') {
-                        this.attackResultListeners.forEach(l => l(res.x, res.z, res.result, true, false));
-                    }
-                });
-                this.requestAutoSave();
-                
-                const finalizeTurn = () => {
-                    let status: 'ongoing' | 'player_wins' | 'enemy_wins' = 'ongoing';
-                    try {
-                        status = this.match!.checkGameEnd();
-                    } catch (e: any) { }
-                    this.isAnimating = false;
-                    if (status !== 'ongoing') {
-                        this.transitionTo(GameState.GAME_OVER);
-                    } else {
-                        if (this.match!.mode === MatchMode.Rogue) {
-                            this.advanceRogueShipTurn();
-                        } else {
-                            this.transitionTo(GameState.ENEMY_TURN);
-                        }
-                    }
-                };
-                
-                this.onAnimationsComplete = finalizeTurn;
-            }
-
-            if (!turnHandledAsync) {
-                if (this.match.mode === MatchMode.Rogue) {
-                    this.advanceRogueShipTurn();
-                } else {
-                    this.transitionTo(GameState.ENEMY_TURN);
-                }
-            }
-        });
+    public onAttackResultInvoke(x: number, z: number, res: string, isP: boolean, isR: boolean): void {
+        this.attackResultListeners.forEach(l => l(x, z, res, isP, isR));
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // Public API (unchanged from before)
+    // Rogue Mode Turn Logic — delegated to RogueActionHandler
     // ─────────────────────────────────────────────────────────────────────────
 
     public advanceRogueShipTurn(): void {
-        this.activeRogueShipIndex++;
-        
-        while (this.activeRogueShipIndex < this.rogueShipOrder.length) {
-            const ship = this.rogueShipOrder[this.activeRogueShipIndex];
-            if (!ship.isSunk()) {
-                document.dispatchEvent(new CustomEvent('ACTIVE_SHIP_CHANGED', { detail: { ship } }));
-                return;
-            }
-            this.activeRogueShipIndex++;
-        }
-        
-        // All player ships have acted
-        this.transitionTo(GameState.ENEMY_TURN);
+        this.rogueActionHandler.advanceRogueShipTurn();
     }
 
     public advanceEnemyRogueShipTurn(): void {
-        this.activeEnemyRogueShipIndex++;
-        
-        while (this.activeEnemyRogueShipIndex < this.enemyRogueShipOrder.length) {
-            const ship = this.enemyRogueShipOrder[this.activeEnemyRogueShipIndex];
-            if (!ship.isSunk()) {
-                // The TurnExecutor will handle exactly one AI attack
-                this.turnExecutor.handleEnemyTurn();
-                return;
-            }
-            this.activeEnemyRogueShipIndex++;
-        }
-        
-        // All enemy ships have acted
-        this.transitionTo(GameState.PLAYER_TURN);
+        this.rogueActionHandler.advanceEnemyRogueShipTurn();
     }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Public API (State & Listeners)
+    // ─────────────────────────────────────────────────────────────────────────
 
     public hasUnsavedProgress(): boolean {
         if (!this.match) return false;
@@ -484,17 +150,12 @@ export class GameLoop {
         const oldState = this.currentState;
         this.currentState = newState;
 
-        // Ensure global config is in sync for legacy/global systems
         if (this.match) {
             this.config.rogueMode = this.match.mode === MatchMode.Rogue;
         }
 
         this.listeners.forEach(listener => listener(newState, oldState));
 
-        // Sync setup phase to 3D layer for highlighting
-        // (Assuming entityManager is available or we fire a global event)
-        // Wait, I need to check how GameLoop communicates with the presentation layer.
-        // It uses listeners. I'll fire a custom event instead to be safe.
         document.dispatchEvent(new CustomEvent('GAME_STATE_CHANGED', { detail: { state: newState } }));
         document.dispatchEvent(new CustomEvent('TURN_CHANGED', { detail: { newState, oldState } }));
 
@@ -538,10 +199,6 @@ export class GameLoop {
         }
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // Match lifecycle — delegated to MatchSetup
-    // ─────────────────────────────────────────────────────────────────────────
-
     public startNewMatch(match: Match): void {
         this.matchSetup.startNewMatch(match);
     }
@@ -557,10 +214,6 @@ export class GameLoop {
         this.matchSetup.loadMatch(match, resources, activeRogueShipIndex, activeEnemyRogueShipIndex);
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // Input handler — routed by current state to TurnExecutor
-    // ─────────────────────────────────────────────────────────────────────────
-
     public onGridClick(x: number, z: number, isPlayerSide?: boolean): void {
         if (!this.match || this.isPaused) return;
 
@@ -570,31 +223,71 @@ export class GameLoop {
             this.turnExecutor.onPlayerTurnClick(x, z, isPlayerSide);
         }
     }
-    private disperseAbilityAlongPath(ship: Ship, targetX: number, targetZ: number, type: 'sonar' | 'mine') {
-        const startX = ship.headX;
-        const startZ = ship.headZ;
-        
-        // Find a random step along the Manhattan path
-        const dx = targetX - startX;
-        const dz = targetZ - startZ;
-        
-        // For simplicity, pick one cell adjacent to the midpoint or start/end
-        const midX = Math.floor(startX + dx / 2);
-        const midZ = Math.floor(startZ + dz / 2);
-        
-        // Adjacent random offset
-        const rx = midX + (Math.random() > 0.5 ? 1 : -1);
-        const rz = midZ + (Math.random() > 0.5 ? 1 : -1);
-        
-        if (this.match && !this.match.sharedBoard.isOutOfBounds(rx, rz)) {
-            if (type === 'sonar') {
-                this.match.sharedBoard.receiveAttack(rx, rz); // Sonar revealing fog
-                this.attackResultListeners.forEach(l => l(rx, rz, 'sonar', true, false));
-            } else {
-                // Mines could be a new cell state, but for now let's just mark it as a 'miss' that can be hit?
-                // Or just a special visual effect. 
-                this.attackResultListeners.forEach(l => l(rx, rz, 'mine', true, false));
-            }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Complex Rogue Weapon Handler (Still in GameLoop but could be factored more later)
+    // ─────────────────────────────────────────────────────────────────────────
+
+    public handleRogueUseWeapon(detail: any): void {
+        const { weaponType, targetX, targetZ, directionX, directionZ, radius } = detail;
+        if (!this.match || this.currentState !== GameState.PLAYER_TURN || this.config.autoBattler) return;
+
+        const targetBoard = this.match.mode === MatchMode.Rogue ? this.match.sharedBoard : this.match.enemyBoard;
+        let turnHandledAsync = false;
+
+        if (weaponType === WeaponType.Mine) {
+            const placed = targetBoard.placeMine(targetX, targetZ);
+            if (!placed) return;
+            this.requestAutoSave();
+        } else if (weaponType === WeaponType.Sonar) {
+            const results = targetBoard.sonarPing(targetX, targetZ, radius || 2);
+            document.dispatchEvent(new CustomEvent('SONAR_RESULTS', { detail: { hits: results } }));
+            this.isAnimating = true;
+            turnHandledAsync = true;
+            setTimeout(() => {
+                this.isAnimating = false;
+                if (this.match!.mode === MatchMode.Rogue) this.advanceRogueShipTurn();
+                else this.transitionTo(GameState.ENEMY_TURN);
+            }, 1000);
+        } else if (weaponType === WeaponType.Cannon || weaponType === 'normal') {
+            const result = targetBoard.receiveAttack(targetX, targetZ);
+            if (result !== 'invalid') {
+                this.onAttackResultInvoke(targetX, targetZ, result.toString(), true, false);
+                this.requestAutoSave();
+            } else return;
+        } else if (weaponType === WeaponType.AirStrike) {
+            if (Ship.resources.airStrikes <= 0) return;
+            Ship.resources.airStrikes--;
+            
+            const dx = directionX !== undefined ? directionX : 1;
+            const dz = directionZ !== undefined ? directionZ : 0;
+            const length = 10;
+            const startX = targetX - dx * 4;
+            const startZ = targetZ - dz * 4;
+            
+            const results = targetBoard.dispatchAirStrike(startX, startZ, dx, dz, length);
+            this.isAnimating = true;
+            turnHandledAsync = true;
+            
+            results.forEach(res => {
+                if (res.result !== 'invalid') this.onAttackResultInvoke(res.x, res.z, res.result, true, false);
+            });
+            this.requestAutoSave();
+            
+            this.onAnimationsComplete = () => {
+                const status = this.match!.checkGameEnd();
+                this.isAnimating = false;
+                if (status !== 'ongoing') this.transitionTo(GameState.GAME_OVER);
+                else {
+                    if (this.match!.mode === MatchMode.Rogue) this.advanceRogueShipTurn();
+                    else this.transitionTo(GameState.ENEMY_TURN);
+                }
+            };
+        }
+
+        if (!turnHandledAsync) {
+            if (this.match.mode === MatchMode.Rogue) this.advanceRogueShipTurn();
+            else this.transitionTo(GameState.ENEMY_TURN);
         }
     }
 }

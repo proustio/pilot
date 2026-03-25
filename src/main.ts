@@ -56,6 +56,7 @@ const init = () => {
         });
 
         let isRestoringState = false;
+        let gameRunner: GameRunner;
 
         gameLoop.onStateChange((newState) => {
             const isRogue = gameLoop.match?.mode === MatchMode.Rogue;
@@ -63,7 +64,7 @@ const init = () => {
             entityManager.setSetupPhase(newState === 'SETUP_BOARD');
 
             if (newState === 'SETUP_BOARD') {
-                gameRunner.elapsedActiveTime = 0;
+                if (gameRunner) gameRunner.elapsedActiveTime = 0;
                 entityManager.resetMatch();
                 if (!isRestoringState) {
                     engine.hasManualMovement = false;
@@ -235,7 +236,7 @@ const init = () => {
         const uiManager = new UIManager(gameLoop, entityManager);
         (window as any).uiManager = uiManager;
 
-        const gameRunner = new GameRunner(
+        gameRunner = new GameRunner(
             engine,
             entityManager,
             interactionManager,
