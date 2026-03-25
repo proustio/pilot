@@ -6,6 +6,7 @@ import { MatchSetup, MatchSetupState } from './MatchSetup';
 import { TurnExecutor, TurnExecutorState } from './TurnExecutor';
 import { GameEventManager } from './GameEventManager';
 import { RogueActionHandler } from './RogueActionHandler';
+import { eventBus, GameEventType } from '../events/GameEventBus';
 
 export enum GameState {
     MAIN_MENU = 'MAIN_MENU',
@@ -156,8 +157,8 @@ export class GameLoop {
 
         this.listeners.forEach(listener => listener(newState, oldState));
 
-        document.dispatchEvent(new CustomEvent('GAME_STATE_CHANGED', { detail: { state: newState } }));
-        document.dispatchEvent(new CustomEvent('TURN_CHANGED', { detail: { newState, oldState } }));
+        eventBus.emit(GameEventType.GAME_STATE_CHANGED, { state: newState });
+        eventBus.emit(GameEventType.TURN_CHANGED, { newState, oldState });
 
         this.requestAutoSave();
 
@@ -175,7 +176,7 @@ export class GameLoop {
                 this.activeRogueShipIndex = 0;
 
                 if (this.rogueShipOrder.length > 0) {
-                    document.dispatchEvent(new CustomEvent('ACTIVE_SHIP_CHANGED', { detail: { ship: this.rogueShipOrder[0] } }));
+                    eventBus.emit(GameEventType.ACTIVE_SHIP_CHANGED, { ship: this.rogueShipOrder[0], index: 0 });
                 } else if (!this.config.autoBattler) {
                     this.transitionTo(GameState.ENEMY_TURN);
                     return;
@@ -241,7 +242,7 @@ export class GameLoop {
             this.requestAutoSave();
         } else if (weaponType === WeaponType.Sonar) {
             const results = targetBoard.sonarPing(targetX, targetZ, radius || 2);
-            document.dispatchEvent(new CustomEvent('SONAR_RESULTS', { detail: { hits: results } }));
+            eventBus.emit(GameEventType.SONAR_RESULTS, { hits: results });
             this.isAnimating = true;
             turnHandledAsync = true;
             setTimeout(() => {

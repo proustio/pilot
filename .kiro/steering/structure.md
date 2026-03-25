@@ -16,9 +16,11 @@ src/
 │
 ├── application/               # Orchestration and use cases
 │   ├── ai/AIEngine.ts         # AI opponent (Easy=random, Normal=hunt/target, Hard=heatmap)
+│   ├── events/
+│   │   └── GameEventBus.ts    # [NEW] Typed singleton for cross-layer communication
 │   └── game-loop/
 │       ├── GameLoop.ts        # State machine orchestration; delegates event/mode logic
-│       ├── GameEventManager.ts # Centralized DOM/Game event registration and routing
+│       ├── GameEventManager.ts # Centralized event registration and routing via EventBus
 │       ├── RogueActionHandler.ts # Dedicated Rogue-mode movement and ability logic
 │       ├── MatchSetup.ts      # Match initialization, loading, and replay logic
 │       └── TurnExecutor.ts    # Turn handling for AI, auto-player, and player interaction
@@ -84,7 +86,7 @@ src/
 ## Architecture Rules
 - `domain/` must never import from `presentation/` or `infrastructure/`
 - `application/` must never import from `presentation/`; `Config` and `Storage` are injected via constructor from `main.ts` (no direct `infrastructure/` imports)
-- Cross-layer communication uses CustomEvents on `document` (e.g., `SAVE_GAME`, `TOGGLE_PEEK`, `RESTORE_VIEW_STATE`, `INTERACTION_GUARD_STATE`)
+- Cross-layer communication MUST use the `GameEventBus` (e.g., `SAVE_GAME`, `TOGGLE_PEEK`, `RESTORE_VIEW_STATE`). Direct `document.dispatchEvent` is deprecated.
 - UI components follow a lifecycle pattern: extend `BaseUIComponent`, implement `render()`, use `mount()`/`unmount()`/`show()`/`hide()`
-- `main.ts` is the composition root — it wires dependencies and registers event listeners
+- `main.ts` is the composition root — it wires dependencies and registers the `GameEventManager`
 - One class per file, file named after the primary export

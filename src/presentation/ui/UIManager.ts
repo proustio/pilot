@@ -9,6 +9,7 @@ import { GameOver } from './menu/GameOver';
 import { SaveLoadDialog } from './components/SaveLoadDialog';
 import { Storage } from '../../infrastructure/storage/Storage';
 import { AudioEngine } from '../../infrastructure/audio/AudioEngine';
+import { eventBus, GameEventType } from '../../application/events/GameEventBus';
 
 
 export class UIManager {
@@ -51,29 +52,26 @@ export class UIManager {
             this.handleStateChange(newState);
         });
 
-        document.addEventListener('SHOW_PAUSE_MENU', () => {
-            this.pauseMenu.show();
-        });
-
-        document.addEventListener('SHOW_SETTINGS', () => {
-            this.settings.show();
-        });
-
-        document.addEventListener('TOGGLE_HUD', (e: any) => {
-            if (e.detail?.show) {
-                if (this.gameLoop.currentState !== GameState.MAIN_MENU) {
-                    this.hud.show();
-                }
-            } else {
-                this.hud.hide();
+        eventBus.on(GameEventType.SHOW_PAUSE_MENU, () => {
+            if (this.gameLoop.currentState !== GameState.MAIN_MENU) {
+                this.pauseMenu.show();
             }
         });
 
-        document.addEventListener('SHOW_SAVE_DIALOG', () => {
+        eventBus.on(GameEventType.SHOW_SETTINGS, () => {
+            this.settings.show();
+        });
+
+        eventBus.on(GameEventType.TOGGLE_HUD, (payload) => {
+            if (payload.show) this.hud.show();
+            else this.hud.hide();
+        });
+
+        eventBus.on(GameEventType.SHOW_SAVE_DIALOG, () => {
             this.saveLoadDialog.openAs('save');
         });
 
-        document.addEventListener('SHOW_LOAD_DIALOG', () => {
+        eventBus.on(GameEventType.SHOW_LOAD_DIALOG, () => {
             this.saveLoadDialog.openAs('load');
         });
 

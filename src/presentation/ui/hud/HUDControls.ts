@@ -1,4 +1,5 @@
 import { Config } from '../../../infrastructure/config/Config';
+import { eventBus, GameEventType } from '../../../application/events/GameEventBus';
 
 /**
  * Binds all switchboard button event listeners (Peek, Geek Stats, Auto-Battler, Day/Night, Cam-Reset, Speed, FPS, Settings).
@@ -9,7 +10,7 @@ export function bindHUDControls(container: HTMLElement): void {
     const settingsBtn = container.querySelector('#hud-btn-settings') as HTMLButtonElement;
     if (settingsBtn) {
         settingsBtn.addEventListener('click', () => {
-            document.dispatchEvent(new CustomEvent('SHOW_PAUSE_MENU'));
+            eventBus.emit(GameEventType.SHOW_PAUSE_MENU, undefined as any);
         });
     }
 
@@ -22,19 +23,18 @@ export function bindHUDControls(container: HTMLElement): void {
             isPeeking = !isPeeking;
             peekBtn.classList.toggle('active', isPeeking);
             peekLed.classList.toggle('on-blue', isPeeking);
-            document.dispatchEvent(new CustomEvent('TOGGLE_PEEK', { detail: { peeking: isPeeking } }));
+            eventBus.emit(GameEventType.TOGGLE_PEEK, { peeking: isPeeking });
         });
 
         // External control for peek (when switching turns)
-        document.addEventListener('PEEK_ENABLED_CHANGED', (e: Event) => {
-            const ce = e as CustomEvent;
-            if (ce.detail && ce.detail.enabled !== undefined) {
-                peekBtn.style.display = ce.detail.enabled ? 'inline-block' : 'none';
-                if (!ce.detail.enabled && isPeeking) {
+        eventBus.on(GameEventType.PEEK_ENABLED_CHANGED, (payload: { enabled: boolean }) => {
+            if (payload && payload.enabled !== undefined) {
+                peekBtn.style.display = payload.enabled ? 'inline-block' : 'none';
+                if (!payload.enabled && isPeeking) {
                     isPeeking = false;
                     peekBtn.classList.remove('active');
                     peekLed.classList.remove('on-blue');
-                    document.dispatchEvent(new CustomEvent('TOGGLE_PEEK', { detail: { peeking: false } }));
+                    eventBus.emit(GameEventType.TOGGLE_PEEK, { peeking: false });
                 }
             }
         });
@@ -49,13 +49,12 @@ export function bindHUDControls(container: HTMLElement): void {
             Config.visual.showGeekStats = !Config.visual.showGeekStats;
             geekStatsBtn.classList.toggle('active', Config.visual.showGeekStats);
             geekStatsLed.classList.toggle('on-gold', Config.visual.showGeekStats);
-            document.dispatchEvent(new CustomEvent('TOGGLE_GEEK_STATS', { detail: { show: Config.visual.showGeekStats } }));
+            eventBus.emit(GameEventType.TOGGLE_GEEK_STATS, { show: Config.visual.showGeekStats });
         });
 
-        document.addEventListener('TOGGLE_GEEK_STATS', (e: Event) => {
-            const customEvent = e as CustomEvent;
-            if (customEvent.detail && customEvent.detail.show !== undefined && geekStatsPanel) {
-                geekStatsPanel.style.display = customEvent.detail.show ? 'block' : 'none';
+        eventBus.on(GameEventType.TOGGLE_GEEK_STATS, (payload: { show: boolean }) => {
+            if (payload && payload.show !== undefined && geekStatsPanel) {
+                geekStatsPanel.style.display = payload.show ? 'block' : 'none';
             }
         });
     }
@@ -68,7 +67,7 @@ export function bindHUDControls(container: HTMLElement): void {
             Config.autoBattler = !Config.autoBattler;
             autoBattlerBtn.classList.toggle('active', Config.autoBattler);
             autoBattlerLed.classList.toggle('on-red', Config.autoBattler);
-            document.dispatchEvent(new CustomEvent('TOGGLE_AUTO_BATTLER', { detail: { enabled: Config.autoBattler } }));
+            eventBus.emit(GameEventType.TOGGLE_AUTO_BATTLER, { enabled: Config.autoBattler });
         });
     }
 
@@ -86,13 +85,12 @@ export function bindHUDControls(container: HTMLElement): void {
             Config.timing.gameSpeedMultiplier = nextSpeed;
             Config.saveConfig();
             speedBtn.innerText = `${nextSpeed}X`;
-            document.dispatchEvent(new CustomEvent('SET_GAME_SPEED', { detail: { speed: nextSpeed.toFixed(1) } }));
+            eventBus.emit(GameEventType.SET_GAME_SPEED, { speed: nextSpeed });
         });
 
-        document.addEventListener('SET_GAME_SPEED', (e: Event) => {
-            const customEvent = e as CustomEvent;
-            if (customEvent.detail && customEvent.detail.speed) {
-                const speed = parseFloat(customEvent.detail.speed);
+        eventBus.on(GameEventType.SET_GAME_SPEED, (payload: { speed: number }) => {
+            if (payload && payload.speed) {
+                const speed = payload.speed;
                 speedBtn.innerText = `${speed}X`;
             }
         });

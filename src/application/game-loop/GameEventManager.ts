@@ -2,29 +2,27 @@ import { GameLoop, GameState } from './GameLoop';
 import { Orientation } from '../../domain/fleet/Ship';
 import { AIDifficulty } from '../ai/AIEngine';
 import { Ship } from '../../domain/fleet/Ship';
+import { eventBus, GameEventType } from '../events/GameEventBus';
 
 export class GameEventManager {
     constructor(private gameLoop: GameLoop) {}
 
     public registerEventListeners(): void {
-        document.addEventListener('SET_AI_DIFFICULTY', (e: Event) => {
-            const ce = e as CustomEvent;
-            if (ce.detail?.difficulty) {
-                this.gameLoop.aiEngine.setDifficulty(ce.detail.difficulty as AIDifficulty);
-                this.gameLoop.playerAIEngine.setDifficulty(ce.detail.difficulty as AIDifficulty);
+        eventBus.on(GameEventType.SET_AI_DIFFICULTY, (payload) => {
+            if (payload.difficulty) {
+                this.gameLoop.aiEngine.setDifficulty(payload.difficulty as AIDifficulty);
+                this.gameLoop.playerAIEngine.setDifficulty(payload.difficulty as AIDifficulty);
             }
         });
 
-        document.addEventListener('SET_GAME_SPEED', (e: Event) => {
-            const ce = e as CustomEvent;
-            if (ce.detail?.speed) {
-                this.gameLoop.getConfig().timing.gameSpeedMultiplier = parseFloat(ce.detail.speed);
+        eventBus.on(GameEventType.SET_GAME_SPEED, (payload) => {
+            if (payload.speed) {
+                this.gameLoop.getConfig().timing.gameSpeedMultiplier = payload.speed;
             }
         });
 
-        document.addEventListener('TOGGLE_AUTO_BATTLER', (e: Event) => {
-            const ce = e as CustomEvent;
-            if (ce.detail !== undefined) {
+        eventBus.on(GameEventType.TOGGLE_AUTO_BATTLER, (payload) => {
+            if (payload !== undefined) {
                 if (this.gameLoop.getConfig().autoBattler && 
                     this.gameLoop.currentState === GameState.PLAYER_TURN && 
                     !this.gameLoop.isAnimating) {
@@ -37,27 +35,25 @@ export class GameEventManager {
             this.handleKeydown(e);
         });
 
-        document.addEventListener('PAUSE_GAME', () => { this.gameLoop.isPaused = true; });
-        document.addEventListener('RESUME_GAME', () => { this.gameLoop.isPaused = false; });
-        document.addEventListener('TRIGGER_AUTO_SAVE', () => { this.gameLoop.requestAutoSave(); });
+        eventBus.on(GameEventType.PAUSE_GAME, () => { this.gameLoop.isPaused = true; });
+        eventBus.on(GameEventType.RESUME_GAME, () => { this.gameLoop.isPaused = false; });
+        eventBus.on(GameEventType.TRIGGER_AUTO_SAVE, () => { this.gameLoop.requestAutoSave(); });
 
-        document.addEventListener('SAVE_GAME', (e: Event) => {
-            const ce = e as CustomEvent;
-            const { slotId, viewState } = ce.detail || {};
+        eventBus.on(GameEventType.SAVE_GAME, (payload) => {
+            const { slotId, viewState } = payload || {};
             if (slotId && this.gameLoop.match) {
                 this.gameLoop.getStorage().saveGame(
                     slotId, 
                     this.gameLoop.match, 
                     viewState,
-                    ce.detail?.activeRogueShipIndex ?? this.gameLoop.activeRogueShipIndex,
-                    ce.detail?.activeEnemyRogueShipIndex ?? this.gameLoop.activeEnemyRogueShipIndex
+                    payload?.activeRogueShipIndex ?? this.gameLoop.activeRogueShipIndex,
+                    payload?.activeEnemyRogueShipIndex ?? this.gameLoop.activeEnemyRogueShipIndex
                 );
             }
         });
 
-        document.addEventListener('LOAD_GAME', (e: Event) => {
-            const ce = e as CustomEvent;
-            const slotId = ce.detail?.slotId;
+        eventBus.on(GameEventType.LOAD_GAME, (payload) => {
+            const slotId = payload?.slotId;
             if (slotId) {
                 const loaded = this.gameLoop.getStorage().loadGame(slotId);
                 if (loaded) {
@@ -67,31 +63,27 @@ export class GameEventManager {
             }
         });
 
-        document.addEventListener('GAME_ANIMATIONS_COMPLETE', () => {
+        eventBus.on(GameEventType.GAME_ANIMATIONS_COMPLETE, () => {
             this.gameLoop.invokeOnAnimationsComplete();
         });
 
-        document.addEventListener('ROGUE_ATTEMPT_MOVE', (e: Event) => {
-            const ce = e as CustomEvent;
-            const { targetX, targetZ } = ce.detail;
+        eventBus.on(GameEventType.ROGUE_ATTEMPT_MOVE, (payload) => {
+            const { targetX, targetZ } = payload;
             this.gameLoop.getRogueActionHandler().handleAttemptMove(targetX, targetZ);
         });
 
-        document.addEventListener('ROGUE_MOVE_SHIP', (e: Event) => {
-            const ce = e as CustomEvent;
-            const { shipId, newX, newZ, newOrientation } = ce.detail;
+        eventBus.on(GameEventType.ROGUE_MOVE_SHIP, (payload) => {
+            const { shipId, newX, newZ, newOrientation } = payload;
             this.handleRogueMoveShip(shipId, newX, newZ, newOrientation);
         });
 
-        document.addEventListener('ROGUE_USE_ABILITY', (e: Event) => {
-            const ce = e as CustomEvent;
-            const { type } = ce.detail;
+        eventBus.on(GameEventType.ROGUE_USE_ABILITY, (payload) => {
+            const { type } = payload;
             this.handleRogueUseAbility(type);
         });
 
-        document.addEventListener('ROGUE_USE_WEAPON', (e: Event) => {
-            const ce = e as CustomEvent;
-            this.handleRogueUseWeapon(ce.detail);
+        eventBus.on(GameEventType.ROGUE_USE_WEAPON, (payload) => {
+            this.handleRogueUseWeapon(payload);
         });
     }
 
@@ -118,24 +110,24 @@ export class GameEventManager {
             }
         } else if (this.gameLoop.currentState === GameState.PLAYER_TURN && config.rogueMode) {
             if (isMatch('ToggleMoveSection')) {
-                document.dispatchEvent(new CustomEvent('SET_ROGUE_ACTION_SECTION', { detail: { section: 'move' } }));
+                eventBus.emit(GameEventType.SET_ROGUE_ACTION_SECTION, { section: 'move' });
             } else if (isMatch('ToggleAttackSection')) {
-                document.dispatchEvent(new CustomEvent('SET_ROGUE_ACTION_SECTION', { detail: { section: 'attack' } }));
+                eventBus.emit(GameEventType.SET_ROGUE_ACTION_SECTION, { section: 'attack' });
             } else if (isMatch('ActionSail')) {
-                document.dispatchEvent(new CustomEvent('SET_ROGUE_ACTION_SECTION', { detail: { section: 'move' } }));
-                document.dispatchEvent(new CustomEvent('SET_ROGUE_WEAPON', { detail: { weapon: 'sail' } }));
+                eventBus.emit(GameEventType.SET_ROGUE_ACTION_SECTION, { section: 'move' });
+                eventBus.emit(GameEventType.SET_ROGUE_WEAPON, { weapon: 'sail' });
             } else if (isMatch('ActionPing')) {
-                document.dispatchEvent(new CustomEvent('SET_ROGUE_ACTION_SECTION', { detail: { section: 'move' } }));
-                document.dispatchEvent(new CustomEvent('SET_ROGUE_WEAPON', { detail: { weapon: 'sonar' } }));
+                eventBus.emit(GameEventType.SET_ROGUE_ACTION_SECTION, { section: 'move' });
+                eventBus.emit(GameEventType.SET_ROGUE_WEAPON, { weapon: 'sonar' });
             } else if (isMatch('ActionMine')) {
-                document.dispatchEvent(new CustomEvent('SET_ROGUE_ACTION_SECTION', { detail: { section: 'move' } }));
-                document.dispatchEvent(new CustomEvent('SET_ROGUE_WEAPON', { detail: { weapon: 'mine' } }));
+                eventBus.emit(GameEventType.SET_ROGUE_ACTION_SECTION, { section: 'move' });
+                eventBus.emit(GameEventType.SET_ROGUE_WEAPON, { weapon: 'mine' });
             } else if (isMatch('ActionCannon')) {
-                document.dispatchEvent(new CustomEvent('SET_ROGUE_ACTION_SECTION', { detail: { section: 'attack' } }));
-                document.dispatchEvent(new CustomEvent('SET_ROGUE_WEAPON', { detail: { weapon: 'cannon' } }));
+                eventBus.emit(GameEventType.SET_ROGUE_ACTION_SECTION, { section: 'attack' });
+                eventBus.emit(GameEventType.SET_ROGUE_WEAPON, { weapon: 'cannon' });
             } else if (isMatch('ActionAirStrike')) {
-                document.dispatchEvent(new CustomEvent('SET_ROGUE_ACTION_SECTION', { detail: { section: 'attack' } }));
-                document.dispatchEvent(new CustomEvent('SET_ROGUE_WEAPON', { detail: { weapon: 'airstrike' } }));
+                eventBus.emit(GameEventType.SET_ROGUE_ACTION_SECTION, { section: 'attack' });
+                eventBus.emit(GameEventType.SET_ROGUE_WEAPON, { weapon: 'airstrike' });
             } else if (isMatch('SkipTurn')) {
                 this.gameLoop.getRogueActionHandler().advanceRogueShipTurn();
             }
@@ -165,10 +157,10 @@ export class GameEventManager {
     private handleRogueUseAbility(type: string): void {
         if (type === 'sonar' && Ship.resources.sonars > 0) {
             (window as any).queuedRogueAbility = 'sonar';
-            document.dispatchEvent(new CustomEvent('ROGUE_ABILITY_QUEUED', { detail: { type: 'sonar' } }));
+            eventBus.emit(GameEventType.ROGUE_ABILITY_QUEUED, { type: 'sonar' });
         } else if (type === 'mine' && Ship.resources.mines > 0) {
             (window as any).queuedRogueAbility = 'mine';
-            document.dispatchEvent(new CustomEvent('ROGUE_ABILITY_QUEUED', { detail: { type: 'mine' } }));
+            eventBus.emit(GameEventType.ROGUE_ABILITY_QUEUED, { type: 'mine' });
         }
     }
     

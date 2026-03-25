@@ -1,4 +1,5 @@
 import { Config } from '../../../infrastructure/config/Config';
+import { eventBus, GameEventType } from '../../../application/events/GameEventBus';
 import { GameState } from '../../../application/game-loop/GameLoop';
 
 export class GeneralSettings {
@@ -83,44 +84,37 @@ export class GeneralSettings {
         this.setupDropdown('ai-difficulty-dropdown', (difficulty) => {
             Config.aiDifficulty = difficulty;
             Config.saveConfig();
-            document.dispatchEvent(new CustomEvent('SET_AI_DIFFICULTY', { detail: { difficulty } }));
+            eventBus.emit(GameEventType.SET_AI_DIFFICULTY, { difficulty: difficulty as any });
         });
 
-        const autoBattlerSettingsToggle = this.container.querySelector('#toggle-auto-battler') as HTMLInputElement;
-        if (autoBattlerSettingsToggle) {
-            autoBattlerSettingsToggle.addEventListener('change', (e) => {
+        const autoBattlerToggle = this.container.querySelector('#toggle-auto-battler') as HTMLInputElement;
+        if (autoBattlerToggle) {
+            autoBattlerToggle.addEventListener('change', (e) => {
                 const isChecked = (e.target as HTMLInputElement).checked;
                 Config.autoBattler = isChecked;
                 Config.saveConfig();
-                document.dispatchEvent(new CustomEvent('TOGGLE_AUTO_BATTLER', { detail: { enabled: isChecked } }));
+                eventBus.emit(GameEventType.TOGGLE_AUTO_BATTLER, { enabled: isChecked });
             });
         }
 
         this.setupDropdown('game-speed-dropdown', (speed) => {
-            Config.timing.gameSpeedMultiplier = parseFloat(speed);
+            const s = parseFloat(speed);
+            Config.timing.gameSpeedMultiplier = s;
             Config.saveConfig();
-            document.dispatchEvent(new CustomEvent('SET_GAME_SPEED', { detail: { speed } }));
+            eventBus.emit(GameEventType.SET_GAME_SPEED, { speed: s });
         });
 
-        document.addEventListener('SET_GAME_SPEED', (e: Event) => {
-            const ce = e as CustomEvent;
-            if (ce.detail && ce.detail.speed) {
-                this.updateDropdownVisuals('game-speed-dropdown', ce.detail.speed.toString());
-            }
+        // Listen for external changes to sync UI
+        eventBus.on(GameEventType.SET_AI_DIFFICULTY, (payload) => {
+            this.updateDropdownVisuals('ai-difficulty-dropdown', payload.difficulty);
         });
 
-        document.addEventListener('TOGGLE_AUTO_BATTLER', (e: Event) => {
-            const ce = e as CustomEvent;
-            if (ce.detail && ce.detail.enabled !== undefined && autoBattlerSettingsToggle) {
-                autoBattlerSettingsToggle.checked = ce.detail.enabled;
-            }
+        eventBus.on(GameEventType.SET_GAME_SPEED, (payload) => {
+            this.updateDropdownVisuals('game-speed-dropdown', payload.speed.toString());
         });
 
-        document.addEventListener('SET_AI_DIFFICULTY', (e: Event) => {
-            const ce = e as CustomEvent;
-            if (ce.detail && ce.detail.difficulty) {
-                this.updateDropdownVisuals('ai-difficulty-dropdown', ce.detail.difficulty);
-            }
+        eventBus.on(GameEventType.TOGGLE_AUTO_BATTLER, (payload) => {
+            if (autoBattlerToggle) autoBattlerToggle.checked = payload.enabled;
         });
     }
 }

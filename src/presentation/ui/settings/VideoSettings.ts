@@ -1,4 +1,5 @@
 import { Config } from '../../../infrastructure/config/Config';
+import { eventBus, GameEventType } from '../../../application/events/GameEventBus';
 
 export class VideoSettings {
     private container: HTMLElement;
@@ -106,7 +107,7 @@ export class VideoSettings {
         if (toggleHud) {
             toggleHud.addEventListener('change', (e) => {
                 const isChecked = (e.target as HTMLInputElement).checked;
-                document.dispatchEvent(new CustomEvent('TOGGLE_HUD', { detail: { show: isChecked } }));
+                eventBus.emit(GameEventType.TOGGLE_HUD, { show: isChecked });
             });
         }
 
@@ -116,7 +117,7 @@ export class VideoSettings {
                 const isChecked = (e.target as HTMLInputElement).checked;
                 Config.visual.showGeekStats = isChecked;
                 Config.saveConfig();
-                document.dispatchEvent(new CustomEvent('TOGGLE_GEEK_STATS', { detail: { show: isChecked } }));
+                eventBus.emit(GameEventType.TOGGLE_GEEK_STATS, { show: isChecked });
             });
         }
 
@@ -124,7 +125,7 @@ export class VideoSettings {
             const fpsCap = parseInt(val, 10);
             Config.visual.fpsCap = fpsCap;
             Config.saveConfig();
-            document.dispatchEvent(new CustomEvent('SET_FPS_CAP', { detail: { fpsCap } }));
+            eventBus.emit(GameEventType.SET_FPS_CAP, { fpsCap });
         });
 
         const customContainer = this.container.querySelector('#custom-colors-container') as HTMLElement;
@@ -133,7 +134,7 @@ export class VideoSettings {
             Config.visual.colorScheme = scheme;
             Config.saveConfig();
             if (customContainer) customContainer.style.display = scheme === 'custom' ? 'block' : 'none';
-            document.dispatchEvent(new CustomEvent('THEME_CHANGED'));
+            eventBus.emit(GameEventType.THEME_CHANGED, undefined as any);
         });
 
         const setupColorPicker = (id: string, key: keyof typeof Config.visual.customColors) => {
@@ -147,7 +148,7 @@ export class VideoSettings {
                         if (customContainer) customContainer.style.display = 'block';
                     }
                     Config.saveConfig();
-                    document.dispatchEvent(new CustomEvent('THEME_CHANGED'));
+                    eventBus.emit(GameEventType.THEME_CHANGED, undefined as any);
                 });
             }
         };
@@ -158,10 +159,9 @@ export class VideoSettings {
         setupColorPicker('color-water-secondary', 'waterSecondary');
         setupColorPicker('color-board-lines', 'boardLines');
 
-        document.addEventListener('SET_FPS_CAP', (e: Event) => {
-            const ce = e as CustomEvent;
-            if (ce.detail && ce.detail.fpsCap) {
-                this.updateDropdownVisuals('fps-cap-dropdown', ce.detail.fpsCap.toString());
+        eventBus.on(GameEventType.SET_FPS_CAP, (payload) => {
+            if (payload && payload.fpsCap) {
+                this.updateDropdownVisuals('fps-cap-dropdown', payload.fpsCap.toString());
             }
         });
     }

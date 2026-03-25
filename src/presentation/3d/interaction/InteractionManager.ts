@@ -5,6 +5,7 @@ import { Orientation } from '../../../domain/fleet/Ship';
 import { MatchMode } from '../../../domain/match/Match';
 import { CellState } from '../../../domain/board/Board';
 import { Config } from '../../../infrastructure/config/Config';
+import { eventBus, GameEventType } from '../../../application/events/GameEventBus';
 import { RaycastService } from './RaycastService';
 import { InputFeedbackHandler } from './InputFeedbackHandler';
 
@@ -36,27 +37,32 @@ export class InteractionManager {
     window.addEventListener('mousemove', this.onMouseMove.bind(this));
     window.addEventListener('click', this.onMouseClick.bind(this));
 
-    document.addEventListener('SET_INTERACTION_ENABLED', (e: Event) => {
-      const ce = e as CustomEvent;
-      if (ce.detail && ce.detail.enabled !== undefined) {
-        this.interactionEnabled = ce.detail.enabled;
+    this.setupGlobalListeners();
+  }
+
+  private setupGlobalListeners() {
+    eventBus.on(GameEventType.SET_INTERACTION_ENABLED, (payload) => {
+        this.interactionEnabled = payload.enabled;
         if (!this.interactionEnabled) {
-          this.feedbackHandler.hoverCursor.visible = false;
-          this.hoveredCell = null;
+            this.feedbackHandler.hoverCursor.visible = false;
+            this.hoveredCell = null;
         }
-      }
     });
 
-    document.addEventListener('MOUSE_CELL_HOVER', (e: Event) => {
-      const ce = e as CustomEvent;
-      if (!ce.detail || ce.detail.source === '3d') {
-        if (ce.detail === null) {
+    eventBus.on(GameEventType.MOUSE_CELL_HOVER, (payload) => {
+      if (!payload || payload.source === '3d') {
+        if (payload === null) {
             this.uiHoveredCell = null;
         }
         return;
       }
-      this.uiHoveredCell = { x: ce.detail.x, z: ce.detail.z, isPlayerSide: ce.detail.isPlayerSide };
+      this.uiHoveredCell = { x: payload.x, z: payload.z, isPlayerSide: payload.isPlayerSide };
     });
+  }
+
+  private handleCellLeave() {
+    this.feedbackHandler.hoverCursor.visible = false;
+    eventBus.emit(GameEventType.MOUSE_CELL_HOVER, null);
   }
 
   public setGameLoop(gameLoop: any) {
@@ -206,25 +212,22 @@ export class InteractionManager {
 
       this.hoveredCell = { x: pickedTile.userData.cellX, z: pickedTile.userData.cellZ };
 
-      document.dispatchEvent(new CustomEvent('MOUSE_CELL_HOVER', {
-          detail: {
-              x: this.hoveredCell.x,
-              z: this.hoveredCell.z,
-              isPlayerSide: pickedTile.userData.isPlayerSide,
-              source: '3d',
-              clientX: this.lastMouseClientX,
-              clientY: this.lastMouseClientY
-          }
-      }));
+      // Notify UI about hover
+      eventBus.emit(GameEventType.MOUSE_CELL_HOVER, {
+          x: this.hoveredCell.x,
+          z: this.hoveredCell.z,
+          isPlayerSide: pickedTile.userData.isPlayerSide,
+          source: '3d',
+          clientX: this.lastMouseClientX,
+          clientY: this.lastMouseClientY
+      });
 
     } else {
       this.feedbackHandler.ghostGroup.visible = false;
       this.feedbackHandler.hoverCursor.visible = false;
       this.hoveredCell = null;
       
-      if (this.uiHoveredCell === null) {
-          document.dispatchEvent(new CustomEvent('MOUSE_CELL_HOVER', { detail: null }));
-      }
+      this.handleCellLeave();
       
       if (this.uiHoveredCell && !isInteractionBlocked) {
         const { x, z, isPlayerSide } = this.uiHoveredCell;
