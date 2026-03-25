@@ -47,6 +47,7 @@ export class ImpactEffects {
         const isRogue = Config.rogueMode;
         const targetGroup = isRogue ? this.playerBoardGroup : (isPlayer ? this.enemyBoardGroup : this.playerBoardGroup);
         const impactPos = new THREE.Vector3(worldX, 0.4, worldZ);
+        targetGroup.localToWorld(impactPos);
 
         if (!isReplay) {
             this.particleSystem.spawnExplosion(worldX, 0.4, worldZ, targetGroup);

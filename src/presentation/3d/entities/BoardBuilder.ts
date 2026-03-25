@@ -3,6 +3,7 @@ import { WaterShader } from '../materials/WaterShader';
 import { Config } from '../../../infrastructure/config/Config';
 import { FogManager } from './FogManager';
 import { ThemeManager } from '../../theme/ThemeManager';
+import { eventBus, GameEventType } from '../../../application/events/GameEventBus';
 
 export interface BoardBuildResult {
     playerGridTiles: THREE.Object3D[];
@@ -437,7 +438,7 @@ export class BoardBuilder {
             (eGrid.material as any).needsUpdate = true;
         };
 
-        document.addEventListener('THEME_CHANGED', updateBoardTheme);
+        eventBus.on(GameEventType.THEME_CHANGED, updateBoardTheme);
         updateBoardTheme(); // Run once to seed initial values
 
         return {

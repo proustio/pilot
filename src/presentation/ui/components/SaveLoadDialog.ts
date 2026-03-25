@@ -1,5 +1,6 @@
 import { BaseUIComponent } from './BaseUIComponent';
 import { Storage, SaveMetadata } from '../../../infrastructure/storage/Storage';
+import { eventBus, GameEventType } from '../../../application/events/GameEventBus';
 import { Config } from '../../../infrastructure/config/Config';
 
 export type SaveLoadMode = 'save' | 'load';
@@ -20,13 +21,13 @@ export class SaveLoadDialog extends BaseUIComponent {
     }
 
     protected onShow(): void {
-        document.dispatchEvent(new CustomEvent('PAUSE_GAME'));
-        document.dispatchEvent(new CustomEvent('SET_INTERACTION_ENABLED', { detail: { enabled: false } }));
+        eventBus.emit(GameEventType.PAUSE_GAME, undefined as any);
+        eventBus.emit(GameEventType.SET_INTERACTION_ENABLED, { enabled: false });
     }
 
     protected onHide(): void {
         // Return to pause menu instead of resuming
-        document.dispatchEvent(new CustomEvent('SHOW_PAUSE_MENU'));
+        eventBus.emit(GameEventType.SHOW_PAUSE_MENU, undefined as any);
     }
 
     protected render(): void {
@@ -92,13 +93,16 @@ export class SaveLoadDialog extends BaseUIComponent {
                     const hasSave = Storage.hasSave(slotId);
                     if (hasSave) {
                         this.showConfirm('Overwrite this save?', () => {
-                            this.doSave(slotId);
+                            eventBus.emit(GameEventType.SAVE_GAME, { slotId });
+                            this.hide();
                         });
                     } else {
-                        this.doSave(slotId);
+                        eventBus.emit(GameEventType.SAVE_GAME, { slotId });
+                        this.hide();
                     }
                 } else {
-                    this.doLoad(slotId);
+                    eventBus.emit(GameEventType.LOAD_GAME, { slotId });
+                    this.hide();
                 }
             });
         });
@@ -137,13 +141,15 @@ export class SaveLoadDialog extends BaseUIComponent {
         noBtn.addEventListener('click', () => { cleanup(); }, { once: true });
     }
 
-    private doSave(slotId: number): void {
-        document.dispatchEvent(new CustomEvent('SAVE_GAME', { detail: { slotId } }));
-        this.render();
-    }
+    // The doSave and doLoad methods are no longer used as the event emission
+    // and hide logic has been moved directly into the slot button click handler.
+    // private doSave(slotId: number): void {
+    //     document.dispatchEvent(new CustomEvent('SAVE_GAME', { detail: { slotId } }));
+    //     this.render();
+    // }
 
-    private doLoad(slotId: number): void {
-        document.dispatchEvent(new CustomEvent('LOAD_GAME', { detail: { slotId } }));
-        this.hide();
-    }
+    // private doLoad(slotId: number): void {
+    //     document.dispatchEvent(new CustomEvent('LOAD_GAME', { detail: { slotId } }));
+    //     this.hide();
+    // }
 }

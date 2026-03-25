@@ -2,6 +2,7 @@ import { Ship, Orientation } from '../../domain/fleet/Ship';
 import { AIEngine } from '../ai/AIEngine';
 import { GameState } from './GameLoop';
 import { MatchMode } from '../../domain/match/Match';
+import { eventBus, GameEventType } from '../events/GameEventBus';
 
 type AttackResultListener = (x: number, z: number, result: string, isPlayer: boolean, isReplay: boolean) => void;
 type ShipPlacedListener = (ship: Ship, x: number, z: number, orientation: Orientation, isPlayer: boolean) => void;
@@ -89,7 +90,7 @@ export class TurnExecutor {
                             status = this.s.match!.checkGameEnd();
                         } catch (e: any) {
                             if (e.message === 'Board has no ships') {
-                                document.dispatchEvent(new CustomEvent('EXIT_GAME'));
+                                eventBus.emit(GameEventType.EXIT_GAME, undefined as any);
                                 return;
                             }
                             throw e;
@@ -161,7 +162,7 @@ export class TurnExecutor {
                             status = this.s.match!.checkGameEnd();
                         } catch (e: any) {
                             if (e.message === 'Board has no ships') {
-                                document.dispatchEvent(new CustomEvent('EXIT_GAME'));
+                                eventBus.emit(GameEventType.EXIT_GAME, undefined as any);
                                 return;
                             }
                             throw e;
@@ -260,24 +261,22 @@ export class TurnExecutor {
             const weapon = (window as any).selectedRogueWeapon || 'cannon';
 
             if (actionMode === 'move' && weapon === 'sail') {
-                document.dispatchEvent(new CustomEvent('ROGUE_ATTEMPT_MOVE', {
-                    detail: { targetX: x, targetZ: z }
-                }));
+                eventBus.emit(GameEventType.ROGUE_ATTEMPT_MOVE, { 
+                    targetX: x, targetZ: z 
+                });
                 return;
             }
 
             if (weapon !== 'cannon' && weapon !== 'sail') {
                 // Dispatch weapon event and let GameLoop handle it
-                document.dispatchEvent(new CustomEvent('ROGUE_USE_WEAPON', {
-                    detail: {
-                        weaponType: weapon,
-                        targetX: x,
-                        targetZ: z,
-                        radius: 2, // default for sonar
-                        directionX: this.s.airStrikeOrientation === Orientation.Horizontal ? 1 : 0,
-                        directionZ: this.s.airStrikeOrientation === Orientation.Vertical ? 1 : 0
-                    }
-                }));
+                eventBus.emit(GameEventType.ROGUE_USE_WEAPON, {
+                    weaponType: weapon,
+                    targetX: x,
+                    targetZ: z,
+                    radius: 2, // default for sonar
+                    directionX: this.s.airStrikeOrientation === Orientation.Horizontal ? 1 : 0,
+                    directionZ: this.s.airStrikeOrientation === Orientation.Vertical ? 1 : 0
+                });
                 return;
             }
         }
@@ -295,7 +294,7 @@ export class TurnExecutor {
                     status = this.s.match!.checkGameEnd();
                 } catch (e: any) {
                     if (e.message === 'Board has no ships') {
-                        document.dispatchEvent(new CustomEvent('EXIT_GAME'));
+                        eventBus.emit(GameEventType.EXIT_GAME, undefined as any);
                         return;
                     }
                     throw e;

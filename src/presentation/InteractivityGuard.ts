@@ -2,6 +2,8 @@
  * Central guard to manage interactivity across 3D and UI layers.
  * Prevents accidental actions during animations, camera movement, or menu browsing.
  */
+import { eventBus, GameEventType } from '../application/events/GameEventBus';
+
 export class InteractivityGuard {
     private static cameraInteracting = false;
     private static cameraInteractedRecently = false;
@@ -92,13 +94,11 @@ export class InteractivityGuard {
         }
         
         // Dispatch event for components that need to react specifically
-        document.dispatchEvent(new CustomEvent('INTERACTION_GUARD_STATE', { 
-            detail: { 
-                blocked,
-                cameraInteracting: this.cameraInteracting,
-                gameAnimating: this.gameAnimating,
-                menuOpen: this.menuOpen
-            } 
-        }));
+        eventBus.emit(GameEventType.INTERACTION_GUARD_STATE, { 
+            blocked,
+            cameraInteracting: this.cameraInteracting,
+            gameAnimating: this.gameAnimating,
+            menuOpen: this.menuOpen
+        });
     }
 }

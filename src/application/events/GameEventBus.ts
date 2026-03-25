@@ -56,7 +56,8 @@ export enum GameEventType {
     SET_CAMERA_TARGET = 'SET_CAMERA_TARGET',
     RESET_CAMERA = 'RESET_CAMERA',
     UPDATE_GEEK_STATS = 'UPDATE_GEEK_STATS',
-    SONAR_RESULTS = 'SONAR_RESULTS'
+    SONAR_RESULTS = 'SONAR_RESULTS',
+    INTERACTION_GUARD_STATE = 'INTERACTION_GUARD_STATE'
 }
 
 export interface GameEventPayloads {
@@ -86,7 +87,7 @@ export interface GameEventPayloads {
         x: number, 
         z: number, 
         isPlayerSide: boolean, 
-        source?: '3d' | 'ui',
+        source?: '3d' | 'ui' | '2d',
         clientX?: number,
         clientY?: number
     } | null;
@@ -99,28 +100,42 @@ export interface GameEventPayloads {
     [GameEventType.ROGUE_ATTEMPT_MOVE]: { targetX: number, targetZ: number };
     [GameEventType.ROGUE_MOVE_SHIP]: { shipId: string, newX: number, newZ: number, newOrientation: Orientation };
     [GameEventType.ROGUE_USE_ABILITY]: { type: string };
-    [GameEventType.ROGUE_USE_WEAPON]: { type: string, x: number, z: number, orientation?: Orientation };
+    [GameEventType.ROGUE_USE_WEAPON]: { 
+        weaponType: string, 
+        targetX: number, 
+        targetZ: number, 
+        radius?: number, 
+        directionX?: number, 
+        directionZ?: number 
+    };
     [GameEventType.ROGUE_ABILITY_QUEUED]: { type: string };
     
-    [GameEventType.SAVE_GAME]: { slotId: number, viewState: any, activeRogueShipIndex?: number, activeEnemyRogueShipIndex?: number };
-    [GameEventType.LOAD_GAME]: { slotId: number };
+    [GameEventType.SAVE_GAME]: { slotId: number | 'session', viewState?: any, activeRogueShipIndex?: number, activeEnemyRogueShipIndex?: number };
+    [GameEventType.LOAD_GAME]: { slotId: number | 'session' };
     [GameEventType.REQUEST_AUTO_SAVE]: void;
     [GameEventType.TRIGGER_AUTO_SAVE]: void;
-    [GameEventType.RESTORE_VIEW_STATE]: { viewState: any };
+    [GameEventType.RESTORE_VIEW_STATE]: any;
     [GameEventType.TOGGLE_PEEK]: { peeking: boolean };
     [GameEventType.PEEK_ENABLED_CHANGED]: { enabled: boolean };
     
     [GameEventType.GAME_ANIMATIONS_COMPLETE]: void;
     [GameEventType.SET_CAMERA_TARGET]: { x: number, y: number, z: number };
     [GameEventType.RESET_CAMERA]: void;
-    [GameEventType.UPDATE_GEEK_STATS]: { stats: any };
+    [GameEventType.UPDATE_GEEK_STATS]: any;
     [GameEventType.SONAR_RESULTS]: { hits: any };
+    [GameEventType.INTERACTION_GUARD_STATE]: { 
+        blocked: boolean, 
+        cameraInteracting: boolean, 
+        gameAnimating: boolean, 
+        menuOpen: boolean 
+    };
 }
 
 type EventCallback<T extends GameEventType> = (payload: GameEventPayloads[T]) => void;
 
 class GameEventBus {
     private eventTarget: EventTarget;
+    private handlers: Map<any, (event: Event) => void> = new Map();
 
     constructor() {
         this.eventTarget = new EventTarget();
@@ -136,12 +151,16 @@ class GameEventBus {
             const customEvent = event as CustomEvent<GameEventPayloads[T]>;
             callback(customEvent.detail);
         };
+        this.handlers.set(callback, handler);
         this.eventTarget.addEventListener(type, handler);
     }
 
-    public off<T extends GameEventType>(_type: T, _callback: EventCallback<T>): void {
-        // Note: This implementation of 'off' is tricky with anonymous handlers.
-        // For now, we'll keep it simple as most listeners in this app are permanent.
+    public off<T extends GameEventType>(type: T, callback: EventCallback<T>): void {
+        const handler = this.handlers.get(callback);
+        if (handler) {
+            this.eventTarget.removeEventListener(type, handler);
+            this.handlers.delete(callback);
+        }
     }
 }
 

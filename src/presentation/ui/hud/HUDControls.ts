@@ -110,13 +110,12 @@ export function bindHUDControls(container: HTMLElement): void {
             Config.visual.fpsCap = nextFps;
             Config.saveConfig();
             fpsBtn.innerHTML = `${nextFps}<br>`;
-            document.dispatchEvent(new CustomEvent('SET_FPS_CAP', { detail: { fpsCap: nextFps } }));
+            eventBus.emit(GameEventType.SET_FPS_CAP, { fpsCap: nextFps });
         });
 
-        document.addEventListener('SET_FPS_CAP', (e: Event) => {
-            const customEvent = e as CustomEvent;
-            if (customEvent.detail && customEvent.detail.fpsCap) {
-                fpsBtn.innerHTML = `${customEvent.detail.fpsCap}<br>`;
+        eventBus.on(GameEventType.SET_FPS_CAP, (payload: { fpsCap: number }) => {
+            if (payload && payload.fpsCap) {
+                fpsBtn.innerHTML = `${payload.fpsCap}<br>`;
             }
         });
     }
@@ -131,8 +130,8 @@ export function bindHUDControls(container: HTMLElement): void {
             dayNightBtn.innerText = Config.visual.isDayMode ? '🌘' : '🌖';
             dayNightLed.classList.remove('on-gold', 'on-blue');
             dayNightLed.classList.add(Config.visual.isDayMode ? 'on-gold' : 'on-blue');
-            document.dispatchEvent(new CustomEvent('TOGGLE_DAY_NIGHT', { detail: { isDay: Config.visual.isDayMode } }));
-            document.dispatchEvent(new CustomEvent('THEME_CHANGED'));
+            eventBus.emit(GameEventType.TOGGLE_DAY_NIGHT, undefined as any);
+            eventBus.emit(GameEventType.THEME_CHANGED, undefined as any);
         });
     }
 
@@ -142,15 +141,14 @@ export function bindHUDControls(container: HTMLElement): void {
     if (camResetBtn && camResetLed) {
         camResetBtn.addEventListener('click', () => {
             camResetLed.classList.add('on-gold');
-            document.dispatchEvent(new CustomEvent('RESET_CAMERA'));
+            eventBus.emit(GameEventType.RESET_CAMERA, undefined as any);
             setTimeout(() => camResetLed.classList.remove('on-gold'), 500);
         });
     }
 
     // 9. Geek Stats update listener
-    document.addEventListener('UPDATE_GEEK_STATS', (e: Event) => {
-        const customEvent = e as CustomEvent;
-        const d = customEvent.detail;
+    eventBus.on(GameEventType.UPDATE_GEEK_STATS, (payload: any) => {
+        const d = payload;
         if (!d || !Config.visual.showGeekStats) return;
 
         const fpsEl = container.querySelector('#gs-fps');
@@ -266,10 +264,9 @@ export function bindHUDControls(container: HTMLElement): void {
     // 10. Mouse Coordination tooltip
     const mouseCoordsEl = container.querySelector('#mouse-coords') as HTMLElement;
     if (mouseCoordsEl) {
-        document.addEventListener('MOUSE_CELL_HOVER', (e: Event) => {
-            const ce = e as CustomEvent;
-            if (ce.detail) {
-                const { x, z, clientX, clientY } = ce.detail;
+        eventBus.on(GameEventType.MOUSE_CELL_HOVER, (payload: any) => {
+            if (payload) {
+                const { x, z, clientX, clientY } = payload;
                 mouseCoordsEl.textContent = `(${x},${z})`;
                 mouseCoordsEl.style.left = `${clientX}px`;
                 mouseCoordsEl.style.top = `${clientY}px`;

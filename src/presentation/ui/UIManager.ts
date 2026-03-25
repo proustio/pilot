@@ -7,9 +7,9 @@ import { PauseMenu } from './pause/PauseMenu';
 import { Settings } from './settings/Settings';
 import { GameOver } from './menu/GameOver';
 import { SaveLoadDialog } from './components/SaveLoadDialog';
+import { eventBus, GameEventType } from '../../application/events/GameEventBus';
 import { Storage } from '../../infrastructure/storage/Storage';
 import { AudioEngine } from '../../infrastructure/audio/AudioEngine';
-import { eventBus, GameEventType } from '../../application/events/GameEventBus';
 
 
 export class UIManager {
@@ -52,28 +52,16 @@ export class UIManager {
             this.handleStateChange(newState);
         });
 
-        eventBus.on(GameEventType.SHOW_PAUSE_MENU, () => {
-            if (this.gameLoop.currentState !== GameState.MAIN_MENU) {
-                this.pauseMenu.show();
-            }
-        });
-
-        eventBus.on(GameEventType.SHOW_SETTINGS, () => {
-            this.settings.show();
-        });
+        eventBus.on(GameEventType.SHOW_PAUSE_MENU, () => this.pauseMenu.show());
+        eventBus.on(GameEventType.SHOW_SAVE_DIALOG, () => this.saveLoadDialog.openAs('save'));
+        eventBus.on(GameEventType.SHOW_LOAD_DIALOG, () => this.saveLoadDialog.openAs('load'));
+        eventBus.on(GameEventType.SHOW_SETTINGS, () => this.settings.show());
 
         eventBus.on(GameEventType.TOGGLE_HUD, (payload) => {
             if (payload.show) this.hud.show();
             else this.hud.hide();
         });
 
-        eventBus.on(GameEventType.SHOW_SAVE_DIALOG, () => {
-            this.saveLoadDialog.openAs('save');
-        });
-
-        eventBus.on(GameEventType.SHOW_LOAD_DIALOG, () => {
-            this.saveLoadDialog.openAs('load');
-        });
 
         this.handleStateChange(this.gameLoop.currentState);
 
@@ -139,9 +127,9 @@ export class UIManager {
                     loaded.activeEnemyRogueShipIndex
                 );
                 if (loaded.viewState) {
-                    document.dispatchEvent(new CustomEvent('RESTORE_VIEW_STATE', { 
-                        detail: { ...loaded.viewState, source: `Slot ${slotId}` } 
-                    }));
+                    eventBus.emit(GameEventType.RESTORE_VIEW_STATE, { 
+                        ...loaded.viewState, source: `Slot ${slotId}` 
+                    });
                 }
             }
         } else {
@@ -155,9 +143,9 @@ export class UIManager {
                     sessionLoaded.activeEnemyRogueShipIndex
                 );
                 if (sessionLoaded.viewState) {
-                    document.dispatchEvent(new CustomEvent('RESTORE_VIEW_STATE', { 
-                        detail: { ...sessionLoaded.viewState, source: 'Session' } 
-                    }));
+                    eventBus.emit(GameEventType.RESTORE_VIEW_STATE, { 
+                        ...sessionLoaded.viewState, source: 'Session' 
+                    });
                 }
             }
         }
@@ -170,16 +158,16 @@ export class UIManager {
 
         if (newState === GameState.MAIN_MENU) {
             this.mainMenu.show();
-            document.dispatchEvent(new CustomEvent('SET_INTERACTION_ENABLED', { detail: { enabled: false } }));
+            eventBus.emit(GameEventType.SET_INTERACTION_ENABLED, { enabled: false });
         } else if (newState === GameState.GAME_OVER) {
             this.gameOver.show();
             const status = this.gameLoop.match?.checkGameEnd() || 'enemy_wins';
             this.gameOver.updateMessage(status);
-            document.dispatchEvent(new CustomEvent('SET_INTERACTION_ENABLED', { detail: { enabled: false } }));
+            eventBus.emit(GameEventType.SET_INTERACTION_ENABLED, { enabled: false });
         } else {
             this.hud.show();
             if (!this.pauseMenu['isVisible'] && !this.settings['isVisible']) {
-                document.dispatchEvent(new CustomEvent('SET_INTERACTION_ENABLED', { detail: { enabled: true } }));
+                eventBus.emit(GameEventType.SET_INTERACTION_ENABLED, { enabled: true });
                 InteractivityGuard.setMenuOpen(false);
             }
         }
@@ -206,9 +194,9 @@ export class UIManager {
         const isMainMenu = this.gameLoop.currentState === GameState.MAIN_MENU;
 
         if (isPausingMenuOpen && !this.gameLoop.isPaused) {
-            document.dispatchEvent(new CustomEvent('PAUSE_GAME'));
+            eventBus.emit(GameEventType.PAUSE_GAME, undefined as any);
         } else if (!isPausingMenuOpen && this.gameLoop.isPaused && !isMainMenu) {
-            document.dispatchEvent(new CustomEvent('RESUME_GAME'));
+            eventBus.emit(GameEventType.RESUME_GAME, undefined as any);
         }
     }
 }

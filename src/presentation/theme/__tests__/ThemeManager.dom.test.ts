@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ThemeManager, DefaultThemeColors, GrayscaleThemeColors } from '../ThemeManager';
 import { Config } from '../../../infrastructure/config/Config';
+import { eventBus, GameEventType } from '../../../application/events/GameEventBus';
 
 describe('ThemeManager DOM Interaction', () => {
     let themeManager: ThemeManager;
@@ -41,7 +42,7 @@ describe('ThemeManager DOM Interaction', () => {
         Config.visual.customColors.playerShip = testColor;
         
         // The constructor adds the listener, and it's a singleton.
-        document.dispatchEvent(new CustomEvent('THEME_CHANGED'));
+        eventBus.emit(GameEventType.THEME_CHANGED, undefined as any);
 
         const root = document.documentElement;
         expect(root.style.getPropertyValue('--player-primary').toUpperCase()).toBe(testColor);

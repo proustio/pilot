@@ -4,6 +4,7 @@ import { InteractionManager } from '../../presentation/3d/interaction/Interactio
 import { GameLoop } from './GameLoop';
 import { UIManager } from '../../presentation/ui/UIManager';
 import { Config } from '../../infrastructure/config/Config';
+import { eventBus, GameEventType } from '../../application/events/GameEventBus';
 
 /**
  * Orchestrates the main animation loop, coordinating updates across 
@@ -42,10 +43,9 @@ export class GameRunner {
 
         this.frameInterval = 1000 / (Config.visual.fpsCap || 60);
 
-        document.addEventListener('SET_FPS_CAP', (e: Event) => {
-            const ce = e as CustomEvent;
-            if (ce.detail && ce.detail.fpsCap) {
-                this.frameInterval = 1000 / ce.detail.fpsCap;
+        eventBus.on(GameEventType.SET_FPS_CAP, (payload: { fpsCap: number }) => {
+            if (payload && payload.fpsCap) {
+                this.frameInterval = 1000 / payload.fpsCap;
             }
         });
     }
@@ -147,23 +147,21 @@ export class GameRunner {
             }
         }
 
-        document.dispatchEvent(new CustomEvent('UPDATE_GEEK_STATS', {
-            detail: {
-                fps: fpsValue,
-                vsync: vsyncStatus,
-                frameTime: avgFrameTime,
-                ram: ramMB,
-                cpuLoad: cpuLoad,
-                gpuCalls: this.engine.renderer.info.render.calls,
-                gpuTris: this.engine.renderer.info.render.triangles,
-                netDown: netDownSpeed,
-                elapsedActiveTime: this.elapsedActiveTime,
-                zoom: this.engine.orbitControls.getDistance(),
-                cameraPos: this.engine.camera.position,
-                targetPos: this.engine.orbitControls.target,
-                engine: this.getBrowserEngine()
-            }
-        }));
+        eventBus.emit(GameEventType.UPDATE_GEEK_STATS, {
+            fps: fpsValue,
+            vsync: vsyncStatus,
+            frameTime: avgFrameTime,
+            ram: ramMB,
+            cpuLoad: cpuLoad,
+            gpuCalls: this.engine.renderer.info.render.calls,
+            gpuTris: this.engine.renderer.info.render.triangles,
+            netDown: netDownSpeed,
+            elapsedActiveTime: this.elapsedActiveTime,
+            zoom: this.engine.orbitControls.getDistance(),
+            cameraPos: this.engine.camera.position,
+            targetPos: this.engine.orbitControls.target,
+            engine: this.getBrowserEngine()
+        });
 
         this.framesRendered = 0;
         this.framesInWindow = 0;

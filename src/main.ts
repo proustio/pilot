@@ -9,6 +9,7 @@ import { Storage, ViewState } from './infrastructure/storage/Storage';
 import { AudioEngine } from './infrastructure/audio/AudioEngine';
 import { ThemeManager } from './presentation/theme/ThemeManager';
 import { GameRunner } from './application/game-loop/GameRunner';
+import { eventBus, GameEventType } from './application/events/GameEventBus';
 
 const init = () => {
     try {
@@ -31,9 +32,8 @@ const init = () => {
         interactionManager.setGameLoop(gameLoop);
 
         // Bind TOGGLE_DAY_NIGHT to the 3D Engine
-        document.addEventListener('TOGGLE_DAY_NIGHT', (e: Event) => {
-            const ce = e as CustomEvent;
-            engine.setDayMode(ce.detail.isDay);
+        eventBus.on(GameEventType.TOGGLE_DAY_NIGHT, () => {
+            engine.setDayMode(Config.visual.isDayMode);
         });
 
         interactionManager.onClick((hit: any) => {
@@ -76,27 +76,27 @@ const init = () => {
             if (newState === 'SETUP_BOARD') {
                 entityManager.showPlayerBoard();
                 if (!engine.hasManualMovement) {
-                    document.dispatchEvent(new CustomEvent('SET_CAMERA_TARGET', { detail: { x: 0, y: 12, z: 0.1 } }));
+                    eventBus.emit(GameEventType.SET_CAMERA_TARGET, { x: 0, y: 12, z: 0.1 });
                 }
             } else if (newState === 'ENEMY_TURN') {
                 entityManager.showPlayerBoard(); // Always show player (shared) board in Rogue
                 if (!engine.hasManualMovement) {
                     if (isRogue) {
-                        document.dispatchEvent(new CustomEvent('SET_CAMERA_TARGET', { detail: { x: 0, y: 14, z: 12 } }));
+                        eventBus.emit(GameEventType.SET_CAMERA_TARGET, { x: 0, y: 14, z: 12 });
                     } else {
-                        document.dispatchEvent(new CustomEvent('SET_CAMERA_TARGET', { detail: { x: 0, y: 8, z: 12 } }));
+                        eventBus.emit(GameEventType.SET_CAMERA_TARGET, { x: 0, y: 8, z: 12 });
                     }
                 }
             } else if (newState === 'PLAYER_TURN') {
                 if (isRogue) {
                     entityManager.showPlayerBoard();
                     if (!engine.hasManualMovement) {
-                        document.dispatchEvent(new CustomEvent('SET_CAMERA_TARGET', { detail: { x: 0, y: 14, z: 6 } }));
+                        eventBus.emit(GameEventType.SET_CAMERA_TARGET, { x: 0, y: 14, z: 6 });
                     }
                 } else {
                     entityManager.showEnemyBoard();
                     if (!engine.hasManualMovement) {
-                        document.dispatchEvent(new CustomEvent('SET_CAMERA_TARGET', { detail: { x: 5, y: 10, z: 14 } }));
+                        eventBus.emit(GameEventType.SET_CAMERA_TARGET, { x: 5, y: 10, z: 14 });
                     }
                 }
             }
@@ -124,33 +124,29 @@ const init = () => {
             console.log(`%c💾 Saving View State [${slotId}]`, 'color: #00ff00; font-weight: bold;');
             console.table(vs);
 
-            document.dispatchEvent(new CustomEvent('SAVE_GAME', {
-                detail: { 
-                    slotId, 
-                    viewState: vs,
-                    activeRogueShipIndex: gameLoop.activeRogueShipIndex,
-                    activeEnemyRogueShipIndex: gameLoop.activeEnemyRogueShipIndex
-                }
-            }));
+            eventBus.emit(GameEventType.SAVE_GAME, { 
+                slotId, 
+                viewState: vs,
+                activeRogueShipIndex: gameLoop.activeRogueShipIndex,
+                activeEnemyRogueShipIndex: gameLoop.activeEnemyRogueShipIndex
+            });
         };
 
-        document.addEventListener('REQUEST_AUTO_SAVE', (e: Event) => {
-            const ce = e as CustomEvent;
-            performSave(ce.detail?.slotId || 'session');
+        eventBus.on(GameEventType.REQUEST_AUTO_SAVE, () => {
+            performSave('session');
         });
 
-        document.addEventListener('SAVE_GAME', (e: Event) => {
-            const ce = e as CustomEvent;
-            if (!ce.detail?.viewState && ce.detail?.slotId && ce.detail.slotId !== 'session') {
-                e.stopImmediatePropagation();
-                performSave(ce.detail.slotId);
+        eventBus.on(GameEventType.SAVE_GAME, (payload) => {
+            if (!payload?.viewState && payload?.slotId && (payload.slotId as any) !== 'session') {
+                performSave(payload.slotId);
             }
-        }, true);
+        });
 
-        document.addEventListener('RESTORE_VIEW_STATE', (e: Event) => {
-            const ce = e as CustomEvent;
-            const vs: any = ce.detail;
-            
+        eventBus.on(GameEventType.RESET_CAMERA, () => {
+            engine.restoreViewState(5.0233, 10.0466, 14.0652, 0, 0, 0, 18);
+        });
+        
+        eventBus.on(GameEventType.RESTORE_VIEW_STATE, (vs: any) => {
             console.log(`%c🔄 Restoring View State [Source: ${vs?.source || 'Unknown'}]`, 'color: #00ffff; font-weight: bold;');
             console.table(vs);
             
@@ -182,34 +178,33 @@ const init = () => {
             Config.visual.isDayMode = isDay;
             ThemeManager.getInstance().applyToDOM();
             engine.setDayMode(isDay);
-            document.dispatchEvent(new CustomEvent('TOGGLE_DAY_NIGHT', { detail: { isDay } }));
+            eventBus.emit(GameEventType.TOGGLE_DAY_NIGHT, undefined as any);
 
             const speed = vs?.gameSpeedMultiplier ?? Config.timing.gameSpeedMultiplier;
             Config.timing.gameSpeedMultiplier = speed;
-            document.dispatchEvent(new CustomEvent('SET_GAME_SPEED', { detail: { speed: speed.toFixed(1) } }));
+            eventBus.emit(GameEventType.SET_GAME_SPEED, { speed });
         });
 
-        document.addEventListener('TOGGLE_PEEK', (e: Event) => {
-            const ce = e as CustomEvent;
-            const peeking = ce.detail?.peeking;
+        eventBus.on(GameEventType.TOGGLE_PEEK, (payload) => {
+            const peeking = payload?.peeking;
             const currentState = gameLoop.currentState;
             if (peeking) {
                 if (currentState === GameState.PLAYER_TURN) entityManager.showPlayerBoard();
                 else entityManager.showEnemyBoard();
-                document.dispatchEvent(new CustomEvent('SET_INTERACTION_ENABLED', { detail: { enabled: false } }));
+                eventBus.emit(GameEventType.SET_INTERACTION_ENABLED, { enabled: false });
             } else {
                 if (currentState === GameState.PLAYER_TURN) entityManager.showEnemyBoard();
                 else entityManager.showPlayerBoard();
-                document.dispatchEvent(new CustomEvent('SET_INTERACTION_ENABLED', { detail: { enabled: true } }));
+                eventBus.emit(GameEventType.SET_INTERACTION_ENABLED, { enabled: true });
             }
         });
 
-        document.addEventListener('TURN_CHANGED', () => {
+        eventBus.on(GameEventType.TURN_CHANGED, () => {
             entityManager.onTurnChange();
         });
 
         let isQuitting = false;
-        document.addEventListener('EXIT_GAME', () => {
+        eventBus.on(GameEventType.EXIT_GAME, () => {
             isQuitting = true;
         });
 

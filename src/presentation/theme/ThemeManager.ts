@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { Config } from '../../infrastructure/config/Config';
+import { eventBus, GameEventType } from '../../application/events/GameEventBus';
 
 export interface ThemeColors {
     playerShip: string;
@@ -30,7 +31,7 @@ export class ThemeManager {
     private cache: Map<string, THREE.Color> = new Map();
 
     private constructor() {
-        document.addEventListener('THEME_CHANGED', () => {
+        eventBus.on(GameEventType.THEME_CHANGED, () => {
              this.applyToDOM();
         });
     }

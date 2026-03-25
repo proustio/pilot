@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { ThemeManager } from '../../theme/ThemeManager';
+import { eventBus, GameEventType } from '../../../application/events/GameEventBus';
 
 interface Particle {
     mesh: THREE.Mesh;
@@ -54,7 +55,7 @@ export class ParticleSystem {
             this.splashMatBlue.color.copy(wc.secondary);
         };
 
-        document.addEventListener('THEME_CHANGED', updateParticleTheme);
+        eventBus.on(GameEventType.THEME_CHANGED, updateParticleTheme);
         updateParticleTheme(); // Run once to seed values
     }
 

@@ -3,6 +3,7 @@ import { InteractivityGuard } from '../InteractivityGuard';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { Config } from '../../infrastructure/config/Config';
 import { ThemeManager } from '../theme/ThemeManager';
+import { eventBus, GameEventType } from '../../application/events/GameEventBus';
 export class Engine3D {
   public scene: THREE.Scene;
   public camera: THREE.PerspectiveCamera;
@@ -106,24 +107,23 @@ export class Engine3D {
       }
     }, { capture: true });
 
-    document.addEventListener('TOGGLE_DAY_NIGHT', () => {
+    eventBus.on(GameEventType.TOGGLE_DAY_NIGHT, () => {
+        this.setDayMode(!Config.visual.isDayMode);
+    });
+
+    eventBus.on(GameEventType.SET_CAMERA_TARGET, (payload: any) => {
+        if (payload && !this.isTransitioning) {
+            this.targetCameraPos.set(payload.x, payload.y, payload.z);
+            this.isTransitioning = true;
+            InteractivityGuard.setCameraTransitioning(true);
+        }
+    });
+
+    eventBus.on(GameEventType.THEME_CHANGED, () => {
       this.updateTheme();
     });
 
-    document.addEventListener('THEME_CHANGED', () => {
-      this.updateTheme();
-    });
-
-    document.addEventListener('SET_CAMERA_TARGET', (e: Event) => {
-      const ce = e as CustomEvent;
-      if (ce.detail && !this.isTransitioning) {
-        this.targetCameraPos.set(ce.detail.x, ce.detail.y, ce.detail.z);
-        this.isTransitioning = true;
-        InteractivityGuard.setCameraTransitioning(true);
-      }
-    });
-
-    document.addEventListener('RESET_CAMERA', () => {
+    eventBus.on(GameEventType.RESET_CAMERA, () => {
       this.targetCameraPos.set(5.0233, 10.0466, 14.0652);
       this.targetLookAt.set(0, 0, 0);
       this.isTransitioning = true;
@@ -225,7 +225,7 @@ export class Engine3D {
     if (this.saveTimeout) clearTimeout(this.saveTimeout);
     this.saveTimeout = setTimeout(() => {
         if (!InteractivityGuard.isCameraMoving() && !this.isTransitioning) {
-            document.dispatchEvent(new CustomEvent('TRIGGER_AUTO_SAVE'));
+            eventBus.emit(GameEventType.TRIGGER_AUTO_SAVE, undefined as any);
         }
     }, 1000);
   }

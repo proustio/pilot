@@ -2,6 +2,7 @@ import { BaseUIComponent } from '../components/BaseUIComponent';
 import { GameLoop } from '../../../application/game-loop/GameLoop';
 import { CellState } from '../../../domain/board/Board';
 import { Config } from '../../../infrastructure/config/Config';
+import { eventBus, GameEventType } from '../../../application/events/GameEventBus';
 
 export class UnifiedBoardUI extends BaseUIComponent {
     private gameLoop: GameLoop;
@@ -18,16 +19,15 @@ export class UnifiedBoardUI extends BaseUIComponent {
         this.gameLoop.onAttackResult((_x, _z, _result, _isPlayer, _isReplay) => this.refresh());
         this.gameLoop.onStateChange(() => this.refresh());
 
-        document.addEventListener('MOUSE_CELL_HOVER', (e: Event) => {
-            const ce = e as CustomEvent;
-            this.handle3DHover(ce.detail);
+        eventBus.on(GameEventType.MOUSE_CELL_HOVER, (payload) => {
+            this.handle3DHover(payload);
         });
-
-        document.addEventListener('ROGUE_ACTION_MODE_CHANGED', () => {
+        
+        eventBus.on(GameEventType.ROGUE_ACTION_MODE_CHANGED, () => {
             this.refresh();
         });
-
-        document.addEventListener('ACTIVE_SHIP_CHANGED', () => {
+        
+        eventBus.on(GameEventType.ACTIVE_SHIP_CHANGED, () => {
             this.refresh();
         });
     }
@@ -91,21 +91,19 @@ export class UnifiedBoardUI extends BaseUIComponent {
                 const z = Math.floor(i / boardWidth);
                 
                 const onHover = (e: MouseEvent) => {
-                    document.dispatchEvent(new CustomEvent('MOUSE_CELL_HOVER', {
-                        detail: {
-                            x, z,
-                            isPlayerSide: isPlayer,
-                            source: '2d',
-                            clientX: e.clientX,
-                            clientY: e.clientY
-                        }
-                    }));
+                    eventBus.emit(GameEventType.MOUSE_CELL_HOVER, {
+                        x, z,
+                        isPlayerSide: isPlayer,
+                        source: '2d',
+                        clientX: e.clientX,
+                        clientY: e.clientY
+                    });
                 };
                 
                 cell.addEventListener('mouseenter', onHover);
                 cell.addEventListener('mousemove', onHover);
                 cell.addEventListener('mouseleave', () => {
-                    document.dispatchEvent(new CustomEvent('MOUSE_CELL_HOVER', { detail: null }));
+                    eventBus.emit(GameEventType.MOUSE_CELL_HOVER, null);
                 });
 
                 cell.addEventListener('click', () => {

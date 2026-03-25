@@ -8,6 +8,7 @@ import { FogManager } from './FogManager';
 import { ParticleSystem } from './ParticleSystem';
 import { WaterShaderManager } from './WaterShaderManager';
 import { VesselVisibilityManager } from './VesselVisibilityManager';
+import { eventBus, GameEventType } from '../../../application/events/GameEventBus';
 
 export class EntityManager {
     private scene: THREE.Scene;
@@ -81,9 +82,8 @@ export class EntityManager {
             this.enemyBoardGroup
         );
 
-        document.addEventListener('ACTIVE_SHIP_CHANGED', (e: Event) => {
-            const ce = e as CustomEvent;
-            this.activeRogueShipId = ce.detail.ship?.id || null;
+        eventBus.on(GameEventType.ACTIVE_SHIP_CHANGED, (payload) => {
+            this.activeRogueShipId = payload.ship?.id || null;
         });
     }
 
@@ -225,7 +225,7 @@ export class EntityManager {
         this.projectileManager.updateProjectiles(this.addRipple.bind(this), null, null); 
 
         const currentBusy = this.isBusy();
-        if (this.wasBusy && !currentBusy) document.dispatchEvent(new CustomEvent('GAME_ANIMATIONS_COMPLETE'));
+        if (this.wasBusy && !currentBusy) eventBus.emit(GameEventType.GAME_ANIMATIONS_COMPLETE, undefined as any);
         this.wasBusy = currentBusy;
 
         this.updateShipAnimations();

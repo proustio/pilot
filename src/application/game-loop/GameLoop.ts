@@ -140,9 +140,7 @@ export class GameLoop {
 
     public requestAutoSave(): void {
         if (!this.match || !this.hasUnsavedProgress()) return;
-        document.dispatchEvent(new CustomEvent('REQUEST_AUTO_SAVE', {
-            detail: { slotId: 'session' }
-        }));
+        eventBus.emit(GameEventType.REQUEST_AUTO_SAVE, undefined as any);
     }
 
     public transitionTo(newState: GameState): void {

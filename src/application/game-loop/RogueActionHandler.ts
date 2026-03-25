@@ -1,5 +1,6 @@
 import { GameLoop, GameState } from './GameLoop';
 import { Ship, Orientation } from '../../domain/fleet/Ship';
+import { eventBus, GameEventType } from '../events/GameEventBus';
 
 export class RogueActionHandler {
     constructor(private gameLoop: GameLoop) {}
@@ -77,7 +78,7 @@ export class RogueActionHandler {
         while (this.gameLoop.activeRogueShipIndex < this.gameLoop.rogueShipOrder.length) {
             const ship = this.gameLoop.rogueShipOrder[this.gameLoop.activeRogueShipIndex];
             if (!ship.isSunk()) {
-                document.dispatchEvent(new CustomEvent('ACTIVE_SHIP_CHANGED', { detail: { ship } }));
+                eventBus.emit(GameEventType.ACTIVE_SHIP_CHANGED, { ship, index: this.gameLoop.activeRogueShipIndex });
                 return;
             }
             this.gameLoop.activeRogueShipIndex++;

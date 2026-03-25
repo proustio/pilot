@@ -3,6 +3,7 @@ import { GameLoop } from '../../../application/game-loop/GameLoop';
 import { Match, MatchMode } from '../../../domain/match/Match';
 import { Config } from '../../../infrastructure/config/Config';
 import { Storage } from '../../../infrastructure/storage/Storage';
+import { eventBus, GameEventType } from '../../../application/events/GameEventBus';
 
 export class MainMenu extends BaseUIComponent {
     private gameLoop: GameLoop;
@@ -244,18 +245,17 @@ export class MainMenu extends BaseUIComponent {
 
         const gameSavesBtn = this.container.querySelector('#btn-game-saves') as HTMLButtonElement;
         gameSavesBtn.addEventListener('click', () => {
-            document.dispatchEvent(new CustomEvent('SHOW_LOAD_DIALOG'));
+            eventBus.emit(GameEventType.SHOW_LOAD_DIALOG, undefined as any);
         });
 
         const settingsBtn = this.container.querySelector('#btn-settings') as HTMLButtonElement;
         settingsBtn.addEventListener('click', () => {
-            document.dispatchEvent(new CustomEvent('SHOW_SETTINGS'));
+            eventBus.emit(GameEventType.SHOW_SETTINGS, undefined as any);
         });
 
-        document.addEventListener('TOGGLE_AUTO_BATTLER', (e: Event) => {
-            const ce = e as CustomEvent;
-            if (ce.detail && ce.detail.enabled !== undefined) {
-                autoBattlerToggle.checked = ce.detail.enabled;
+        eventBus.on(GameEventType.TOGGLE_AUTO_BATTLER, (payload) => {
+            if (payload && payload.enabled !== undefined) {
+                autoBattlerToggle.checked = payload.enabled;
             }
         });
     }

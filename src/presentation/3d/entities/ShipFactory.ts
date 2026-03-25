@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { Ship, Orientation } from '../../../domain/fleet/Ship';
 import { Config } from '../../../infrastructure/config/Config';
 import { ThemeManager } from '../../theme/ThemeManager';
+import { eventBus, GameEventType } from '../../../application/events/GameEventBus';
 
 /**
  * Constructs voxel ship models (hull, deck, bridge, turrets, wireframe overlay)
@@ -249,10 +250,10 @@ export class ShipFactory {
         };
         
         const themeListener = () => updateShipTheme();
-        document.addEventListener('THEME_CHANGED', themeListener);
+        eventBus.on(GameEventType.THEME_CHANGED, themeListener);
         shipGroup.userData.themeListener = themeListener;
         shipGroup.userData.dispose = () => {
-            document.removeEventListener('THEME_CHANGED', themeListener);
+            eventBus.off(GameEventType.THEME_CHANGED, themeListener);
             instancedMesh.dispose();
             instancedLines.dispose();
             instancedMesh.geometry.dispose();

@@ -1,5 +1,6 @@
 import { BaseUIComponent } from '../components/BaseUIComponent';
 import { GameLoop } from '../../../application/game-loop/GameLoop';
+import { eventBus, GameEventType } from '../../../application/events/GameEventBus';
 import { Storage } from '../../../infrastructure/storage/Storage';
 
 export class PauseMenu extends BaseUIComponent {
@@ -41,21 +42,21 @@ export class PauseMenu extends BaseUIComponent {
         const saveBtn = this.container.querySelector('#btn-pause-save') as HTMLButtonElement;
         saveBtn.addEventListener('click', () => {
             this.hide();
-            document.dispatchEvent(new CustomEvent('SHOW_SAVE_DIALOG'));
+            eventBus.emit(GameEventType.SHOW_SAVE_DIALOG, undefined as any);
         });
 
         // Load
         const loadBtn = this.container.querySelector('#btn-pause-load') as HTMLButtonElement;
         loadBtn.addEventListener('click', () => {
             this.hide();
-            document.dispatchEvent(new CustomEvent('SHOW_LOAD_DIALOG'));
+            eventBus.emit(GameEventType.SHOW_LOAD_DIALOG, undefined as any);
         });
 
         // Settings
         const settingsBtn = this.container.querySelector('#btn-pause-settings') as HTMLButtonElement;
         settingsBtn.addEventListener('click', () => {
             // Keep PauseMenu visible underneath settings
-            document.dispatchEvent(new CustomEvent('SHOW_SETTINGS'));
+            eventBus.emit(GameEventType.SHOW_SETTINGS, undefined as any);
         });
 
         // Exit to Main Menu
@@ -69,7 +70,7 @@ export class PauseMenu extends BaseUIComponent {
                 const noBtn = this.container.querySelector('#exit-confirm-no') as HTMLButtonElement;
 
                 yesBtn.addEventListener('click', () => {
-                    document.dispatchEvent(new CustomEvent('EXIT_GAME'));
+                    eventBus.emit(GameEventType.EXIT_GAME, undefined as any);
                     Storage.clearSession();
                     window.location.reload();
                 }, { once: true });
@@ -78,7 +79,7 @@ export class PauseMenu extends BaseUIComponent {
                     overlay.style.display = 'none';
                 }, { once: true });
             } else {
-                document.dispatchEvent(new CustomEvent('EXIT_GAME'));
+                eventBus.emit(GameEventType.EXIT_GAME, undefined as any);
                 Storage.clearSession();
                 window.location.reload();
             }

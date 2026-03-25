@@ -6,6 +6,7 @@ import { UnifiedBoardUI } from './UnifiedBoardUI';
 import { bindHUDControls } from './HUDControls';
 import { updateGameStats } from './HUDStats';
 import { Ship } from '../../../domain/fleet/Ship';
+import { eventBus, GameEventType } from '../../../application/events/GameEventBus';
 
 /**
  * Main HUD component that orchestrates the top-bar (stats, turn, fleet)
@@ -138,9 +139,8 @@ export class HUD extends BaseUIComponent {
         this.turnIndicator = this.container.querySelector('#turn-indicator') as HTMLElement;
 
         // Listen for active ship changes in Rogue mode
-        document.addEventListener('ACTIVE_SHIP_CHANGED', (e: Event) => {
-            const ce = e as CustomEvent;
-            this.activeRogueShip = ce.detail.ship;
+        eventBus.on(GameEventType.ACTIVE_SHIP_CHANGED, (payload) => {
+            this.activeRogueShip = payload.ship;
             this.updateRogueShipDisplay(this.activeRogueShip);
         });
 
@@ -194,7 +194,7 @@ export class HUD extends BaseUIComponent {
             this.bindArsenalEvents();
         }
 
-        document.dispatchEvent(new CustomEvent('ROGUE_ACTION_MODE_CHANGED', { detail: { mode } }));
+        eventBus.emit(GameEventType.ROGUE_ACTION_MODE_CHANGED, { mode });
     };
 
     if (moveBtn) moveBtn.addEventListener('click', () => setActiveTab('move'));
@@ -204,24 +204,22 @@ export class HUD extends BaseUIComponent {
     setActiveTab('attack');
     
         // Listen for ship change to refresh default if needed
-        document.addEventListener('ACTIVE_SHIP_CHANGED', () => {
+        eventBus.on(GameEventType.ACTIVE_SHIP_CHANGED, () => {
             if ((window as any).selectedRogueAction !== 'attack') {
-                setActiveTab('attack'); // automatically select attack on turn start
+                setActiveTab('attack');
             }
         });
 
-        document.addEventListener('SET_ROGUE_ACTION_SECTION', (e: Event) => {
-            const ce = e as CustomEvent;
-            if (ce.detail?.section) {
-                setActiveTab(ce.detail.section);
+        eventBus.on(GameEventType.SET_ROGUE_ACTION_SECTION, (payload) => {
+            if (payload?.section) {
+                setActiveTab(payload.section);
             }
         });
 
-        document.addEventListener('SET_ROGUE_WEAPON', (e: Event) => {
-            const ce = e as CustomEvent;
-            if (ce.detail?.weapon) {
-                (window as any).selectedRogueWeapon = ce.detail.weapon;
-                setActiveTab((window as any).selectedRogueAction || 'attack'); // Refresh UI
+        eventBus.on(GameEventType.SET_ROGUE_WEAPON, (payload) => {
+            if (payload?.weapon) {
+                (window as any).selectedRogueWeapon = payload.weapon;
+                setActiveTab((window as any).selectedRogueAction || 'attack');
             }
         });
     }
