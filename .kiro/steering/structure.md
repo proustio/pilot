@@ -45,7 +45,9 @@ src/
 │   │   │   ├── FogManager.ts      # Enemy board fog-of-war logic (Classic) and dynamic unit-based visibility (Rogue: 5-cell radius around ships).
 │   │   │   └── ParticleSystem.ts  # Voxel-based particle effects
 │   │   ├── interaction/
-│   │   │   └── InteractionManager.ts  # Raycasting, hover highlights, click dispatch
+│   │   │   ├── InteractionManager.ts  # Coordinator for 3D/UI hover and clicks
+│   │   │   ├── RaycastService.ts      # [NEW] Encapsulates Three.js raycasting logic
+│   │   │   └── InputFeedbackHandler.ts # [NEW] Manages hover cursors, ghosts, and highlights
 │   │   └── materials/
 │   │       └── WaterShader.ts     # Custom vertex/fragment shader for animated voxel water
 │   └── ui/
@@ -62,7 +64,12 @@ src/
 │       │   ├── MainMenu.ts        # New game / load game entry
 │       │   └── GameOver.ts        # Win/loss screen
 │       ├── pause/PauseMenu.ts     # Pause overlay with resume/save/quit
-│       └── settings/Settings.ts   # Toggle HUD elements, difficulty, day/night
+│       └── settings/
+│           ├── Settings.ts        # Main modal container and coordinator
+│           ├── GeneralSettings.ts # [NEW] AI, Auto-Battler, Speed
+│           ├── VideoSettings.ts   # [NEW] FPS, HUD, Color Themes
+│           ├── AudioSettings.ts   # [NEW] Master volume
+│           └── KeybindingEditor.ts # [NEW] Visual keyboard and action binder
 │
 ├── main.ts                    # Application entry point: initializes Engine3D, GameLoop, UIManager
 ├── style.css                  # Main CSS barrel (imports thematic styles)

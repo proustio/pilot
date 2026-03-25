@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { Ship, Orientation } from '../../../domain/fleet/Ship';
+import { Ship } from '../../../domain/fleet/Ship';
 import { Config } from '../../../infrastructure/config/Config';
 import { FogManager } from './FogManager';
 

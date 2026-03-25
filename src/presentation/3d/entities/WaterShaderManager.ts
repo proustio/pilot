@@ -1,5 +1,4 @@
-import * as THREE from 'three';
-import { Config } from '../../../infrastructure/config/Config';
+
 
 export class WaterShaderManager {
     private playerRippleIndex: number = 0;

@@ -1,482 +1,177 @@
 import { BaseUIComponent } from '../components/BaseUIComponent';
-import { GameLoop, GameState } from '../../../application/game-loop/GameLoop';
 import { Config } from '../../../infrastructure/config/Config';
-import { AudioEngine } from '../../../infrastructure/audio/AudioEngine';
+import { GameState } from '../../../application/game-loop/GameLoop';
+import { GeneralSettings } from './GeneralSettings';
+import { VideoSettings } from './VideoSettings';
+import { AudioSettings } from './AudioSettings';
+import { KeybindingEditor } from './KeybindingEditor';
 
 export class Settings extends BaseUIComponent {
-    private gameLoop: GameLoop;
-    
-    private onClickOutsideDropdowns = (e: MouseEvent) => {
-        const dropdowns = this.container.querySelectorAll('.custom-dropdown');
-        dropdowns.forEach(d => {
-            if (!d.contains(e.target as Node)) {
-                d.classList.remove('open');
-            }
-        });
-    };
+    private gameLoop: any;
 
-    constructor(gameLoop: GameLoop) {
+    private generalSettings: GeneralSettings;
+    private videoSettings: VideoSettings;
+    private audioSettings: AudioSettings;
+    private keybindingEditor: KeybindingEditor;
+
+    constructor(gameLoop: any) {
         super('settings-modal');
         this.gameLoop = gameLoop;
-        this.container.classList.add('voxel-panel');
-        this.container.style.zIndex = '100';
-    }
 
-    protected onShow(): void {
+        this.generalSettings = new GeneralSettings(
+            this.container,
+            gameLoop,
+            this.setupDropdown.bind(this),
+            this.updateDropdownVisuals.bind(this)
+        );
+        this.videoSettings = new VideoSettings(
+            this.container,
+            this.setupDropdown.bind(this),
+            this.updateDropdownVisuals.bind(this)
+        );
+        this.audioSettings = new AudioSettings(this.container);
+        this.keybindingEditor = new KeybindingEditor(this.container);
+
         this.render();
-        document.addEventListener('click', this.onClickOutsideDropdowns);
-    }
-
-    protected onHide(): void {
-        document.removeEventListener('click', this.onClickOutsideDropdowns);
+        this.attachListeners();
     }
 
     protected render(): void {
         this.container.innerHTML = `
-            <h2 class="voxel-title" style="font-size: 2rem;">Settings</h2>
-            
-            <div class="settings-row" id="difficulty-row">
-                <label>Enemy AI Difficulty:</label>
-                <div id="ai-difficulty-dropdown" class="custom-dropdown">
-                    <div class="custom-dropdown-selected" id="ai-difficulty-selected">
-                        <span id="ai-difficulty-selected-text">${this.gameLoop.aiEngine.difficulty === 'easy' ? '✔ Easy (Random)' : '✔ Normal (Hunt/Target)'}</span>
-                        <span class="custom-dropdown-arrow">▾</span>
-                    </div>
-                    <div class="custom-dropdown-options" id="ai-difficulty-options">
-                        <div class="custom-dropdown-option ${this.gameLoop.aiEngine.difficulty === 'easy' ? 'active' : ''}" data-value="easy">
-                            <span class="option-check">${this.gameLoop.aiEngine.difficulty === 'easy' ? '✔' : '&nbsp;'}</span>
-                            <span class="option-text">Easy (Random)</span>
-                        </div>
-                        <div class="custom-dropdown-option ${this.gameLoop.aiEngine.difficulty === 'normal' ? 'active' : ''}" data-value="normal">
-                            <span class="option-check">${this.gameLoop.aiEngine.difficulty === 'normal' ? '✔' : '&nbsp;'}</span>
-                            <span class="option-text">Normal (Hunt/Target)</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="settings-row">
-                <label>Master Volume:</label>
-                <input type="range" id="sound-volume" min="0" max="1" step="0.05" value="${Config.audio.masterVolume}" class="voxel-slider" style="flex-grow: 1; margin-left: 20px;">
-                <span id="volume-value" style="width: 40px; text-align: right;">${Math.round(Config.audio.masterVolume * 100)}%</span>
-            </div>
-
-            <div class="settings-row">
-                <label>Show HUD:</label>
-                <input type="checkbox" id="toggle-hud" checked style="transform: scale(2);">
-            </div>
-
-            <div class="settings-row">
-                <label>Show Geek Stats:</label>
-                <input type="checkbox" id="toggle-geek-stats" ${Config.visual.showGeekStats ? 'checked' : ''} style="transform: scale(2);">
-            </div>
-
-            <div class="settings-row">
-                <label>FPS Cap:</label>
-                <div id="fps-cap-dropdown" class="custom-dropdown">
-                    <div class="custom-dropdown-selected" id="fps-cap-selected">
-                        <span id="fps-cap-selected-text">✔ ${Config.visual.fpsCap} FPS</span>
-                        <span class="custom-dropdown-arrow">▾</span>
-                    </div>
-                    <div class="custom-dropdown-options" id="fps-cap-options">
-                        <div class="custom-dropdown-option ${Config.visual.fpsCap === 30 ? 'active' : ''}" data-value="30">
-                            <span class="option-check">${Config.visual.fpsCap === 30 ? '✔' : '&nbsp;'}</span>
-                            <span class="option-text">30 FPS</span>
-                        </div>
-                        <div class="custom-dropdown-option ${Config.visual.fpsCap === 60 ? 'active' : ''}" data-value="60">
-                            <span class="option-check">${Config.visual.fpsCap === 60 ? '✔' : '&nbsp;'}</span>
-                            <span class="option-text">60 FPS</span>
-                        </div>
-                        <div class="custom-dropdown-option ${Config.visual.fpsCap === 120 ? 'active' : ''}" data-value="120">
-                            <span class="option-check">${Config.visual.fpsCap === 120 ? '✔' : '&nbsp;'}</span>
-                            <span class="option-text">120 FPS</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="settings-row">
-                <label>Auto-Battler:</label>
-                <input type="checkbox" id="toggle-auto-battler" ${Config.autoBattler ? 'checked' : ''} style="transform: scale(2);">
-            </div>
-
-            <div class="settings-row">
-                <label>Color Theme:</label>
-                <div id="theme-dropdown" class="custom-dropdown">
-                    <div class="custom-dropdown-selected" id="theme-selected">
-                        <span id="theme-selected-text">✔ ${Config.visual.colorScheme === 'default' ? 'Default (Emerald/Orange)' : Config.visual.colorScheme === 'grayscale' ? 'Grayscale (High Contrast)' : 'Custom'}</span>
-                        <span class="custom-dropdown-arrow">▾</span>
-                    </div>
-                    <div class="custom-dropdown-options" id="theme-options">
-                        <div class="custom-dropdown-option ${Config.visual.colorScheme === 'default' ? 'active' : ''}" data-value="default">
-                            <span class="option-check">${Config.visual.colorScheme === 'default' ? '✔' : '&nbsp;'}</span>
-                            <span class="option-text">Default (Emerald/Orange)</span>
-                        </div>
-                        <div class="custom-dropdown-option ${Config.visual.colorScheme === 'grayscale' ? 'active' : ''}" data-value="grayscale">
-                            <span class="option-check">${Config.visual.colorScheme === 'grayscale' ? '✔' : '&nbsp;'}</span>
-                            <span class="option-text">Grayscale (High Contrast)</span>
-                        </div>
-                        <div class="custom-dropdown-option ${Config.visual.colorScheme === 'custom' ? 'active' : ''}" data-value="custom">
-                            <span class="option-check">${Config.visual.colorScheme === 'custom' ? '✔' : '&nbsp;'}</span>
-                            <span class="option-text">Custom</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div id="custom-colors-container" style="display: ${Config.visual.colorScheme === 'custom' ? 'block' : 'none'}; margin-left: 20px; border-left: 2px solid var(--panel-border); padding-left: 10px; margin-bottom: 10px;">
-                <div class="settings-row" style="margin-bottom: 5px;">
-                    <label style="font-size: 0.9em;">Player Fleet:</label>
-                    <input type="color" id="color-player-ship" value="${Config.visual.customColors.playerShip}" style="background: transparent; border: 1px solid var(--panel-border); padding: 0;">
-                </div>
-                <div class="settings-row" style="margin-bottom: 5px;">
-                    <label style="font-size: 0.9em;">Enemy Fleet:</label>
-                    <input type="color" id="color-enemy-ship" value="${Config.visual.customColors.enemyShip}" style="background: transparent; border: 1px solid var(--panel-border); padding: 0;">
-                </div>
-                <div class="settings-row" style="margin-bottom: 5px;">
-                    <label style="font-size: 0.9em;">Water Primary:</label>
-                    <input type="color" id="color-water-primary" value="${Config.visual.customColors.waterPrimary}" style="background: transparent; border: 1px solid var(--panel-border); padding: 0;">
-                </div>
-                <div class="settings-row" style="margin-bottom: 5px;">
-                    <label style="font-size: 0.9em;">Water Sec.:</label>
-                    <input type="color" id="color-water-secondary" value="${Config.visual.customColors.waterSecondary}" style="background: transparent; border: 1px solid var(--panel-border); padding: 0;">
-                </div>
-                <div class="settings-row" style="margin-bottom: 5px;">
-                    <label style="font-size: 0.9em;">Board Lines:</label>
-                    <input type="color" id="color-board-lines" value="${Config.visual.customColors.boardLines}" style="background: transparent; border: 1px solid var(--panel-border); padding: 0;">
-                </div>
-            </div>
-
-            <div class="settings-row">
-                <label>Game Speed:</label>
-                <div id="game-speed-dropdown" class="custom-dropdown">
-                    <div class="custom-dropdown-selected" id="game-speed-selected">
-                        <span id="game-speed-selected-text">✔ ${Config.timing.gameSpeedMultiplier === 0.5 ? '0.5x (Slow)' : Config.timing.gameSpeedMultiplier === 1.0 ? '1.0x (Normal)' : Config.timing.gameSpeedMultiplier === 2.0 ? '2.0x (Fast)' : '4.0x (Very Fast)'}</span>
-                        <span class="custom-dropdown-arrow">▾</span>
-                    </div>
-                    <div class="custom-dropdown-options" id="game-speed-options">
-                        <div class="custom-dropdown-option ${Config.timing.gameSpeedMultiplier === 0.5 ? 'active' : ''}" data-value="0.5">
-                            <span class="option-check">${Config.timing.gameSpeedMultiplier === 0.5 ? '✔' : '&nbsp;'}</span>
-                            <span class="option-text">0.5x (Slow)</span>
-                        </div>
-                        <div class="custom-dropdown-option ${Config.timing.gameSpeedMultiplier === 1.0 ? 'active' : ''}" data-value="1.0">
-                            <span class="option-check">${Config.timing.gameSpeedMultiplier === 1.0 ? '✔' : '&nbsp;'}</span>
-                            <span class="option-text">1.0x (Normal)</span>
-                        </div>
-                        <div class="custom-dropdown-option ${Config.timing.gameSpeedMultiplier === 2.0 ? 'active' : ''}" data-value="2.0">
-                            <span class="option-check">${Config.timing.gameSpeedMultiplier === 2.0 ? '✔' : '&nbsp;'}</span>
-                            <span class="option-text">2.0x (Fast)</span>
-                        </div>
-                        <div class="custom-dropdown-option ${Config.timing.gameSpeedMultiplier === 4.0 ? 'active' : ''}" data-value="4.0">
-                            <span class="option-check">${Config.timing.gameSpeedMultiplier === 4.0 ? '✔' : '&nbsp;'}</span>
-                            <span class="option-text">4.0x (Very Fast)</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="settings-row">
-                <label>Key Bindings:</label>
-                <button id="btn-open-keybindings" class="voxel-btn secondary" style="flex-grow: 1; margin-left: 20px;">Configure...</button>
-            </div>
-
-            <div id="keybindings-sub-panel" class="sub-panel voxel-panel" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1000; box-sizing: border-box; overflow-y: auto; background-color: #111;">
-                <h3 class="voxel-title">Key Bindings</h3>
-                <p style="font-size: 0.8em; opacity: 0.7; margin-bottom: 10px;">Click a key to highlight it, or click an action to bind/unbind.</p>
+            <div class="voxel-panel settings-panel">
+                <h2 class="voxel-title">Settings</h2>
                 
-                <div id="keyboard-visual" class="keyboard-visual" style="margin-bottom: 20px;"></div>
-                
-                <div id="keybindings-list" style="margin-top: 20px;"></div>
-                
-                <div style="display: flex; gap: 10px; margin-top: 20px;">
-                    <button id="btn-close-keybindings" class="voxel-btn secondary" style="flex-grow: 1;">Back to General</button>
-                    <button id="btn-reset-keybindings" class="voxel-btn danger" style="flex-grow: 1;">Reset to Defaults</button>
+                <div class="settings-content" style="max-height: 70vh; overflow-y: auto; padding-right: 10px;">
+                    <h3 class="settings-section-title">General</h3>
+                    <div id="settings-general">
+                        ${this.generalSettings.render()}
+                    </div>
+
+                    <h3 class="settings-section-title">Video & Theme</h3>
+                    <div id="settings-video">
+                        ${this.videoSettings.render()}
+                    </div>
+
+                    <h3 class="settings-section-title">Audio</h3>
+                    <div id="settings-audio">
+                        ${this.audioSettings.render()}
+                    </div>
+
+                    <h3 class="settings-section-title">Controls</h3>
+                    <div id="settings-controls">
+                        ${this.keybindingEditor.render()}
+                    </div>
+                </div>
+
+                <div class="settings-footer" style="margin-top: 20px; display: flex; gap: 10px;">
+                    <button id="btn-settings-close" class="voxel-btn primary" style="flex-grow: 1;">Close</button>
                 </div>
             </div>
-            
-            <button id="btn-close-settings" class="voxel-btn primary" style="margin-top: 10px;">Back</button>
         `;
+    }
 
-        const closeBtn = this.container.querySelector('#btn-close-settings') as HTMLButtonElement;
-        closeBtn.addEventListener('click', () => {
-            this.hide();
-        });
-
-        const toggleHud = this.container.querySelector('#toggle-hud') as HTMLInputElement;
-        toggleHud.addEventListener('change', (e) => {
-            const isChecked = (e.target as HTMLInputElement).checked;
-            document.dispatchEvent(new CustomEvent('TOGGLE_HUD', { detail: { show: isChecked } }));
-        });
-
-        const toggleGeekStats = this.container.querySelector('#toggle-geek-stats') as HTMLInputElement;
-        toggleGeekStats.addEventListener('change', (e) => {
-            const isChecked = (e.target as HTMLInputElement).checked;
-            Config.visual.showGeekStats = isChecked;
-            Config.saveConfig();
-            document.dispatchEvent(new CustomEvent('TOGGLE_GEEK_STATS', { detail: { show: isChecked } }));
-        });
-
-        this.setupDropdown('fps-cap-dropdown', (val) => {
-            const fpsCap = parseInt(val, 10);
-            Config.visual.fpsCap = fpsCap;
-            Config.saveConfig();
-            document.dispatchEvent(new CustomEvent('SET_FPS_CAP', { detail: { fpsCap } }));
-        });
-
-        document.addEventListener('SET_FPS_CAP', (e: Event) => {
-            const customEvent = e as CustomEvent;
-            if (customEvent.detail && customEvent.detail.fpsCap) {
-                this.updateDropdownVisuals('fps-cap-dropdown', customEvent.detail.fpsCap.toString());
-            }
-        });
-
-        this.setupDropdown('game-speed-dropdown', (speed) => {
-            Config.timing.gameSpeedMultiplier = parseFloat(speed);
-            Config.saveConfig();
-            document.dispatchEvent(new CustomEvent('SET_GAME_SPEED', { detail: { speed } }));
-        });
-
-        document.addEventListener('SET_GAME_SPEED', (e: Event) => {
-            const customEvent = e as CustomEvent;
-            if (customEvent.detail && customEvent.detail.speed) {
-                this.updateDropdownVisuals('game-speed-dropdown', customEvent.detail.speed.toString());
-            }
-        });
-
-        const customContainer = this.container.querySelector('#custom-colors-container') as HTMLElement;
-
-        this.setupDropdown('theme-dropdown', (val) => {
-            const scheme = val as 'default' | 'grayscale' | 'custom';
-            Config.visual.colorScheme = scheme;
-            Config.saveConfig();
-            customContainer.style.display = scheme === 'custom' ? 'block' : 'none';
-            document.dispatchEvent(new CustomEvent('THEME_CHANGED'));
-        });
-
-        const setupColorPicker = (id: string, key: keyof typeof Config.visual.customColors) => {
-            const picker = this.container.querySelector(`#${id}`) as HTMLInputElement;
-            picker.addEventListener('input', (e) => {
-                Config.visual.customColors[key] = (e.target as HTMLInputElement).value;
-                if (Config.visual.colorScheme !== 'custom') {
-                    Config.visual.colorScheme = 'custom';
-                    this.updateDropdownVisuals('theme-dropdown', 'custom');
-                    customContainer.style.display = 'block';
-                }
-                Config.saveConfig();
-                document.dispatchEvent(new CustomEvent('THEME_CHANGED'));
-            });
-        };
-
-        setupColorPicker('color-player-ship', 'playerShip');
-        setupColorPicker('color-enemy-ship', 'enemyShip');
-        setupColorPicker('color-water-primary', 'waterPrimary');
-        setupColorPicker('color-water-secondary', 'waterSecondary');
-        setupColorPicker('color-board-lines', 'boardLines');
-
-        const volumeSlider = this.container.querySelector('#sound-volume') as HTMLInputElement;
-        const volumeValue = this.container.querySelector('#volume-value') as HTMLElement;
-        volumeSlider.addEventListener('input', (e) => {
-            const val = parseFloat((e.target as HTMLInputElement).value);
-            volumeValue.textContent = `${Math.round(val * 100)}%`;
-            Config.audio.masterVolume = val;
-            Config.saveConfig();
-            AudioEngine.getInstance().setVolume(val);
-        });
-
-        const isGameStarted = this.gameLoop.currentState !== GameState.MAIN_MENU &&
-            this.gameLoop.currentState !== GameState.SETUP_BOARD;
-
-        if (isGameStarted) {
-            const aiDropdown = this.container.querySelector('#ai-difficulty-dropdown') as HTMLElement;
-            if (aiDropdown) {
-                aiDropdown.classList.add('disabled');
-                aiDropdown.style.pointerEvents = 'none';
-            }
-            const row = this.container.querySelector('#difficulty-row') as HTMLElement;
-            if (row) row.style.opacity = '0.5';
+    private attachListeners() {
+        const closeBtn = this.container.querySelector('#btn-settings-close');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', () => this.hide());
         }
 
-        this.setupDropdown('ai-difficulty-dropdown', (difficulty) => {
-            console.log("AI Difficulty set to: ", difficulty);
-            Config.aiDifficulty = difficulty;
-            Config.saveConfig();
-            document.dispatchEvent(new CustomEvent('SET_AI_DIFFICULTY', { detail: { difficulty } }));
-        });
+        this.generalSettings.attachListeners();
+        this.videoSettings.attachListeners();
+        this.audioSettings.attachListeners();
+        this.keybindingEditor.attachListeners();
 
-        const autoBattlerSettingsToggle = this.container.querySelector('#toggle-auto-battler') as HTMLInputElement;
-        autoBattlerSettingsToggle.addEventListener('change', (e) => {
-            const isChecked = (e.target as HTMLInputElement).checked;
-            Config.autoBattler = isChecked;
-            Config.saveConfig();
-            document.dispatchEvent(new CustomEvent('TOGGLE_AUTO_BATTLER', { detail: { enabled: isChecked } }));
-        });
-
-        document.addEventListener('TOGGLE_AUTO_BATTLER', (e: Event) => {
-            const customEvent = e as CustomEvent;
-            if (customEvent.detail && customEvent.detail.enabled !== undefined) {
-                autoBattlerSettingsToggle.checked = customEvent.detail.enabled;
-            }
-        });
-
-        document.addEventListener('SET_AI_DIFFICULTY', (e: Event) => {
-            const ce = e as CustomEvent;
-            if (ce.detail && ce.detail.difficulty) {
-                this.updateDropdownVisuals('ai-difficulty-dropdown', ce.detail.difficulty);
-            }
-        });
-
-        const openKeybindingsBtn = this.container.querySelector('#btn-open-keybindings') as HTMLButtonElement;
-        const keybindingsPanel = this.container.querySelector('#keybindings-sub-panel') as HTMLElement;
-        const closeKeybindingsBtn = this.container.querySelector('#btn-close-keybindings') as HTMLButtonElement;
-        const resetKeybindingsBtn = this.container.querySelector('#btn-reset-keybindings') as HTMLButtonElement;
-        const keyboardVisual = this.container.querySelector('#keyboard-visual') as HTMLElement;
-        const keybindingsList = this.container.querySelector('#keybindings-list') as HTMLElement;
-
-        openKeybindingsBtn.addEventListener('click', () => {
-            keybindingsPanel.style.display = 'block';
-            this.renderKeybindings(keyboardVisual, keybindingsList);
-        });
-
-        closeKeybindingsBtn.addEventListener('click', () => {
-            keybindingsPanel.style.display = 'none';
-        });
-
-        resetKeybindingsBtn.addEventListener('click', () => {
-            if (confirm('Are you sure you want to reset all key bindings to default?')) {
-                Config.keybindings = {
-                    'ToggleMoveSection': ['m'],
-                    'ToggleAttackSection': ['a'],
-                    'ActionSail': ['s'],
-                    'ActionPing': ['p'],
-                    'ActionMine': ['m'],
-                    'ActionCannon': ['c'],
-                    'ActionAirStrike': ['a'],
-                    'RotateWeapon': ['r'],
-                    'SkipTurn': ['Enter', ' ']
-                };
-                Config.saveConfig();
-                this.renderKeybindings(keyboardVisual, keybindingsList);
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && this.isVisible) {
+                this.hide();
             }
         });
     }
 
-    private renderKeybindings(visualEl: HTMLElement, listEl: HTMLElement) {
-        // Render simple visual keyboard
-        const rows = [
-            ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'],
-            ['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L'],
-            ['Z', 'X', 'C', 'V', 'B', 'N', 'M']
-        ];
-        
-        const allBinds = Object.values(Config.keybindings).flat().map((k: any) => k.toUpperCase());
+    protected onShow() {
+        const difficultyRow = this.container.querySelector('#difficulty-row') as HTMLElement;
+        const difficultyDropdown = this.container.querySelector('#ai-difficulty-dropdown') as HTMLElement;
+        const isGameStarted = this.gameLoop.currentState !== GameState.MAIN_MENU &&
+                             this.gameLoop.currentState !== GameState.SETUP_BOARD;
 
-        visualEl.innerHTML = rows.map(row => `
-            <div style="display: flex; justify-content: center; gap: 5px; margin-bottom: 5px;">
-                ${row.map(key => {
-                    const isBound = allBinds.includes(key);
-                    return `
-                    <div class="key-cap" 
-                         style="width: 30px; height: 30px; border: 1px solid var(--panel-border); display: flex; align-items: center; justify-content: center; font-size: 0.8em; background: ${isBound ? 'var(--accent-color)' : 'transparent'}; opacity: ${isBound ? '1' : '0.5'};">
-                        ${key}
-                    </div>`;
-                }).join('')}
-            </div>
-        `).join('');
+        if (difficultyRow && difficultyDropdown) {
+            difficultyRow.style.opacity = isGameStarted ? '0.5' : '1';
+            difficultyDropdown.style.pointerEvents = isGameStarted ? 'none' : 'auto';
+            if (isGameStarted) difficultyDropdown.classList.add('disabled');
+            else difficultyDropdown.classList.remove('disabled');
+        }
 
-        // Render Action List
-        const actions = Object.keys(Config.keybindings);
-        listEl.innerHTML = actions.map(action => {
-            const binds = Config.keybindings[action as keyof typeof Config.keybindings];
-            return `
-                <div class="settings-row" style="margin-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px;">
-                    <label style="font-size: 0.9em; flex-grow: 1;">${action}:</label>
-                    <div style="display: flex; gap: 5px; flex-wrap: wrap;">
-                        ${binds.map((key: string, idx: number) => `
-                            <span class="key-bind-tag" style="background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 4px; font-size: 0.8em; cursor: pointer;">
-                                ${key} <span class="remove-bind" data-action="${action}" data-index="${idx}">×</span>
-                            </span>
-                        `).join('')}
-                        ${binds.length < 3 ? `<button class="voxel-btn mini add-bind" data-action="${action}" style="padding: 2px 6px; font-size: 0.8em;">+</button>` : ''}
-                    </div>
-                </div>
-            `;
-        }).join('');
-
-        // Handle Add/Remove via delegation (simplified here)
-        listEl.querySelectorAll('.remove-bind').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const action = (btn as HTMLElement).dataset.action;
-                const index = parseInt((btn as HTMLElement).dataset.index || '0', 10);
-                Config.keybindings[action as keyof typeof Config.keybindings].splice(index, 1);
-                Config.saveConfig();
-                this.renderKeybindings(visualEl, listEl);
-            });
-        });
-
-        listEl.querySelectorAll('.add-bind').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const action = (btn as HTMLElement).dataset.action;
-                const key = prompt(`Press a key to bind to ${action}:`);
-                if (key) {
-                    const normalizedKey = key.length === 1 ? key.toLowerCase() : key;
-                    Config.keybindings[action as keyof typeof Config.keybindings].push(normalizedKey);
-                    Config.saveConfig();
-                    this.renderKeybindings(visualEl, listEl);
-                }
-            });
-        });
+        this.updateDropdownVisuals('ai-difficulty-dropdown', Config.aiDifficulty);
+        this.updateDropdownVisuals('game-speed-dropdown', Config.timing.gameSpeedMultiplier.toString());
+        this.updateDropdownVisuals('fps-cap-dropdown', Config.visual.fpsCap.toString());
+        this.updateDropdownVisuals('theme-dropdown', Config.visual.colorScheme);
     }
 
-    private setupDropdown(dropdownId: string, onChange: (val: string) => void) {
-        const dropdownEl = this.container.querySelector(`#${dropdownId}`) as HTMLElement;
-        if (!dropdownEl) return;
-        const selectedEl = dropdownEl.querySelector('.custom-dropdown-selected') as HTMLElement;
-        const allOptions = dropdownEl.querySelectorAll('.custom-dropdown-option') as NodeListOf<HTMLElement>;
+    private setupDropdown(id: string, callback: (val: string) => void) {
+        const dropdown = this.container.querySelector(`#${id}`) as HTMLElement;
+        if (!dropdown) return;
 
-        selectedEl.addEventListener('click', (e) => {
+        const selected = dropdown.querySelector('.custom-dropdown-selected') as HTMLElement;
+        const optionsContainer = dropdown.querySelector('.custom-dropdown-options') as HTMLElement;
+        const options = dropdown.querySelectorAll('.custom-dropdown-option');
+
+        selected.addEventListener('click', (e) => {
             e.stopPropagation();
-            if (dropdownEl.classList.contains('disabled')) return;
-            // Close others
-            this.container.querySelectorAll('.custom-dropdown').forEach(d => {
-                if (d !== dropdownEl) d.classList.remove('open');
+            const isOpen = optionsContainer.style.display === 'block';
+            
+            // Close all other dropdowns first
+            this.container.querySelectorAll('.custom-dropdown-options').forEach(el => {
+                (el as HTMLElement).style.display = 'none';
             });
-            dropdownEl.classList.toggle('open');
+
+            optionsContainer.style.display = isOpen ? 'none' : 'block';
         });
 
-        allOptions.forEach((opt) => {
-            opt.addEventListener('click', (e) => {
+        options.forEach(option => {
+            option.addEventListener('click', (e) => {
                 e.stopPropagation();
-                if (opt.classList.contains('disabled')) return;
+                const val = (option as HTMLElement).dataset.value!;
                 
-                const value = opt.dataset.value as string;
-                this.updateDropdownVisuals(dropdownId, value);
+                options.forEach(opt => opt.classList.remove('active'));
+                option.classList.add('active');
                 
-                dropdownEl.classList.remove('open');
-                onChange(value);
+                this.updateDropdownVisuals(id, val);
+                optionsContainer.style.display = 'none';
+                callback(val);
             });
+        });
+
+        // Close dropdown when clicking outside (within container)
+        this.container.addEventListener('click', () => {
+            optionsContainer.style.display = 'none';
         });
     }
 
-    private updateDropdownVisuals(dropdownId: string, value: string) {
-        const dropdownEl = this.container.querySelector(`#${dropdownId}`) as HTMLElement;
-        if (!dropdownEl) return;
+    private updateDropdownVisuals(id: string, value: string) {
+        const dropdown = this.container.querySelector(`#${id}`) as HTMLElement;
+        if (!dropdown) return;
+
+        const selectedText = dropdown.querySelector(`#${id.replace('-dropdown', '')}-selected-text`) as HTMLElement;
+        const options = dropdown.querySelectorAll('.custom-dropdown-option');
+
+        let displayLabel = value;
         
-        const selectedTextEl = dropdownEl.querySelector('.custom-dropdown-selected span:first-child') as HTMLElement;
-        const allOptions = dropdownEl.querySelectorAll('.custom-dropdown-option') as NodeListOf<HTMLElement>;
-        
-        allOptions.forEach(o => {
-            if (o.dataset.value === value) {
-                o.classList.add('active');
-                const check = o.querySelector('.option-check');
+        options.forEach(opt => {
+            const optVal = (opt as HTMLElement).dataset.value;
+            const check = opt.querySelector('.option-check') as HTMLElement;
+            if (optVal === value) {
+                opt.classList.add('active');
                 if (check) check.innerHTML = '✔';
-                if (selectedTextEl) {
-                    const text = o.querySelector('.option-text')?.textContent || '';
-                    selectedTextEl.textContent = `✔ ${text}`;
-                }
+                const text = opt.querySelector('.option-text')?.textContent || value;
+                displayLabel = text;
             } else {
-                o.classList.remove('active');
-                const check = o.querySelector('.option-check');
+                opt.classList.remove('active');
                 if (check) check.innerHTML = '&nbsp;';
             }
         });
+
+        if (selectedText) {
+            selectedText.textContent = `✔ ${displayLabel}`;
+        }
     }
 }
