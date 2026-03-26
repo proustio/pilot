@@ -131,4 +131,20 @@ export class Ship {
         this.hasActedThisTurn = false;
         this.movesRemaining = this.maxMoves;
     }
+
+    /**
+     * Returns the list of available rogue weapon types for this ship.
+     */
+    public getAvailableWeapons(): string[] {
+        if (this.isSpecialWeapon) return [];
+        
+        switch (this.size) {
+            case 5: return ['cannon', 'air-strike', 'sonar']; // Carrier
+            case 4: return ['cannon'];                       // Battleship
+            case 3: return ['cannon', 'mine'];                // Submarine
+            case 2: return ['cannon', 'sonar'];               // Destroyer
+            case 1: return ['cannon'];                       // Patrol Boat
+            default: return ['cannon'];
+        }
+    }
 }

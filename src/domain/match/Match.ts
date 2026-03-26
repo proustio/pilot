@@ -114,6 +114,12 @@ export class Match {
         return true;
     }
 
+    public validateAttackRange(attacker: Ship, tx: number, tz: number): boolean {
+        if (this.mode !== MatchMode.Rogue) return true;
+        const dist = Math.max(Math.abs(attacker.headX - tx), Math.abs(attacker.headZ - tz));
+        return dist <= 10;
+    }
+
     public checkGameEnd(): 'player_wins' | 'enemy_wins' | 'ongoing' {
         if (this.mode === MatchMode.Rogue) {
             const enemyShips = this.sharedBoard.ships.filter(s => s.isEnemy);

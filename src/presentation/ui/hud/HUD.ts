@@ -20,7 +20,7 @@ export class HUD extends BaseUIComponent {
     private gameLoop: GameLoop;
     private turnIndicator!: HTMLElement;
     private unifiedBoard!: UnifiedBoardUI;
-    private activeRogueShip: any = null;
+    private activeRogueShip: Ship | null = null;
     private entityManager: any;
 
     constructor(gameLoop: GameLoop, entityManager: any) {
@@ -141,7 +141,9 @@ export class HUD extends BaseUIComponent {
         // Listen for active ship changes in Rogue mode
         eventBus.on(GameEventType.ACTIVE_SHIP_CHANGED, (payload) => {
             this.activeRogueShip = payload.ship;
-            this.updateRogueShipDisplay(this.activeRogueShip);
+            if (this.activeRogueShip) {
+                this.updateRogueShipDisplay(this.activeRogueShip);
+            }
         });
 
         // Delegate control binding to HUDControls.ts
@@ -173,23 +175,30 @@ export class HUD extends BaseUIComponent {
         
         if (arsenalPanel && arsenalTitle && arsenalItems) {
             arsenalPanel.classList.remove('collapsed');
+            const av = this.activeRogueShip?.getAvailableWeapons() || ['cannon'];
             if (mode === 'move') {
                 arsenalTitle.innerText = 'MOVE SYSTEMS';
-                // Always default to 'sail' when entering Move mode
                 (window as any).selectedRogueWeapon = 'sail';
-                arsenalItems.innerHTML = `
-                    <button class="arsenal-btn active ${this.activeRogueShip?.movesRemaining <= 0 ? 'spent' : ''}" data-weapon="sail" title="Sailing (${this.activeRogueShip?.movesRemaining} Remaining)">🚤</button>
-                    <button class="arsenal-btn ${(window as any).selectedRogueWeapon === 'sonar' ? 'active' : ''} ${Ship.resources.sonars <= 0 ? 'spent' : ''}" data-weapon="sonar" title="Sonar Ping (${Ship.resources.sonars} Remaining)">📡</button>
-                    <button class="arsenal-btn ${(window as any).selectedRogueWeapon === 'mine' ? 'active' : ''} ${Ship.resources.mines <= 0 ? 'spent' : ''}" data-weapon="mine" title="Place Mine (${Ship.resources.mines} Remaining)">💣</button>
-                `;
+                
+                let btns = `<button class="arsenal-btn active ${this.activeRogueShip?.movesRemaining && this.activeRogueShip.movesRemaining <= 0 ? 'spent' : ''}" data-weapon="sail" title="Sailing (${this.activeRogueShip?.movesRemaining} Remaining)">🚤</button>`;
+                
+                if (av.includes('sonar')) {
+                    btns += `<button class="arsenal-btn ${(window as any).selectedRogueWeapon === 'sonar' ? 'active' : ''} ${Ship.resources.sonars <= 0 ? 'spent' : ''}" data-weapon="sonar" title="Sonar Ping (${Ship.resources.sonars} Remaining)">📡</button>`;
+                }
+                if (av.includes('mine')) {
+                    btns += `<button class="arsenal-btn ${(window as any).selectedRogueWeapon === 'mine' ? 'active' : ''} ${Ship.resources.mines <= 0 ? 'spent' : ''}" data-weapon="mine" title="Place Mine (${Ship.resources.mines} Remaining)">💣</button>`;
+                }
+                arsenalItems.innerHTML = btns;
             } else {
                 arsenalTitle.innerText = 'ATTACK SYSTEMS';
-                // Always default to 'cannon' when entering Attack mode
                 (window as any).selectedRogueWeapon = 'cannon';
-                arsenalItems.innerHTML = `
-                    <button class="arsenal-btn active" data-weapon="cannon" title="Normal Cannon (Infinite)">⚔️</button>
-                    <button class="arsenal-btn ${(window as any).selectedRogueWeapon === 'airstrike' ? 'active' : ''} ${Ship.resources.airStrikes <= 0 ? 'spent' : ''}" data-weapon="airstrike" title="Air Strike (${Ship.resources.airStrikes} Remaining)">🚀</button>
-                `;
+                
+                let btns = `<button class="arsenal-btn active" data-weapon="cannon" title="Normal Cannon (Infinite)">⚔️</button>`;
+                
+                if (av.includes('air-strike')) {
+                    btns += `<button class="arsenal-btn ${(window as any).selectedRogueWeapon === 'airstrike' ? 'active' : ''} ${Ship.resources.airStrikes <= 0 ? 'spent' : ''}" data-weapon="airstrike" title="Air Strike (${Ship.resources.airStrikes} Remaining)">🚀</button>`;
+                }
+                arsenalItems.innerHTML = btns;
             }
             this.bindArsenalEvents();
         }
@@ -224,7 +233,7 @@ export class HUD extends BaseUIComponent {
         });
     }
 
-    private updateRogueShipDisplay(ship: any): void {
+    private updateRogueShipDisplay(ship: Ship): void {
         const isRogue = this.gameLoop.match?.mode === MatchMode.Rogue;
         const actionBar = this.container.querySelector('#rogue-action-bar') as HTMLElement;
         

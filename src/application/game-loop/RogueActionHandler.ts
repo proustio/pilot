@@ -45,7 +45,8 @@ export class RogueActionHandler {
                 if (moveResult.hitMine) {
                     this.gameLoop.onAttackResultInvoke(moveResult.mineX!, moveResult.mineZ!, 'hit', true, false);
                 }
-                ship.movesRemaining = Math.max(0, ship.movesRemaining - totalCost);
+                ship.movesRemaining = 0;
+                ship.hasActedThisTurn = true; // 1-action rule
                 
                 const queuedAbility = (window as any).queuedRogueAbility;
                 if (queuedAbility) {

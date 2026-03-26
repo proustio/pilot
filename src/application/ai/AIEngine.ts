@@ -24,6 +24,103 @@ export class AIEngine {
     }
 
     /**
+     * Decides whether the AI ship should move or attack.
+     * Return 'move' | 'attack' | 'skip'
+     */
+    public decideAction(ship: Ship, board: Board, _match: Match): 'move' | 'attack' | 'skip' {
+        if (ship.hasActedThisTurn) return 'skip';
+
+        // Check if any player ship is revealed within 10 cells range
+        const visibleEnemy = this.findVisibleEnemyInRange(ship, board, 10);
+
+        if (this.difficulty === 'easy') {
+            // Easy: If enemy in sight, attack. Otherwise, move.
+            return visibleEnemy ? 'attack' : 'move';
+        } else {
+            // Normal: If hit recently (damaged), move. If revealed but can't see enemy, move.
+            if (ship.segments.some(s => !s)) return 'move'; // Damaged -> move defensively
+            return visibleEnemy ? 'attack' : 'move';
+        }
+    }
+
+    /**
+     * Computes the next movement target for an AI ship.
+     */
+    public computeMove(ship: Ship, board: Board, match: Match): { x: number, z: number, orientation: Orientation } | null {
+        if (ship.movesRemaining <= 0) return null;
+
+        const isEasy = this.difficulty === 'easy';
+        
+        let targetX = ship.headX;
+        let targetZ = ship.headZ;
+        let targetOrient = ship.orientation;
+
+        if (isEasy) {
+            // Easy AI: Move towards the player quadrant (Top-Left 0-6).
+            // Just pick a random step closer to [3, 3] or move randomly.
+            const targetPos = { x: 3, z: 3 };
+            const dx = Math.sign(targetPos.x - ship.headX);
+            const dz = Math.sign(targetPos.z - ship.headZ);
+            
+            // Try small steps
+            const stepX = Math.random() > 0.5 ? dx : 0;
+            const stepZ = stepX === 0 ? dz : 0;
+            
+            targetX = Math.max(13, Math.min(19, ship.headX + stepX));
+            targetZ = Math.max(13, Math.min(19, ship.headZ + stepZ));
+        } else {
+            // Normal AI: Evasive/Stealth. 
+            // If it was hit, move to a far corner of the quadrant.
+            const isHit = ship.segments.some(s => !s);
+            if (isHit) {
+                // Move away from current position
+                targetX = Math.random() > 0.5 ? 13 : 19;
+                targetZ = Math.random() > 0.5 ? 13 : 19;
+            } else {
+                // Randomly reposition within quadrant [13-19, 13-19]
+                targetX = 13 + Math.floor(Math.random() * 7);
+                targetZ = 13 + Math.floor(Math.random() * 7);
+            }
+        }
+
+        // Validate if it can fit. If not, just stay put (return null).
+        if (match.validatePlacement(board, ship, targetX, targetZ, targetOrient)) {
+            // Don't move to same spot
+            if (targetX === ship.headX && targetZ === ship.headZ) return null;
+            return { x: targetX, z: targetZ, orientation: targetOrient };
+        }
+
+        return null;
+    }
+
+    private findVisibleEnemyInRange(ship: Ship, board: Board, range: number): { x: number, z: number } | null {
+        // AI "sees" everything for now or just what is proximate?
+        // User requirements say "search then attack".
+        // Let's assume AI only "sees" player ships if they are revealed or if we implement vision for AI.
+        // For simplicity: AI sees player ships that have were previously hit or are within a certain radius.
+        
+        for (const playerShip of board.ships) {
+            if (playerShip.isEnemy) continue;
+            if (playerShip.isSunk()) continue;
+
+            const coords = playerShip.getOccupiedCoordinates();
+            for (const c of coords) {
+                const dist = Math.max(Math.abs(c.x - ship.headX), Math.abs(c.z - ship.headZ));
+                if (dist <= range) {
+                    // In Rogue mode, all player ships are "known" to AI for attacking?
+                    // Actually, let's say AI knows player ship position ONLY if it was previously hit OR is within 7 cells.
+                    const idx = getIndex(c.x, c.z, board.width);
+                    const state = board.gridState[idx];
+                    if (state === CellState.Hit || dist <= 7) {
+                        return { x: c.x, z: c.z };
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
      * Computes the next coordinate to attack
      */
     public computeNextMove(playerBoard: Board, match: Match): {x: number, z: number} {

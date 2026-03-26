@@ -27,6 +27,7 @@ export interface TurnExecutorState {
     advanceRogueShipTurn: () => void;
     advanceEnemyRogueShipTurn: () => void;
     requestAutoSave: () => void;
+    onShipMovedInvoke: (ship: Ship, x: number, z: number, orientation: Orientation) => void;
     config: {
         timing: { boardFlipWaitMs: number; gameSpeedMultiplier: number; aiThinkingTimeMs: number };
         autoBattler: boolean;
@@ -73,41 +74,93 @@ export class TurnExecutor {
                     }
 
                     const targetBoard = this.s.match.mode === MatchMode.Rogue ? this.s.match.sharedBoard : this.s.match.playerBoard;
-                    const target = this.s.aiEngine.computeNextMove(targetBoard, this.s.match);
-                    const result = targetBoard.receiveAttack(target.x, target.z);
+                    
+                    if (this.s.match.mode === MatchMode.Rogue) {
+                        // Rogue AI Logic: Multiple ships, Move OR Attack
+                        const activeIndex = (this.s as any).activeEnemyRogueShipIndex !== undefined ? (this.s as any).activeEnemyRogueShipIndex : 0;
+                        const enemyShips = targetBoard.ships.filter(s => s.isEnemy && !s.isSunk()).sort((a,b) => a.size - b.size);
+                        const ship = enemyShips[activeIndex];
 
-                    this.s.aiEngine.reportResult(target.x, target.z, result.toString(), targetBoard);
-                    this.s.attackResultListeners.forEach(l => l(target.x, target.z, result.toString(), false, false));
-
-                    const finalizeTurn = () => {
-                        if (this.s.isPaused) {
-                            setTimeout(finalizeTurn, 100);
+                        if (!ship) {
+                            this.s.advanceEnemyRogueShipTurn();
                             return;
                         }
 
-                        let status: 'ongoing' | 'player_wins' | 'enemy_wins' = 'ongoing';
-                        try {
-                            status = this.s.match!.checkGameEnd();
-                        } catch (e: any) {
-                            if (e.message === 'Board has no ships') {
-                                eventBus.emit(GameEventType.EXIT_GAME, undefined as any);
+                        const action = this.s.aiEngine.decideAction(ship, targetBoard, this.s.match);
+                        
+                        if (action === 'move') {
+                            const move = this.s.aiEngine.computeMove(ship, targetBoard, this.s.match);
+                            if (move) {
+                                const moved = targetBoard.moveShip(ship, move.x, move.z, move.orientation);
+                                if (moved.success) {
+                                    ship.hasActedThisTurn = true;
+                                    ship.movesRemaining = 0;
+                                    // Visual event
+                                    this.s.onShipMovedInvoke(ship, move.x, move.z, move.orientation);
+                                    
+                                    this.s.onAnimationsComplete = () => {
+                                        this.s.isAnimating = false;
+                                        this.s.advanceEnemyRogueShipTurn();
+                                    };
+                                    return;
+                                }
+                            }
+                            // If move failed or not computed, fallback or skip
+                        } else if (action === 'attack') {
+                            const target = this.s.aiEngine.computeNextMove(targetBoard, this.s.match);
+                            // Check range (10 cells)
+                            const dist = Math.max(Math.abs(target.x - ship.headX), Math.abs(target.z - ship.headZ));
+                            if (dist <= 10) {
+                                const result = targetBoard.receiveAttack(target.x, target.z);
+                                ship.hasActedThisTurn = true;
+                                ship.movesRemaining = 0;
+                                this.s.aiEngine.reportResult(target.x, target.z, result.toString(), targetBoard);
+                                this.s.attackResultListeners.forEach(l => l(target.x, target.z, result.toString(), false, false));
+                                
+                                this.s.onAnimationsComplete = () => {
+                                    this.s.isAnimating = false;
+                                    this.s.advanceEnemyRogueShipTurn();
+                                };
                                 return;
                             }
-                            throw e;
                         }
+                        
+                        // Default: skip or advance
+                        ship.hasActedThisTurn = true;
                         this.s.isAnimating = false;
-                        if (status !== 'ongoing') {
-                            this.s.transitionTo(GameState.GAME_OVER);
-                        } else {
-                            if (this.s.match!.mode === MatchMode.Rogue) {
-                                this.s.advanceEnemyRogueShipTurn();
+                        this.s.advanceEnemyRogueShipTurn();
+                    } else {
+                        // Classic AI Logic
+                        const target = this.s.aiEngine.computeNextMove(targetBoard, this.s.match);
+                        const result = targetBoard.receiveAttack(target.x, target.z);
+
+                        this.s.aiEngine.reportResult(target.x, target.z, result.toString(), targetBoard);
+                        this.s.attackResultListeners.forEach(l => l(target.x, target.z, result.toString(), false, false));
+
+                        this.s.onAnimationsComplete = () => {
+                            if (this.s.isPaused) {
+                                setTimeout(this.s.onAnimationsComplete!, 100);
+                                return;
+                            }
+
+                            let status: 'ongoing' | 'player_wins' | 'enemy_wins' = 'ongoing';
+                            try {
+                                status = this.s.match!.checkGameEnd();
+                            } catch (e: any) {
+                                if (e.message === 'Board has no ships') {
+                                    eventBus.emit(GameEventType.EXIT_GAME, undefined as any);
+                                    return;
+                                }
+                                throw e;
+                            }
+                            this.s.isAnimating = false;
+                            if (status !== 'ongoing') {
+                                this.s.transitionTo(GameState.GAME_OVER);
                             } else {
                                 this.s.transitionTo(GameState.PLAYER_TURN);
                             }
-                        }
-                    };
-
-                    this.s.onAnimationsComplete = finalizeTurn;
+                        };
+                    }
 
                 }, this.s.config.timing.aiThinkingTimeMs / this.s.config.timing.gameSpeedMultiplier);
             }, flipWait);
@@ -282,6 +335,15 @@ export class TurnExecutor {
         }
 
         const targetBoard = isRogue ? this.s.match.sharedBoard : this.s.match.enemyBoard;
+        
+        if (isRogue) {
+            const ship = (this.s as any).rogueShipOrder?.()[(this.s as any).activeRogueShipIndex?.()] || null;
+            if (ship && !this.s.match.validateAttackRange(ship, x, z)) {
+                // Too far
+                return;
+            }
+        }
+
         const result = targetBoard.receiveAttack(x, z);
 
         if (result !== 'invalid') {

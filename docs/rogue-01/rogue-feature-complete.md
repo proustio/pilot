@@ -15,16 +15,15 @@ This document outlines the current status of the Rogue mode implementation again
 | **Dead Ships Block Cells**     |   ✅   | Sunk ship segments correctly block movement and placement.            |
 | **Static Board Orientation**   |   ✅   | Board does not flip; camera behavior is unified for Rogue mode.       |
 | **Ship Skip Action**           |   ✅   | Explicit "SKIP" button in the Action Bar allows ending a ship's turn. |
-| **Special Weapons (Domain)**   |   ⏳   | Logic exists but lacks 3D revelation/impact (Mines/Sonar).            |
-| **Transient Markers**          |   ❌   | Hit/miss markers currently persist permanently.                       |
+| **Special Weapons (Domain)**   |   ✅   | 3D Sonar Buoys & Proximity Mines fully integrated.              |
+| **Transient Markers**          |   ✅   | Hit/miss markers cleared at the start of each turn.                   |
 
 ## Phase 2: Implementation Gaps (Blocking Feature Complete)
 
 ### 1. Special Weapon Integration & Visuals
-Current weapons are "headless" (domain logic only).
-- **Sonar Ping**: Needs visual "expanding ring" and temporary 3D revelation of fog/ships.
-- **Mines**: Needs 3D voxel models, placement animations, and visual explosion on contact.
-- **Resource Persistence**: Initial work in `Ship.resources` needs to be fully stateful across sessions.
+- **Sonar Ping**: ✅ Persistent 3D Buoy with 7-cell vision radius and sinking remains.
+- **Mines**: ✅ 3D Voxel models with 1-cell (8-neighbor) proximity trigger and explosion visuals.
+- **Resource Persistence**: ✅ Ship flags (`isEnemy`, `isSpecialWeapon`) and resources fully persistent across refreshes.
 
 ### 2. Rogue AI Strategic Movement
 The `AIEngine.ts` remains purely attack-oriented.
@@ -36,11 +35,10 @@ The current voxel models require a premium iteration:
 - **Flightdeck**: Specific model update for the Aircraft Carrier to include a flightdeck and launch bay visuals.
 
 ### 4. Transient Marker Lifecycle
-- **Action Required**: Implement marker cleanup logic to remove hit/miss indicators after the opponent's turn.
+- **Status**: ✅ Implemented in `EntityManager` via `REQUEST_MARKER_CLEANUP`.
 
 ### 5. UI/UX Refinement
-- **Arsenals**: HUD should clearly show remaining charges for special systems.
-- **Spent States**: Visual overlay/dimming for buttons when resources are exhausted.
+- **Arsenals**: ✅ HUD updated with new icons (🚤, 📡, 💣) and reactive spent states.
 
 ## Conclusion: Roadmap to Rogue-Complete
-Verification shows that while core grid and movement mechanics are stable, **Special Weapons and AI Intelligence** are the primary blockers for feature completion. The next iteration should prioritize the **3D feedback for Mines/Sonar** and **Ship Model upgrades**.
+With the completion of **Special Weapons, State Persistence, and Transient Markers**, the core system for Rogue mode is now technically feature-complete. The remaining effort focuses on **evasive AI movement** and **aesthetic excellence** for ship models (huge guns and flightdeck).

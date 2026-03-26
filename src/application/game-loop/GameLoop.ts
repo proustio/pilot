@@ -291,6 +291,11 @@ export class GameLoop {
         }
 
         if (!turnHandledAsync) {
+            const ship = this.match.mode === MatchMode.Rogue ? this.rogueShipOrder[this.activeRogueShipIndex] : null;
+            if (ship) {
+                ship.hasActedThisTurn = true;
+                ship.movesRemaining = 0;
+            }
             if (this.match.mode === MatchMode.Rogue) this.advanceRogueShipTurn();
             else this.transitionTo(GameState.ENEMY_TURN);
         }
