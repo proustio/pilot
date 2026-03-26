@@ -1,55 +1,46 @@
 # Rogue Mode Feature Readiness Report
 
-This document outlines the current status of the Rogue mode implementation against the requirements defined in the steering documentation.
+This document outlines the current status of the Rogue mode implementation against the requirements defined in the steering documentation and recent architectural updates.
 
-## Phase 1 Readiness Checklist
+## Phase 1: Core Mechanics
 
 | Requirement                    | Status | Details                                                               |
 | :----------------------------- | :----: | :-------------------------------------------------------------------- |
 | **20x20 Grid Support**         |   ✅   | Fully integrated in `Board`, `UIManager`, and `Engine3D`.             |
-| **Shared Board Architecture**  |   ✅   | Both players interact with a single 20x20 `enemyBoard` instance.      |
-| **Quadrant-based Placement**   |   ✅   | Player (TL: 0-9) and AI (BR: 10-19) placement zones enforced.         |
+| **Shared Board Architecture**  |   ✅   | Both players interact with a single 20x20 `sharedBoard` instance.     |
+| **Quadrant-based Placement**   |   ✅   | Enforcement for [0-6, 0-6] (Player) and [13-19, 13-19] (AI) active.   |
 | **Unit-based Fog of War**      |   ✅   | Dynamic 5-cell radius visibility around player ships implemented.     |
-| **Movable Ships (Player)**     |   ✅   | Players can move ships within their action phase.                     |
-| **Movable Ships (AI)**         |   ❌   | AI currently only attacks; ship movement logic is missing.            |
-| **Special Weapon Systems**     |   ✅   | Sonar, Mines, and AirStrikes are functional in the domain layer.      |
-| **Transient Hit/Miss Markers** |   ❌   | Markers currently persist; cleanup logic after turns is missing.      |
+| **Movable Ships (Player)**     |   ✅   | Players can move ships within their action phase using AP (moves).    |
+| **Directional Movement Cost**  |   ✅   | Forward: 0.5x, Lateral: 1.0x, Backward: 2.0x cost implemented.        |
 | **Dead Ships Block Cells**     |   ✅   | Sunk ship segments correctly block movement and placement.            |
 | **Static Board Orientation**   |   ✅   | Board does not flip; camera behavior is unified for Rogue mode.       |
 | **Ship Skip Action**           |   ✅   | Explicit "SKIP" button in the Action Bar allows ending a ship's turn. |
+| **Special Weapons (Domain)**   |   ⏳   | Logic exists but lacks 3D revelation/impact (Mines/Sonar).            |
+| **Transient Markers**          |   ❌   | Hit/miss markers currently persist permanently.                       |
 
-## Phase 2: Polish & Ergonomics (In Progress)
+## Phase 2: Implementation Gaps (Blocking Feature Complete)
 
-| Requirement | Status | Details |
-| :--- | :---: | :--- |
-| **Default Action: Attack** | ⏳ | UI should default to Attack/Cannon on ship select. |
-| **Visible Item Counters** | ⏳ | HUD must show remaining uses for Sonar, Mines, AirStrikes. |
-| **Exhausted System Overlay** | ⏳ | "Spent" visual state for systems with 0 uses. |
-| **Integrated Move Submenu** | ⏳ | "Sailing" moved to Move systems, unified counter display. |
-| **Ship Directionality** | ⏳ | Model and logic to distinguish front/back. |
-| **Directional Movement Cost** | ⏳ | Forward: 0.5x cost, Backward: 2.0x cost. |
-| **Keyboard Shortcuts** | ⏳ | (M)/(A) for sections, (S)/(P)/(M)/(C)/(A) for actions. |
-| **Custom Keybindings** | ⏳ | Settings menu with visual keyboard and alias support. |
-
-## Implementation Gap Analysis
-
-### 1. Transient Marker Lifecycle
-
-The `product.md` specification requires hit and miss markers to vanish after the next opponent's turn. Currently, `Board.ts` and `GameLoop.ts` do not have a mechanism to track marker age or "garbage collect" transient states.
-
-> **Action**: Implement a `clearTransientMarkers()` method in `Board.ts` and call it at the start of a turn in `GameLoop.ts`.
+### 1. Special Weapon Integration & Visuals
+Current weapons are "headless" (domain logic only).
+- **Sonar Ping**: Needs visual "expanding ring" and temporary 3D revelation of fog/ships.
+- **Mines**: Needs 3D voxel models, placement animations, and visual explosion on contact.
+- **Resource Persistence**: Initial work in `Ship.resources` needs to be fully stateful across sessions.
 
 ### 2. Rogue AI Strategic Movement
+The `AIEngine.ts` remains purely attack-oriented.
+- **Action Required**: Implement movement heuristics to allow AI ships to evade detection or reposition.
 
-The `AIEngine.ts` is currently "Classic-centric." It only computes attack coordinates. In Rogue mode, the AI needs to evaluate ship positions to evade revealed areas or reposition for better coverage.
+### 3. Ship Model Excellence
+The current voxel models require a premium iteration:
+- **Heavy Weaponry**: Add "huge guns" (large turrets) to all combat vessels.
+- **Flightdeck**: Specific model update for the Aircraft Carrier to include a flightdeck and launch bay visuals.
 
-> **Action**: Enhance `AIEngine` with a movement heuristic that moves AI ships towards strategic positions or away from player vision.
+### 4. Transient Marker Lifecycle
+- **Action Required**: Implement marker cleanup logic to remove hit/miss indicators after the opponent's turn.
 
-### 3. Special Weapon Visual Polish
+### 5. UI/UX Refinement
+- **Arsenals**: HUD should clearly show remaining charges for special systems.
+- **Spent States**: Visual overlay/dimming for buttons when resources are exhausted.
 
-Current special weapons (Sonar, AirStrike) have domain logic but could benefit from more distinct 3D effects (e.g., sonar expanding ring).
-
-## Conclusion: Road to Feature Complete
-
-With Phase 1 complete, the focus shifts to Phase 2 (Ergonomics & Polish). These changes will significantly improve the "Rogue-like" feel of the game, making ship movement more tactical and the UI more responsive to power users.
-
+## Conclusion: Roadmap to Rogue-Complete
+Verification shows that while core grid and movement mechanics are stable, **Special Weapons and AI Intelligence** are the primary blockers for feature completion. The next iteration should prioritize the **3D feedback for Mines/Sonar** and **Ship Model upgrades**.
