@@ -9,6 +9,10 @@ export class WaterShaderManager {
         private playerWaterUniforms: any,
         private enemyWaterUniforms: any
     ) {}
+    
+    public getUniformsForBoard(isPlayerBoard: boolean): any {
+        return isPlayerBoard ? this.playerWaterUniforms : this.enemyWaterUniforms;
+    }
 
     public addRipple(worldX: number, worldZ: number, isPlayerBoard: boolean) {
         const uniforms = isPlayerBoard ? this.playerWaterUniforms : this.enemyWaterUniforms;

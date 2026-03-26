@@ -76,7 +76,7 @@ export class ProjectileManager {
         activeMat.emissiveIntensity = 2.0;
 
         const marker = new THREE.Group();
-        marker.userData = { originalMat: activeMat, isAttackMarker: true };
+        marker.userData = { originalMat: activeMat, isAttackMarker: true, result: result };
 
         const rocketModel = new THREE.Group();
         rocketModel.rotation.x = 25 * Math.PI / 180;

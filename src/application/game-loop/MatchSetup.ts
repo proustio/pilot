@@ -160,20 +160,20 @@ export class MatchSetup {
      * EntityManager can spawn the 3-D meshes for a loaded game.
      */
     private replayShips(match: Match): void {
-        for (const ship of match.playerBoard.ships) {
-            if (ship.isPlaced) {
-                this.state.shipPlacedListeners.forEach(l =>
-                    l(ship, ship.headX, ship.headZ, ship.orientation as Orientation, true)
-                );
+        const boardsToReplay = match.mode === MatchMode.Rogue ? [match.sharedBoard] : [match.playerBoard, match.enemyBoard];
+        
+        boardsToReplay.forEach(board => {
+            const isBoardForPlayer = board === match.playerBoard;
+            for (const ship of board.ships) {
+                if (ship.isPlaced) {
+                    // For Rogue mode, isPlayer means "is it a friendly unit/placed by player"
+                    const isPlayer = match.mode === MatchMode.Rogue ? (!ship.isEnemy) : isBoardForPlayer;
+                    this.state.shipPlacedListeners.forEach(l =>
+                        l(ship, ship.headX, ship.headZ, ship.orientation as Orientation, isPlayer)
+                    );
+                }
             }
-        }
-        for (const ship of match.enemyBoard.ships) {
-            if (ship.isPlaced) {
-                this.state.shipPlacedListeners.forEach(l =>
-                    l(ship, ship.headX, ship.headZ, ship.orientation as Orientation, false)
-                );
-            }
-        }
+        });
     }
 
     /**
@@ -187,20 +187,34 @@ export class MatchSetup {
             [CellState.Sunk]: 'sunk',
         };
 
-        match.playerBoard.gridState.forEach((cell, index) => {
-            const result = resultMap[cell];
-            if (result) {
-                const { x, z } = getCoords(index, match.playerBoard.width);
-                this.state.attackResultListeners.forEach(l => l(x, z, result, false, true));
-            }
-        });
+        if (match.mode === MatchMode.Rogue) {
+            match.sharedBoard.gridState.forEach((cell, index) => {
+                const result = resultMap[cell];
+                if (result) {
+                    const { x, z } = getCoords(index, match.sharedBoard.width);
+                    // In Rogue mode, we use the quadrants to infer isPlayer.
+                    // Player territory is 0-6, so attacks on it are AI (isPlayer=false).
+                    // AI territory is 13-19, so attacks on it are Player (isPlayer=true).
+                    const isPlayerShot = x >= 13 && z >= 13;
+                    this.state.attackResultListeners.forEach(l => l(x, z, result, isPlayerShot, true));
+                }
+            });
+        } else {
+            match.playerBoard.gridState.forEach((cell, index) => {
+                const result = resultMap[cell];
+                if (result) {
+                    const { x, z } = getCoords(index, match.playerBoard.width);
+                    this.state.attackResultListeners.forEach(l => l(x, z, result, false, true));
+                }
+            });
 
-        match.enemyBoard.gridState.forEach((cell, index) => {
-            const result = resultMap[cell];
-            if (result) {
-                const { x, z } = getCoords(index, match.enemyBoard.width);
-                this.state.attackResultListeners.forEach(l => l(x, z, result, true, true));
-            }
-        });
+            match.enemyBoard.gridState.forEach((cell, index) => {
+                const result = resultMap[cell];
+                if (result) {
+                    const { x, z } = getCoords(index, match.enemyBoard.width);
+                    this.state.attackResultListeners.forEach(l => l(x, z, result, true, true));
+                }
+            });
+        }
     }
 }

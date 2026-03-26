@@ -24,6 +24,9 @@ export class Ship {
     public hasActedThisTurn: boolean = false;
     public readonly maxMoves: number;
     public visionRadius: number;
+    
+    public isSpecialWeapon: boolean = false;
+    public specialType?: 'mine' | 'sonar';
 
     // Resource tracking (carried by each ship for simplicity, but we can treat as global later)
     public static resources = {
@@ -37,8 +40,8 @@ export class Ship {
         this.size = size;
         this.orientation = Orientation.Horizontal; // default
         this.segments = new Array(size).fill(true);
-        this.maxMoves = 5 - this.size;
-        this.visionRadius = 5;
+        this.maxMoves = Math.max(0, 5 - this.size);
+        this.visionRadius = size > 1 ? 5 : 0; // Default vision; special weapons set explicitly
     }
 
     /**

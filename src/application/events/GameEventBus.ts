@@ -57,6 +57,9 @@ export enum GameEventType {
     RESET_CAMERA = 'RESET_CAMERA',
     UPDATE_GEEK_STATS = 'UPDATE_GEEK_STATS',
     SONAR_RESULTS = 'SONAR_RESULTS',
+    MINE_PLACED = 'MINE_PLACED',
+    SONAR_PLACED = 'SONAR_PLACED',
+    REQUEST_MARKER_CLEANUP = 'REQUEST_MARKER_CLEANUP',
     INTERACTION_GUARD_STATE = 'INTERACTION_GUARD_STATE'
 }
 
@@ -123,6 +126,9 @@ export interface GameEventPayloads {
     [GameEventType.RESET_CAMERA]: void;
     [GameEventType.UPDATE_GEEK_STATS]: any;
     [GameEventType.SONAR_RESULTS]: { hits: any };
+    [GameEventType.MINE_PLACED]: { x: number, z: number, isPlayer: boolean };
+    [GameEventType.SONAR_PLACED]: { x: number, z: number, isPlayer: boolean };
+    [GameEventType.REQUEST_MARKER_CLEANUP]: void;
     [GameEventType.INTERACTION_GUARD_STATE]: { 
         blocked: boolean, 
         cameraInteracting: boolean, 

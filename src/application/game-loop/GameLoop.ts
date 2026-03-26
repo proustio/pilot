@@ -154,6 +154,12 @@ export class GameLoop {
         }
 
         this.listeners.forEach(listener => listener(newState, oldState));
+        
+        if (this.match && this.match.mode === MatchMode.Rogue) {
+            if (newState === GameState.PLAYER_TURN || newState === GameState.ENEMY_TURN) {
+                eventBus.emit(GameEventType.REQUEST_MARKER_CLEANUP, undefined as any);
+            }
+        }
 
         eventBus.emit(GameEventType.GAME_STATE_CHANGED, { state: newState });
         eventBus.emit(GameEventType.TURN_CHANGED, { newState, oldState });
@@ -232,7 +238,7 @@ export class GameLoop {
     // ─────────────────────────────────────────────────────────────────────────
 
     public handleRogueUseWeapon(detail: any): void {
-        const { weaponType, targetX, targetZ, directionX, directionZ, radius } = detail;
+        const { weaponType, targetX, targetZ, directionX, directionZ } = detail;
         if (!this.match || this.currentState !== GameState.PLAYER_TURN || this.config.autoBattler) return;
 
         const targetBoard = this.match.mode === MatchMode.Rogue ? this.match.sharedBoard : this.match.enemyBoard;
@@ -241,18 +247,14 @@ export class GameLoop {
         if (weaponType === WeaponType.Mine) {
             const placed = targetBoard.placeMine(targetX, targetZ);
             if (!placed) return;
+            eventBus.emit(GameEventType.MINE_PLACED, { x: targetX, z: targetZ, isPlayer: true });
             this.requestAutoSave();
         } else if (weaponType === WeaponType.Sonar) {
-            const results = targetBoard.sonarPing(targetX, targetZ, radius || 2);
-            eventBus.emit(GameEventType.SONAR_RESULTS, { hits: results });
-            this.isAnimating = true;
-            turnHandledAsync = true;
-            setTimeout(() => {
-                this.isAnimating = false;
-                if (this.match!.mode === MatchMode.Rogue) this.advanceRogueShipTurn();
-                else this.transitionTo(GameState.ENEMY_TURN);
-            }, 1000);
-        } else if (weaponType === WeaponType.Cannon || weaponType === 'normal') {
+            const placed = targetBoard.placeSonar(targetX, targetZ);
+            if (!placed) return;
+            eventBus.emit(GameEventType.SONAR_PLACED, { x: targetX, z: targetZ, isPlayer: true });
+            this.requestAutoSave();
+        } else if (weaponType === WeaponType.Cannon || (weaponType as any) === 'normal' || (weaponType as any) === 'cannon') {
             const result = targetBoard.receiveAttack(targetX, targetZ);
             if (result !== 'invalid') {
                 this.onAttackResultInvoke(targetX, targetZ, result.toString(), true, false);
@@ -262,8 +264,8 @@ export class GameLoop {
             if (Ship.resources.airStrikes <= 0) return;
             Ship.resources.airStrikes--;
             
-            const dx = directionX !== undefined ? directionX : 1;
-            const dz = directionZ !== undefined ? directionZ : 0;
+            const dx = (directionX !== undefined ? directionX : 1) as -1 | 0 | 1;
+            const dz = (directionZ !== undefined ? directionZ : 0) as -1 | 0 | 1;
             const length = 10;
             const startX = targetX - dx * 4;
             const startZ = targetZ - dz * 4;

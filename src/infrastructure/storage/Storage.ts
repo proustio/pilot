@@ -36,6 +36,10 @@ interface ShipData {
     headZ: number;
     segments: boolean[];
     isPlaced: boolean;
+    isEnemy?: boolean;
+    isSpecialWeapon?: boolean;
+    specialType?: 'mine' | 'sonar';
+    visionRadius?: number;
     movesRemaining?: number;
     hasActedThisTurn?: boolean;
 }
@@ -75,6 +79,10 @@ export class Storage {
             headZ: ship.headZ,
             segments: [...ship.segments],
             isPlaced: ship.isPlaced,
+            isEnemy: ship.isEnemy,
+            isSpecialWeapon: ship.isSpecialWeapon,
+            specialType: ship.specialType,
+            visionRadius: ship.visionRadius,
             movesRemaining: ship.movesRemaining,
             hasActedThisTurn: ship.hasActedThisTurn
         };
@@ -86,12 +94,13 @@ export class Storage {
         if (data.isPlaced) {
             ship.placeCoordinate(data.headX, data.headZ, data.orientation as Orientation);
         }
-        if (data.movesRemaining !== undefined) {
-            ship.movesRemaining = data.movesRemaining;
-        }
-        if (data.hasActedThisTurn !== undefined) {
-            ship.hasActedThisTurn = data.hasActedThisTurn;
-        }
+        if (data.movesRemaining !== undefined) ship.movesRemaining = data.movesRemaining;
+        if (data.hasActedThisTurn !== undefined) ship.hasActedThisTurn = data.hasActedThisTurn;
+        if (data.isEnemy !== undefined) ship.isEnemy = data.isEnemy;
+        if (data.isSpecialWeapon !== undefined) ship.isSpecialWeapon = data.isSpecialWeapon;
+        if (data.specialType !== undefined) ship.specialType = data.specialType;
+        if (data.visionRadius !== undefined) ship.visionRadius = data.visionRadius;
+        
         return ship;
     }
 
@@ -117,7 +126,7 @@ export class Storage {
             board.ships.push(ship);
 
             if (ship.isPlaced) {
-                if (!ship.isSunk()) {
+                if (!ship.isSunk() && !ship.isSpecialWeapon) {
                     board.aliveShipsCount++;
                 }
                 const coords = ship.getOccupiedCoordinates();

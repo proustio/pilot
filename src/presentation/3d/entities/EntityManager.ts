@@ -9,6 +9,7 @@ import { ParticleSystem } from './ParticleSystem';
 import { WaterShaderManager } from './WaterShaderManager';
 import { VesselVisibilityManager } from './VesselVisibilityManager';
 import { eventBus, GameEventType } from '../../../application/events/GameEventBus';
+import { SonarEffect } from './SonarEffect';
 
 export class EntityManager {
     private scene: THREE.Scene;
@@ -29,6 +30,8 @@ export class EntityManager {
 
     private time: number = 0;
     private wasBusy: boolean = false;
+
+    private activeSonarEffects: SonarEffect[] = [];
 
     // Sub-managers
     private particleSystem: ParticleSystem;
@@ -86,10 +89,40 @@ export class EntityManager {
             this.activeRogueShipId = payload.ship?.id || null;
         });
 
-        // Ensure animations complete signal is sent after resuming if no animations are active
         eventBus.on(GameEventType.RESUME_GAME, () => {
             if (!this.isBusy()) {
                 eventBus.emit(GameEventType.GAME_ANIMATIONS_COMPLETE, undefined as any);
+            }
+        });
+
+        eventBus.on(GameEventType.REQUEST_MARKER_CLEANUP, () => {
+            this.clearTransientMarkers();
+        });
+
+        eventBus.on(GameEventType.MINE_PLACED, (payload) => {
+            const ship = this.visibilityManager.allShips.find(s => s.specialType === 'mine' && s.headX === payload.x && s.headZ === payload.z);
+            if (ship) this.addShip(ship, payload.x, payload.z, Orientation.Horizontal, payload.isPlayer);
+        });
+
+        eventBus.on(GameEventType.SONAR_PLACED, (payload) => {
+            const ship = this.visibilityManager.allShips.find(s => s.specialType === 'sonar' && s.headX === payload.x && s.headZ === payload.z);
+            if (ship) this.addShip(ship, payload.x, payload.z, Orientation.Horizontal, payload.isPlayer);
+        });
+
+        eventBus.on(GameEventType.SONAR_RESULTS, (payload) => {
+            const { hits } = payload;
+            hits.forEach((h: any) => {
+                this.fogManager.revealCellTemporarily(h.x, h.z, 2);
+            });
+
+            if (hits.length > 0) {
+                const targetX = hits[0].x;
+                const targetZ = hits[0].z;
+                const boardOffset = Config.board.width / 2;
+                const worldX = targetX - boardOffset + 0.5;
+                const worldZ = targetZ - boardOffset + 0.5;
+                
+                this.activeSonarEffects.push(new SonarEffect(worldX, worldZ, 3, this.playerBoardGroup));
             }
         });
     }
@@ -97,8 +130,6 @@ export class EntityManager {
     public setPlayerTurn(isPlayerTurn: boolean) {
         this.isPlayerTurn = isPlayerTurn;
     }
-
-    // ───── Public API ─────
 
     public getInteractableObjects(): readonly THREE.Object3D[] {
         const isEnemyUp = Math.abs(this.masterBoardGroup.rotation.x - Math.PI) < 0.1;
@@ -126,12 +157,27 @@ export class EntityManager {
     public addShip(ship: Ship, x: number, z: number, orientation: Orientation, isPlayer: boolean) {
         const isRogue = Config.rogueMode;
         const targetGroup = isRogue ? this.playerBoardGroup : (isPlayer ? this.playerBoardGroup : this.enemyBoardGroup);
-        const shipGroup = ShipFactory.createShip(ship, x, z, orientation, isPlayer, targetGroup);
+        
+        let shipGroup: THREE.Group;
+        if (ship.specialType === 'sonar') {
+            shipGroup = ShipFactory.createSonarBuoy(isPlayer);
+            const boardOffset = Config.board.width / 2;
+            shipGroup.position.set(x - boardOffset + 0.5, 0, z - boardOffset + 0.5);
+            shipGroup.userData = { isShip: true, ship, shipOrientation: orientation };
+            targetGroup.add(shipGroup);
+        } else if (ship.specialType === 'mine') {
+            shipGroup = ShipFactory.createMine(isPlayer);
+            const boardOffset = Config.board.width / 2;
+            shipGroup.position.set(x - boardOffset + 0.5, 0.4, z - boardOffset + 0.5);
+            shipGroup.userData = { isShip: true, ship, shipOrientation: orientation };
+            targetGroup.add(shipGroup);
+        } else {
+            shipGroup = ShipFactory.createShip(ship, x, z, orientation, isPlayer, targetGroup);
+        }
 
         if (!isPlayer) shipGroup.visible = false;
         this.visibilityManager.trackShip(ship);
 
-        // Trigger water ripple
         const boardOffset = Config.board.width / 2;
         let cx = x, cz = z;
         if (orientation === Orientation.Horizontal) cx += Math.floor(ship.size / 2);
@@ -152,6 +198,21 @@ export class EntityManager {
             if (result === 'sunk') this.revealSunkShip(x, z);
         }
         this.projectileManager.addAttackMarker(x, z, result, isPlayer, isReplay, this.addRipple.bind(this));
+    }
+
+    public clearTransientMarkers() {
+        const clearFromGroup = (group: THREE.Group) => {
+            for (let i = group.children.length - 1; i >= 0; i--) {
+                const child = group.children[i];
+                if (child.userData.isAttackMarker && child.userData.result !== 'sunk') {
+                    if (child.userData.dispose) child.userData.dispose();
+                    group.remove(child);
+                }
+            }
+        };
+
+        clearFromGroup(this.playerBoardGroup);
+        clearFromGroup(this.enemyBoardGroup);
     }
 
     private revealSunkShip(x: number, z: number) {
@@ -201,6 +262,7 @@ export class EntityManager {
     public isBusy(): boolean {
         if (this.projectileManager.hasFallingMarkers()) return true;
         if (this.particleSystem.hasActiveParticles()) return true;
+        if (this.activeSonarEffects.some(effect => effect.isActive())) return true;
 
         let isAnimating = false;
         const sinkFloor = Config.visual.sinkingFloor;
@@ -215,8 +277,6 @@ export class EntityManager {
         return isAnimating;
     }
 
-    // ───── Update Loop ─────
-
     public update(camera: THREE.Camera) {
         const gameSpeed = Config.timing.gameSpeedMultiplier;
         
@@ -229,7 +289,15 @@ export class EntityManager {
         
         this.updateStaticAnimations();
         this.particleSystem.update();
-        this.projectileManager.updateProjectiles(this.addRipple.bind(this), null, null); 
+        
+        this.projectileManager.updateProjectiles(this.addRipple.bind(this), this.waterManager.getUniformsForBoard(true), this.waterManager.getUniformsForBoard(false)); 
+
+        const dt = 1 / 60; 
+        for (let i = this.activeSonarEffects.length - 1; i >= 0; i--) {
+            if (!this.activeSonarEffects[i].update(dt)) {
+                this.activeSonarEffects.splice(i, 1);
+            }
+        }
 
         const currentBusy = this.isBusy();
         if (this.wasBusy && !currentBusy) eventBus.emit(GameEventType.GAME_ANIMATIONS_COMPLETE, undefined as any);
@@ -288,23 +356,40 @@ export class EntityManager {
         [this.playerBoardGroup, this.enemyBoardGroup].forEach(group => {
             group.children.forEach((child: THREE.Object3D) => {
                 if (!child.userData.isShip) return;
-                if (child.userData.isSinking && child.position.y > sinkFloor) {
-                    child.position.y -= descentRate;
-                    const sinkProgress = Math.min(1.0, -child.position.y / Math.abs(sinkFloor));
-                    child.rotation.z = sinkProgress * (child.userData.sinkAngleZ ?? 0.15);
-                    child.rotation.x = sinkProgress * (child.userData.sinkAngleX ?? 0.08);
 
-                    if (child.userData.isBroken && child.userData.halfA && child.userData.halfB) {
-                        const breakAngle = sinkProgress * 0.4;
-                        if (child.userData.shipOrientation === Orientation.Horizontal) {
-                            child.userData.halfA.rotation.z = breakAngle;
-                            child.userData.halfB.rotation.z = -breakAngle;
-                        } else {
-                            child.userData.halfA.rotation.x = -breakAngle;
-                            child.userData.halfB.rotation.x = breakAngle;
+                // Sync sinking state from domain
+                if (child.userData.ship.isSunk() && !child.userData.isSinking) {
+                    child.userData.isSinking = true;
+                    child.userData.sinkAngleZ = (Math.random() - 0.5) * 0.3;
+                    child.userData.sinkAngleX = (Math.random() - 0.5) * 0.3;
+                }
+
+                if (child.userData.isSinking) {
+                    // Rule: Mines disappear immediately, ships/sonars sink
+                    if (child.userData.ship.specialType === 'mine') {
+                        group.remove(child);
+                        return;
+                    }
+
+                    if (child.position.y > sinkFloor) {
+                        child.position.y -= descentRate;
+                        const sinkProgress = Math.min(1.0, -child.position.y / Math.abs(sinkFloor));
+                        child.rotation.z = sinkProgress * (child.userData.sinkAngleZ ?? 0.15);
+                        child.rotation.x = sinkProgress * (child.userData.sinkAngleX ?? 0.08);
+
+                        if (child.userData.isBroken && child.userData.halfA && child.userData.halfB) {
+                            const breakAngle = sinkProgress * 0.4;
+                            if (child.userData.shipOrientation === Orientation.Horizontal) {
+                                child.userData.halfA.rotation.z = breakAngle;
+                                child.userData.halfB.rotation.z = -breakAngle;
+                            } else {
+                                child.userData.halfA.rotation.x = -breakAngle;
+                                child.userData.halfB.rotation.x = breakAngle;
+                            }
                         }
                     }
                 }
+
                 if (child.userData.targetPosition) {
                     child.position.lerp(child.userData.targetPosition, moveLerpFactor);
                     if (child.position.distanceToSquared(child.userData.targetPosition) < 0.001) {
@@ -339,7 +424,7 @@ export class EntityManager {
 
     public resetMatch() {
         const disposeShipAndMarkers = (obj: any) => {
-            if (obj.userData.isShip) {
+            if (obj.userData.isShip || obj.userData.isAttackMarker) {
                 if (obj.userData.dispose) obj.userData.dispose();
                 if (obj.geometry) obj.geometry.dispose();
                 if (obj.material) {

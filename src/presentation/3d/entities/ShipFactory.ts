@@ -317,4 +317,71 @@ export class ShipFactory {
             shipGroup.add(turretGroup);
         }
     }
+
+    public static createMine(isPlayer: boolean): THREE.Group {
+        const group = new THREE.Group();
+        const voxelSize = 0.08;
+        const geometry = new THREE.BoxGeometry(voxelSize, voxelSize, voxelSize);
+        const material = new THREE.MeshStandardMaterial({
+            color: isPlayer ? 0x50C878 : 0x8D2B00,
+            metalness: 0.8,
+            roughness: 0.2
+        });
+
+        // Simple spiked ball voxel model
+        const positions = [
+            [0,0,0], [1,0,0], [-1,0,0], [0,1,0], [0,-1,0], [0,0,1], [0,0,-1],
+            [2,0,0], [-2,0,0], [0,2,0], [0,-2,0], [0,0,2], [0,0,-2]
+        ];
+
+        const instancedMesh = new THREE.InstancedMesh(geometry, material, positions.length);
+        const dummy = new THREE.Object3D();
+        positions.forEach((p, i) => {
+            dummy.position.set(p[0] * voxelSize, p[1] * voxelSize, p[2] * voxelSize);
+            dummy.updateMatrix();
+            instancedMesh.setMatrixAt(i, dummy.matrix);
+        });
+        
+        group.add(instancedMesh);
+        return group;
+    }
+
+    public static createSonarBuoy(isPlayer: boolean): THREE.Group {
+        const group = new THREE.Group();
+        const voxelSize = 0.08;
+        const geometry = new THREE.BoxGeometry(voxelSize, voxelSize, voxelSize);
+        const material = new THREE.MeshStandardMaterial({
+            color: isPlayer ? 0x4169E1 : 0x8D2B00,
+            metalness: 0.5,
+            roughness: 0.5
+        });
+
+        // Simple buoy/tower voxel model
+        const positions = [
+            [0,0,0], [0,1,0], [0,2,0], [0,3,0], [0,4,0],
+            [1,0,0], [-1,0,0], [0,0,1], [0,0,-1],
+            [1,1,0], [-1,1,0], [0,1,1], [0,1,-1],
+            [0,5,0] // Antena top
+        ];
+
+        const instancedMesh = new THREE.InstancedMesh(geometry, material, positions.length);
+        const dummy = new THREE.Object3D();
+        positions.forEach((p, i) => {
+            dummy.position.set(p[0] * voxelSize, p[1] * voxelSize, p[2] * voxelSize);
+            dummy.updateMatrix();
+            instancedMesh.setMatrixAt(i, dummy.matrix);
+        });
+        
+        group.add(instancedMesh);
+        
+        // Add a blinking light on top
+        const lightGeom = new THREE.SphereGeometry(0.05, 8, 8);
+        const lightMat = new THREE.MeshBasicMaterial({ color: 0x00ffff, transparent: true, opacity: 0.8 });
+        const lightMesh = new THREE.Mesh(lightGeom, lightMat);
+        lightMesh.position.set(0, 5 * voxelSize + 0.05, 0);
+        lightMesh.userData = { isStatusLED: true, phase: 0 };
+        group.add(lightMesh);
+
+        return group;
+    }
 }

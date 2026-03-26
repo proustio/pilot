@@ -28,11 +28,8 @@ export class Board {
     public width: number;
     public height: number;
     
-    // Using a simple 1D array mapped as 2D for memory layout optimizations later if needed.
-    // Index = z * width + x
     public gridState: Uint8Array;
     
-    // Map of absolute coordinates "x,z" to a specific Ship and its local segment index
     private shipMap: Map<string, { ship: Ship, segmentIndex: number }>;
     public ships: Ship[] = [];
     public aliveShipsCount: number = 0;
@@ -56,33 +53,27 @@ export class Board {
             const currentX = orientation === Orientation.Horizontal ? headX + i : headX;
             const currentZ = orientation === Orientation.Vertical ? headZ + i : headZ;
 
-            if (this.isOutOfBounds(currentX, currentZ)) {
-                return false;
-            }
+            if (this.isOutOfBounds(currentX, currentZ)) return false;
 
             const state = this.gridState[getIndex(currentX, currentZ, this.width)];
-            if (state !== CellState.Empty && state !== CellState.Mine) {
-                return false;
-            }
+            if (state !== CellState.Empty && state !== CellState.Mine) return false;
         }
         return true;
     }
 
     public placeShip(ship: Ship, headX: number, headZ: number, orientation: Orientation): boolean {
-        if (!this.canPlaceShip(ship.size, headX, headZ, orientation)) {
-            return false;
-        }
+        if (!this.canPlaceShip(ship.size, headX, headZ, orientation)) return false;
 
         ship.placeCoordinate(headX, headZ, orientation);
         this.ships.push(ship);
-        if (!ship.isSunk()) {
+        if (!ship.isSunk() && !ship.isSpecialWeapon) {
             this.aliveShipsCount++;
         }
 
         const coords = ship.getOccupiedCoordinates();
         coords.forEach((coord, segmentIndex) => {
             const mapKey = `${coord.x},${coord.z}`;
-            this.gridState[getIndex(coord.x, coord.z, this.width)] = CellState.Ship;
+            this.gridState[getIndex(coord.x, coord.z, this.width)] = ship.specialType === 'mine' ? CellState.Mine : CellState.Ship;
             this.shipMap.set(mapKey, { ship, segmentIndex });
         });
 
@@ -93,12 +84,10 @@ export class Board {
         const index = this.ships.indexOf(ship);
         if (index === -1) return false;
 
-        // Use swap and pop for O(1) removal
-        const last = this.ships[this.ships.length - 1];
-        this.ships[index] = last;
+        this.ships[index] = this.ships[this.ships.length - 1];
         this.ships.pop();
 
-        if (!ship.isSunk()) {
+        if (!ship.isSunk() && !ship.isSpecialWeapon) {
             this.aliveShipsCount--;
         }
 
@@ -112,11 +101,9 @@ export class Board {
         return true;
     }
 
-    public moveShip(ship: Ship, newHeadX: number, newHeadZ: number, newOrientation: Orientation): boolean {
-        // Validation check for ship exists on board
-        if (!this.ships.includes(ship)) return false;
+    public moveShip(ship: Ship, newHeadX: number, newHeadZ: number, newOrientation: Orientation): { success: boolean, hitMine: boolean, mineX?: number, mineZ?: number } {
+        if (!this.ships.includes(ship)) return { success: false, hitMine: false };
 
-        // Temporarily clear old cells so ship doesn't collide with itself
         const oldCoords = ship.getOccupiedCoordinates();
         oldCoords.forEach(coord => {
             const mapKey = `${coord.x},${coord.z}`;
@@ -124,31 +111,37 @@ export class Board {
             this.shipMap.delete(mapKey);
         });
 
-        // Test placement
         if (!this.canPlaceShip(ship.size, newHeadX, newHeadZ, newOrientation)) {
-            // Revert cells since invalid
             oldCoords.forEach((coord, segmentIndex) => {
                 const mapKey = `${coord.x},${coord.z}`;
-                this.gridState[getIndex(coord.x, coord.z, this.width)] = CellState.Ship;
+                this.gridState[getIndex(coord.x, coord.z, this.width)] = ship.specialType === 'mine' ? CellState.Mine : CellState.Ship;
                 this.shipMap.set(mapKey, { ship, segmentIndex });
             });
-            return false;
+            return { success: false, hitMine: false };
         }
 
-        // Apply new placement
         ship.headX = newHeadX;
         ship.headZ = newHeadZ;
         ship.orientation = newOrientation;
 
         let hitMine = false;
+        let mineX, mineZ;
         const newCoords = ship.getOccupiedCoordinates();
+        
+        // 1. Check for immediate landing on a mine
         newCoords.forEach((coord, segmentIndex) => {
             const idx = getIndex(coord.x, coord.z, this.width);
             const state = this.gridState[idx];
             if (state === CellState.Mine) {
-                hitMine = true;
-                ship.hitSegment(segmentIndex);
-                this.gridState[idx] = ship.isSunk() ? CellState.Sunk : CellState.Hit;
+                const mineShip = this.getShipAt(coord.x, coord.z);
+                if (mineShip && mineShip.specialType === 'mine') {
+                    hitMine = true;
+                    mineX = coord.x;
+                    mineZ = coord.z;
+                    ship.hitSegment(segmentIndex);
+                    mineShip.hitSegment(0);
+                    this.gridState[idx] = ship.isSunk() ? CellState.Sunk : CellState.Hit;
+                }
             } else {
                 this.gridState[idx] = CellState.Ship;
             }
@@ -156,13 +149,43 @@ export class Board {
         });
 
         if (hitMine && ship.isSunk()) {
-            this.aliveShipsCount--;
+            if (!ship.isSpecialWeapon) this.aliveShipsCount--;
             newCoords.forEach((coord) => {
                 this.gridState[getIndex(coord.x, coord.z, this.width)] = CellState.Sunk;
             });
         }
 
-        return true;
+        // 2. Check for ADJACENT mines after moving
+        if (!hitMine) {
+            for (const coord of newCoords) {
+                for (let dx = -1; dx <= 1; dx++) {
+                    for (let dz = -1; dz <= 1; dz++) {
+                        if (dx === 0 && dz === 0) continue;
+                        const rx = coord.x + dx;
+                        const rz = coord.z + dz;
+                        if (this.isOutOfBounds(rx, rz)) continue;
+                        
+                        const state = this.gridState[getIndex(rx, rz, this.width)];
+                        if (state === CellState.Mine) {
+                            const mineShip = this.getShipAt(rx, rz);
+                            if (mineShip && mineShip.specialType === 'mine') {
+                                hitMine = true;
+                                mineX = rx;
+                                mineZ = rz;
+                                ship.hitSegment(0); 
+                                mineShip.hitSegment(0); 
+                                this.gridState[getIndex(rx, rz, this.width)] = CellState.Sunk;
+                                break;
+                            }
+                        }
+                    }
+                    if (hitMine) break;
+                }
+                if (hitMine) break;
+            }
+        }
+
+        return { success: true, hitMine, mineX, mineZ };
     }
 
     public getShipAt(x: number, z: number): Ship | undefined {
@@ -179,13 +202,13 @@ export class Board {
             return AttackResult.Invalid;
         }
 
-        if (state === CellState.Empty || state === CellState.Mine) {
+        if (state === CellState.Empty) {
             this.shotsFired++;
             this.gridState[index] = CellState.Miss;
             return AttackResult.Miss;
         }
 
-        if (state === CellState.Ship) {
+        if (state === CellState.Ship || state === CellState.Mine) {
             this.shotsFired++;
             this.hits++;
 
@@ -196,7 +219,7 @@ export class Board {
             const wasSunk = target.ship.isSunk();
             target.ship.hitSegment(target.segmentIndex);
             
-            if (!wasSunk && target.ship.isSunk()) {
+            if (!wasSunk && target.ship.isSunk() && !target.ship.isSpecialWeapon) {
                 this.aliveShipsCount--;
             }
 
@@ -215,24 +238,30 @@ export class Board {
         return AttackResult.Invalid;
     }
     
-    /**
-     * Checks if all ships placed on this board are sunk.
-     */
     public allShipsSunk(): boolean {
-        if (this.ships.length === 0) {
-            throw new Error('Board has no ships');
-        }
+        if (this.ships.length === 0) throw new Error('Board has no ships');
         return this.aliveShipsCount === 0;
     }
 
     public placeMine(x: number, z: number): boolean {
         if (this.isOutOfBounds(x, z)) return false;
-        const index = getIndex(x, z, this.width);
-        if (this.gridState[index] === CellState.Empty) {
-            this.gridState[index] = CellState.Mine;
-            return true;
-        }
-        return false;
+        if (this.gridState[getIndex(x, z, this.width)] !== CellState.Empty) return false;
+
+        const mine = new Ship(`mine_${Date.now()}_${x}_${z}`, 1);
+        mine.isSpecialWeapon = true;
+        mine.specialType = 'mine';
+        return this.placeShip(mine, x, z, Orientation.Horizontal);
+    }
+
+    public placeSonar(x: number, z: number): boolean {
+        if (this.isOutOfBounds(x, z)) return false;
+        if (this.gridState[getIndex(x, z, this.width)] !== CellState.Empty) return false;
+
+        const sonar = new Ship(`sonar_${Date.now()}_${x}_${z}`, 1);
+        sonar.isSpecialWeapon = true;
+        sonar.specialType = 'sonar';
+        sonar.visionRadius = 7;
+        return this.placeShip(sonar, x, z, Orientation.Horizontal);
     }
 
     public sonarPing(centerX: number, centerZ: number, radius: number): { x: number, z: number }[] {
@@ -256,15 +285,11 @@ export class Board {
 
     public dispatchAirStrike(startX: number, startZ: number, directionX: -1|0|1, directionZ: -1|0|1, length: number = 999): { x: number, z: number, result: AttackResult }[] {
         const results: { x: number, z: number, result: AttackResult }[] = [];
-        let cx = startX;
-        let cz = startZ;
-        let count = 0;
+        let cx = startX, cz = startZ, count = 0;
         while (!this.isOutOfBounds(cx, cz) && count < length) {
             const res = this.receiveAttack(cx, cz);
             results.push({ x: cx, z: cz, result: res });
-            cx += directionX;
-            cz += directionZ;
-            count++;
+            cx += directionX; cz += directionZ; count++;
         }
         return results;
     }

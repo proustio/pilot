@@ -40,8 +40,11 @@ export class RogueActionHandler {
             if (Math.abs(dx) > Math.abs(dz)) newOrient = Orientation.Horizontal;
             else if (Math.abs(dz) > Math.abs(dx)) newOrient = Orientation.Vertical;
 
-            const moved = sharedBoard.moveShip(ship, targetX, targetZ, newOrient);
-            if (moved) {
+            const moveResult = sharedBoard.moveShip(ship, targetX, targetZ, newOrient);
+            if (moveResult.success) {
+                if (moveResult.hitMine) {
+                    this.gameLoop.onAttackResultInvoke(moveResult.mineX!, moveResult.mineZ!, 'hit', true, false);
+                }
                 ship.movesRemaining = Math.max(0, ship.movesRemaining - totalCost);
                 
                 const queuedAbility = (window as any).queuedRogueAbility;
@@ -113,11 +116,17 @@ export class RogueActionHandler {
         const rz = midZ + (Math.random() > 0.5 ? 1 : -1);
         
         if (this.gameLoop.match && !this.gameLoop.match.sharedBoard.isOutOfBounds(rx, rz)) {
+            const board = this.gameLoop.match.sharedBoard;
             if (type === 'sonar') {
-                this.gameLoop.match.sharedBoard.receiveAttack(rx, rz);
-                this.gameLoop.onAttackResultInvoke(rx, rz, 'sonar', true, false);
+                const placed = board.placeSonar(rx, rz);
+                if (placed) {
+                    eventBus.emit(GameEventType.SONAR_PLACED, { x: rx, z: rz, isPlayer: true });
+                }
             } else {
-                this.gameLoop.onAttackResultInvoke(rx, rz, 'mine', true, false);
+                const placed = board.placeMine(rx, rz);
+                if (placed) {
+                    eventBus.emit(GameEventType.MINE_PLACED, { x: rx, z: rz, isPlayer: true });
+                }
             }
         }
     }

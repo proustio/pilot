@@ -79,7 +79,7 @@ export class HUD extends BaseUIComponent {
                         <div class="arsenal-title">MOVE SYSTEMS</div>
                         <div class="arsenal-items">
                             <button class="arsenal-btn" data-weapon="sonar" title="Sonar Ping (2 Remaining)">📡</button>
-                            <button class="arsenal-btn" data-weapon="mine" title="Place Mine (5 Remaining)">⚓</button>
+                            <button class="arsenal-btn" data-weapon="mine" title="Place Mine (5 Remaining)">💣</button>
                         </div>
                     </div>
                 </div>
@@ -178,9 +178,9 @@ export class HUD extends BaseUIComponent {
                 // Always default to 'sail' when entering Move mode
                 (window as any).selectedRogueWeapon = 'sail';
                 arsenalItems.innerHTML = `
-                    <button class="arsenal-btn active ${this.activeRogueShip?.movesRemaining <= 0 ? 'spent' : ''}" data-weapon="sail" title="Sailing (${this.activeRogueShip?.movesRemaining} Remaining)">⚓</button>
+                    <button class="arsenal-btn active ${this.activeRogueShip?.movesRemaining <= 0 ? 'spent' : ''}" data-weapon="sail" title="Sailing (${this.activeRogueShip?.movesRemaining} Remaining)">🚤</button>
                     <button class="arsenal-btn ${(window as any).selectedRogueWeapon === 'sonar' ? 'active' : ''} ${Ship.resources.sonars <= 0 ? 'spent' : ''}" data-weapon="sonar" title="Sonar Ping (${Ship.resources.sonars} Remaining)">📡</button>
-                    <button class="arsenal-btn ${(window as any).selectedRogueWeapon === 'mine' ? 'active' : ''} ${Ship.resources.mines <= 0 ? 'spent' : ''}" data-weapon="mine" title="Place Mine (${Ship.resources.mines} Remaining)">⚓</button>
+                    <button class="arsenal-btn ${(window as any).selectedRogueWeapon === 'mine' ? 'active' : ''} ${Ship.resources.mines <= 0 ? 'spent' : ''}" data-weapon="mine" title="Place Mine (${Ship.resources.mines} Remaining)">💣</button>
                 `;
             } else {
                 arsenalTitle.innerText = 'ATTACK SYSTEMS';
