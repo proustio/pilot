@@ -144,7 +144,7 @@ export interface GameEventPayloads {
         gameAnimating: boolean, 
         menuOpen: boolean 
     };
-    [GameEventType.CONNECTION_STATUS_CHANGED]: { status: 'ONLINE' | 'OFFLINE' };
+    [GameEventType.CONNECTION_STATUS_CHANGED]: { status: 'CONNECTED' | 'CONNECTING' | 'DISCONNECTED' };
     [GameEventType.WINDOW_RESIZE]: { width: number, height: number };
     [GameEventType.DOCUMENT_KEYDOWN]: KeyboardEvent;
     [GameEventType.DOCUMENT_CLICK]: MouseEvent;

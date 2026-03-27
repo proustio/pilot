@@ -724,6 +724,11 @@ body.night-mode .ship-segment.hit {
   color: var(--geek-online);
 }
 
+.gs-connecting {
+  color: #FFD700;
+  animation: status-pulse 1.5s ease-in-out infinite;
+}
+
 .gs-offline {
   color: #DC143C;
   animation: status-pulse 2s ease-in-out infinite;

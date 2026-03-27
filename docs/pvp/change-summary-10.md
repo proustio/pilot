@@ -1,18 +1,44 @@
 # Changes Summary — Multiplayer PvP (10)
 
-This sprint focuses on the **scaffolding of the Multiplayer PvP system**. The objective is to establish the core networking infrastructure and UI without requiring a specialized backend during the initial phase.
+This sprint focuses on the **scaffolding of the Multiplayer PvP system**. The objective is to establish the core networking infrastructure and UI without requiring a dedicated backend server.
 
-### Key Conceptual Changes:
+### Key Architectural Decision: Serverless WebRTC
 
-1.  **Network Abstraction**: We're introducing a clear interface for communication (`INetworkAdapter`), allowing us to start with a basic WebSocket implementation while keeping the option open for other protocols (WebRTC, Polling, etc.) in the future.
-2.  **Event Synchronization**: The `SyncManager` acts as an event bus bridge. It captures domain events in one browser instance and re-broadcasts them in another, maintaining state consistency.
-3.  **Lobby Integration**: A new "Multiplayer" entry in the main menu leads to a dedicated `LobbyMenu`. This UI handles room creation, joining, and player readiness, following the game's retro aesthetic.
+> [!IMPORTANT]
+> **No dedicated game server.** PvP uses **WebRTC DataChannels** for direct peer-to-peer communication. Game data flows between browsers without touching a server. A signaling mechanism is only needed for the initial connection handshake.
 
-### Architectural Impact:
+### Signaling Options (no backend required)
 
-*   **Infrastructure Layer**: Addition of `SyncManager` and `WebSocketAdapter`. These components manage the lifecycle of a network session and handle data serialization.
-*   **Presentation Layer**: New `LobbyMenu` component and corresponding styles. This screen manages the transitions into a network-synced game session.
-*   **Application Layer**: `GameLoop` is updated to include a `LOBBY` state, allowing for a structured waiting period before a match begins.
+| Approach | How it works | UX |
+|---|---|---|
+| **QR Code** | Player A encodes SDP offer as QR → Player B scans, generates answer QR → handshake done | Feels like Bluetooth pairing, very private |
+| **Room Code + PeerJS** | PeerJS free cloud relay handles signaling via short room codes | One code exchange, smoothest UX |
+| **Room Code + Firebase** | Firebase Realtime DB free tier as signaling relay | One code exchange, self-hostable |
 
-> [!TIP]
-> Use a simple local WebSocket echo server for testing. This ensures that the message routing and event dispatching work before we introduce a more complex authoritative server.
+### Infrastructure Already Built
+
+The following networking infra is in place and ready for PvP integration:
+
+- **`INetworkAdapter`** — Transport-agnostic interface (`connect`, `send`, `onMessage`, `disconnect`, `getState`)
+- **`WebSocketAdapter`** — Reference implementation with auto-reconnect and heartbeat (can be swapped for a `WebRTCAdapter`)
+- **`NetworkManager`** — Singleton coordinator that bridges connection state to `GameEventBus`
+- **`CONNECTION_STATUS_CHANGED`** event — 3 states: `CONNECTED`, `CONNECTING`, `DISCONNECTED`
+- **Geek Stats indicator** — Shows `LOCAL` in PVE, ready to show live connection state in PvP
+- **PWA / Service Worker** — Game is fully playable offline after first load
+
+### Remaining Work
+
+1. **`WebRTCAdapter`** — Implements `INetworkAdapter` using `RTCPeerConnection` + `RTCDataChannel`
+2. **Signaling UI** — QR code or room code exchange for connection handshake
+3. **`SyncManager`** — Bridges game events ↔ network messages
+4. **`LobbyMenu`** — Room creation, joining, and player readiness UI
+
+### Architectural Impact
+
+*   **Infrastructure Layer**: `WebRTCAdapter` replaces `WebSocketAdapter` as the PvP transport. Both implement `INetworkAdapter`.
+*   **Presentation Layer**: New `LobbyMenu` component for matchmaking. Geek Stats indicator driven by peer connection state.
+*   **Application Layer**: `GameLoop` gains a `LOBBY` state. `SyncManager` handles game event synchronization.
+
+> [!TIP]  
+> The `INetworkAdapter` interface was designed to be transport-agnostic. Swapping WebSocket → WebRTC requires only a new adapter class — zero changes to `NetworkManager`, `SyncManager`, or the UI.
+

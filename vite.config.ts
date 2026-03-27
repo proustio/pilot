@@ -12,13 +12,7 @@ export default defineConfig({
             workbox: {
                 globPatterns: ['**/*.{js,css,html,png,woff2,vert,frag}'],
                 maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5 MiB — menu card PNGs are ~3 MB each
-                navigateFallbackDenylist: [/\/ping\.txt$/],
                 runtimeCaching: [
-                    {
-                        // Health-check ping — MUST hit the real server, never cache
-                        urlPattern: /\/ping\.txt$/,
-                        handler: 'NetworkOnly'
-                    },
                     {
                         // Cache-first for all same-origin assets (JS, CSS, images, fonts)
                         urlPattern: ({ request }) => 

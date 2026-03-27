@@ -49,6 +49,9 @@ export const Config = {
         masterVolume: 0.5
     },
     preferredMode: 'classic' as 'classic' | 'russian' | 'rogue',
+    network: {
+        serverUrl: null as string | null
+    },
 
     loadConfig() {
         try {

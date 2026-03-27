@@ -36,7 +36,6 @@ export class Settings extends BaseUIComponent {
         this.keybindingEditor = new KeybindingEditor(this.container);
 
         this.render();
-        this.attachListeners();
     }
 
     protected render(): void {
@@ -46,12 +45,14 @@ export class Settings extends BaseUIComponent {
             audioSettings: this.audioSettings,
             keybindingEditor: this.keybindingEditor
         });
-    }
 
-    private attachListeners() {
+        // Attach listeners after every render (mount() re-calls render())
         const closeBtn = this.container.querySelector('#btn-settings-close');
         if (closeBtn) {
-            closeBtn.addEventListener('click', () => this.hide());
+            closeBtn.addEventListener('click', () => {
+                console.log('[Settings] Close button pressed');
+                this.hide();
+            });
         }
 
         this.generalSettings.attachListeners();

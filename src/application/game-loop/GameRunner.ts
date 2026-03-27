@@ -5,7 +5,7 @@ import { GameLoop } from './GameLoop';
 import { UIManager } from '../../presentation/ui/UIManager';
 import { Config } from '../../infrastructure/config/Config';
 import { eventBus, GameEventType } from '../../application/events/GameEventBus';
-import { NetworkMonitor } from '../../infrastructure/network/NetworkMonitor';
+import { NetworkManager } from '../../infrastructure/network/NetworkManager';
 
 /**
  * Orchestrates the main animation loop, coordinating updates across 
@@ -162,7 +162,7 @@ export class GameRunner {
             cameraPos: this.engine.camera.position,
             targetPos: this.engine.orbitControls.target,
             engine: this.getBrowserEngine(),
-            status: NetworkMonitor.getInstance().getStatus()
+            status: NetworkManager.getInstance().getStatus()
         });
 
         this.framesRendered = 0;

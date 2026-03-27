@@ -262,10 +262,18 @@ export function bindHUDControls(container: HTMLElement): void {
 
         const statusEl = container.querySelector('#gs-status');
         if (statusEl && d.status) {
-            const isOnline = d.status === 'ONLINE';
-            statusEl.textContent = isOnline ? '● ONLINE' : '● OFFLINE';
-            statusEl.classList.toggle('gs-online', isOnline);
-            statusEl.classList.toggle('gs-offline', !isOnline);
+            statusEl.classList.remove('gs-online', 'gs-connecting', 'gs-offline');
+            if (d.status === 'CONNECTED') {
+                statusEl.textContent = '● CONNECTED';
+                statusEl.classList.add('gs-online');
+            } else if (d.status === 'CONNECTING') {
+                statusEl.textContent = '● CONNECTING';
+                statusEl.classList.add('gs-connecting');
+            } else {
+                // DISCONNECTED — show LOCAL for PVE, DISCONNECTED only during active PvP
+                statusEl.textContent = '● LOCAL';
+                statusEl.classList.add('gs-online');
+            }
         }
     });
 

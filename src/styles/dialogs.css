@@ -7,17 +7,22 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+  z-index: 100;
 }
 
 #settings-modal {
   position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 400px;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
+  z-index: 200;
+  pointer-events: auto;
+  background: var(--overlay-bg);
 }
 
 .settings-row {
