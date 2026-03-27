@@ -723,3 +723,13 @@ body.night-mode .ship-segment.hit {
 .gs-online {
   color: var(--geek-online);
 }
+
+.gs-offline {
+  color: #DC143C;
+  animation: status-pulse 2s ease-in-out infinite;
+}
+
+@keyframes status-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}

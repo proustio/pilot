@@ -10,10 +10,12 @@ import { AudioEngine } from './infrastructure/audio/AudioEngine';
 import { ThemeManager } from './presentation/theme/ThemeManager';
 import { GameRunner } from './application/game-loop/GameRunner';
 import { eventBus, GameEventType } from './application/events/GameEventBus';
+import { NetworkMonitor } from './infrastructure/network/NetworkMonitor';
 
 const init = () => {
     try {
         Config.loadConfig();
+        NetworkMonitor.getInstance(); // Initialize connection tracking early
         
         ThemeManager.getInstance().applyToDOM();
 

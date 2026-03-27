@@ -5,6 +5,7 @@ import { GameLoop } from './GameLoop';
 import { UIManager } from '../../presentation/ui/UIManager';
 import { Config } from '../../infrastructure/config/Config';
 import { eventBus, GameEventType } from '../../application/events/GameEventBus';
+import { NetworkMonitor } from '../../infrastructure/network/NetworkMonitor';
 
 /**
  * Orchestrates the main animation loop, coordinating updates across 
@@ -160,7 +161,8 @@ export class GameRunner {
             zoom: this.engine.orbitControls.getDistance(),
             cameraPos: this.engine.camera.position,
             targetPos: this.engine.orbitControls.target,
-            engine: this.getBrowserEngine()
+            engine: this.getBrowserEngine(),
+            status: NetworkMonitor.getInstance().getStatus()
         });
 
         this.framesRendered = 0;

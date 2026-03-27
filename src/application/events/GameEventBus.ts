@@ -62,6 +62,9 @@ export enum GameEventType {
     REQUEST_MARKER_CLEANUP = 'REQUEST_MARKER_CLEANUP',
     INTERACTION_GUARD_STATE = 'INTERACTION_GUARD_STATE',
     
+    // Network
+    CONNECTION_STATUS_CHANGED = 'CONNECTION_STATUS_CHANGED',
+    
     // Global DOM Wrappers
     WINDOW_RESIZE = 'WINDOW_RESIZE',
     DOCUMENT_KEYDOWN = 'DOCUMENT_KEYDOWN',
@@ -141,6 +144,7 @@ export interface GameEventPayloads {
         gameAnimating: boolean, 
         menuOpen: boolean 
     };
+    [GameEventType.CONNECTION_STATUS_CHANGED]: { status: 'ONLINE' | 'OFFLINE' };
     [GameEventType.WINDOW_RESIZE]: { width: number, height: number };
     [GameEventType.DOCUMENT_KEYDOWN]: KeyboardEvent;
     [GameEventType.DOCUMENT_CLICK]: MouseEvent;

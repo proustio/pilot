@@ -259,6 +259,14 @@ export function bindHUDControls(container: HTMLElement): void {
             }
             updateRowVisibility(timeEl, d.elapsedActiveTime);
         }
+
+        const statusEl = container.querySelector('#gs-status');
+        if (statusEl && d.status) {
+            const isOnline = d.status === 'ONLINE';
+            statusEl.textContent = isOnline ? '● ONLINE' : '● OFFLINE';
+            statusEl.classList.toggle('gs-online', isOnline);
+            statusEl.classList.toggle('gs-offline', !isOnline);
+        }
     });
 
     // 10. Mouse Coordination tooltip
