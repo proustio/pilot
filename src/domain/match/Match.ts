@@ -60,14 +60,14 @@ export class Match {
      * More strict placement validation depending on mode.
      * Russian mode requires absolutely no touching (even diagonally).
      */
-    public validatePlacement(board: Board, shipToPlace: Ship, headX: number, headZ: number, orientation: Orientation): boolean {
+    public validatePlacement(board: Board, shipToPlace: Ship, headX: number, headZ: number, orientation: Orientation, ignoredShip?: Ship): boolean {
         // First check base overlapping/boundaries
-        if (!board.canPlaceShip(shipToPlace.size, headX, headZ, orientation)) {
+        if (!board.canPlaceShip(shipToPlace.size, headX, headZ, orientation, ignoredShip)) {
             return false;
         }
 
-        // Rogue mode: Player (isEnemy=false) in Top-Left (0-6, 0-6), AI in Bottom-Right (13-19, 13-19)
-        if (this.mode === MatchMode.Rogue) {
+        // Rogue mode: Enforce quadrant placement ONLY during initial setup (when !ship.isPlaced)
+        if (this.mode === MatchMode.Rogue && !shipToPlace.isPlaced) {
             for (let i = 0; i < shipToPlace.size; i++) {
                 let cx = headX;
                 let cz = headZ;

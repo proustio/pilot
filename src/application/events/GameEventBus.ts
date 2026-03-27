@@ -60,7 +60,13 @@ export enum GameEventType {
     MINE_PLACED = 'MINE_PLACED',
     SONAR_PLACED = 'SONAR_PLACED',
     REQUEST_MARKER_CLEANUP = 'REQUEST_MARKER_CLEANUP',
-    INTERACTION_GUARD_STATE = 'INTERACTION_GUARD_STATE'
+    INTERACTION_GUARD_STATE = 'INTERACTION_GUARD_STATE',
+    
+    // Global DOM Wrappers
+    WINDOW_RESIZE = 'WINDOW_RESIZE',
+    DOCUMENT_KEYDOWN = 'DOCUMENT_KEYDOWN',
+    DOCUMENT_CLICK = 'DOCUMENT_CLICK',
+    GLOBAL_INTERACTION = 'GLOBAL_INTERACTION'
 }
 
 export interface GameEventPayloads {
@@ -135,6 +141,10 @@ export interface GameEventPayloads {
         gameAnimating: boolean, 
         menuOpen: boolean 
     };
+    [GameEventType.WINDOW_RESIZE]: { width: number, height: number };
+    [GameEventType.DOCUMENT_KEYDOWN]: KeyboardEvent;
+    [GameEventType.DOCUMENT_CLICK]: MouseEvent;
+    [GameEventType.GLOBAL_INTERACTION]: void;
 }
 
 type EventCallback<T extends GameEventType> = (payload: GameEventPayloads[T]) => void;

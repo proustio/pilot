@@ -23,6 +23,8 @@ export interface TurnExecutorState {
     shipPlacedListeners: ShipPlacedListener[];
     attackResultListeners: AttackResultListener[];
     onAnimationsComplete: (() => void) | null;
+    activeRogueShipIndex: number;
+    rogueShipOrder: Ship[];
     transitionTo: (state: GameState) => void;
     advanceRogueShipTurn: () => void;
     advanceEnemyRogueShipTurn: () => void;
@@ -337,7 +339,7 @@ export class TurnExecutor {
         const targetBoard = isRogue ? this.s.match.sharedBoard : this.s.match.enemyBoard;
         
         if (isRogue) {
-            const ship = (this.s as any).rogueShipOrder?.()[(this.s as any).activeRogueShipIndex?.()] || null;
+            const ship = this.s.rogueShipOrder?.[this.s.activeRogueShipIndex] || null;
             if (ship && !this.s.match.validateAttackRange(ship, x, z)) {
                 // Too far
                 return;

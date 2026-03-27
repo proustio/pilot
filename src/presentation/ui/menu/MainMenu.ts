@@ -149,7 +149,7 @@ export class MainMenu extends BaseUIComponent {
         });
 
         // Close on outside click
-        document.addEventListener('click', closeDropdown);
+        eventBus.on(GameEventType.DOCUMENT_CLICK, closeDropdown);
 
         // --- Rogue state ---
         const updateRogueState = (mode: string) => {

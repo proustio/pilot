@@ -65,39 +65,12 @@ export class UIManager {
 
         this.handleStateChange(this.gameLoop.currentState);
 
-        document.addEventListener('keydown', (e: KeyboardEvent) => {
-            if (e.key === 'Escape') {
-                if (this.gameLoop.currentState !== GameState.MAIN_MENU && this.gameLoop.currentState !== GameState.GAME_OVER) {
-                    if (this.pauseMenu['isVisible']) {
-                        this.pauseMenu.hide();
-                    } else if (this.settings['isVisible']) {
-                        this.settings.hide();
-                    } else {
-                        this.pauseMenu.show();
-                    }
-                }
-            }
-        });
+        eventBus.on(GameEventType.DOCUMENT_KEYDOWN, (e) => this.handleGlobalKeydown(e));
+        eventBus.on(GameEventType.DOCUMENT_CLICK, (e) => this.handleGlobalClick(e));
 
 
         this.checkAutoLoad();
 
-        // Global UI sound effect listener
-        document.addEventListener('click', (e: MouseEvent) => {
-            const target = e.target as HTMLElement;
-            const button = target.closest('button');
-            if (button) {
-                // Generate a "unique" frequency based on button ID or text
-                const seedString = button.id || button.innerText || 'default';
-                let hash = 0;
-                for (let i = 0; i < seedString.length; i++) {
-                    hash = ((hash << 5) - hash) + seedString.charCodeAt(i);
-                    hash |= 0;
-                }
-                const freq = 300 + (Math.abs(hash) % 300); // 300-600Hz
-                AudioEngine.getInstance().playPop(freq);
-            }
-        });
     }
 
 
@@ -148,6 +121,36 @@ export class UIManager {
                     });
                 }
             }
+        }
+    }
+
+    private handleGlobalKeydown(e: KeyboardEvent): void {
+        if (e.key === 'Escape') {
+            if (this.gameLoop.currentState !== GameState.MAIN_MENU && this.gameLoop.currentState !== GameState.GAME_OVER) {
+                if (this.pauseMenu['isVisible']) {
+                    this.pauseMenu.hide();
+                } else if (this.settings['isVisible']) {
+                    this.settings.hide();
+                } else {
+                    this.pauseMenu.show();
+                }
+            }
+        }
+    }
+
+    private handleGlobalClick(e: MouseEvent): void {
+        const target = e.target as HTMLElement;
+        const button = target.closest('button');
+        if (button) {
+            // Generate a "unique" frequency based on button ID or text
+            const seedString = button.id || button.innerText || 'default';
+            let hash = 0;
+            for (let i = 0; i < seedString.length; i++) {
+                hash = ((hash << 5) - hash) + seedString.charCodeAt(i);
+                hash |= 0;
+            }
+            const freq = 300 + (Math.abs(hash) % 300); // 300-600Hz
+            AudioEngine.getInstance().playPop(freq);
         }
     }
     

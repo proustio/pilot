@@ -48,7 +48,7 @@ export class Board {
         return x < 0 || x >= this.width || z < 0 || z >= this.height;
     }
 
-    public canPlaceShip(shipSize: number, headX: number, headZ: number, orientation: Orientation): boolean {
+    public canPlaceShip(shipSize: number, headX: number, headZ: number, orientation: Orientation, ignoredShip?: Ship): boolean {
         for (let i = 0; i < shipSize; i++) {
             const currentX = orientation === Orientation.Horizontal ? headX + i : headX;
             const currentZ = orientation === Orientation.Vertical ? headZ + i : headZ;
@@ -56,7 +56,16 @@ export class Board {
             if (this.isOutOfBounds(currentX, currentZ)) return false;
 
             const state = this.gridState[getIndex(currentX, currentZ, this.width)];
-            if (state !== CellState.Empty && state !== CellState.Mine) return false;
+            if (state !== CellState.Empty && state !== CellState.Mine) {
+                // If it's a ship, check if it's the one we're ignoring
+                if (state === CellState.Ship || state === CellState.Hit || state === CellState.Sunk) {
+                    const existingShip = this.getShipAt(currentX, currentZ);
+                    if (existingShip && existingShip === ignoredShip) {
+                        continue; // This segment belongs to the ship we're moving
+                    }
+                }
+                return false;
+            }
         }
         return true;
     }

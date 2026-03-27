@@ -30,16 +30,19 @@ export class AIEngine {
     public decideAction(ship: Ship, board: Board, _match: Match): 'move' | 'attack' | 'skip' {
         if (ship.hasActedThisTurn) return 'skip';
 
-        // Check if any player ship is revealed within 10 cells range
+        // Check if any player ship is detected within vision or attack range
         const visibleEnemy = this.findVisibleEnemyInRange(ship, board, 10);
 
         if (this.difficulty === 'easy') {
-            // Easy: If enemy in sight, attack. Otherwise, move.
-            return visibleEnemy ? 'attack' : 'move';
+            // Easy: If enemy in range 10, attack. Otherwise, move to search.
+            return (visibleEnemy && this.getDistance(ship.headX, ship.headZ, visibleEnemy.x, visibleEnemy.z) <= 10) ? 'attack' : 'move';
         } else {
-            // Normal: If hit recently (damaged), move. If revealed but can't see enemy, move.
-            if (ship.segments.some(s => !s)) return 'move'; // Damaged -> move defensively
-            return visibleEnemy ? 'attack' : 'move';
+            // Normal: If hit recently (damaged), move defensively.
+            const isDamaged = ship.segments.some(s => !s);
+            if (isDamaged) return 'move'; 
+            
+            // If enemy in range, attack. Else move.
+            return (visibleEnemy && this.getDistance(ship.headX, ship.headZ, visibleEnemy.x, visibleEnemy.z) <= 10) ? 'attack' : 'move';
         }
     }
 
@@ -50,68 +53,99 @@ export class AIEngine {
         if (ship.movesRemaining <= 0) return null;
 
         const isEasy = this.difficulty === 'easy';
+        const detectedEnemy = this.findVisibleEnemyInRange(ship, board, ship.visionRadius + 5); 
         
         let targetX = ship.headX;
         let targetZ = ship.headZ;
         let targetOrient = ship.orientation;
 
         if (isEasy) {
-            // Easy AI: Move towards the player quadrant (Top-Left 0-6).
-            // Just pick a random step closer to [3, 3] or move randomly.
-            const targetPos = { x: 3, z: 3 };
-            const dx = Math.sign(targetPos.x - ship.headX);
-            const dz = Math.sign(targetPos.z - ship.headZ);
-            
-            // Try small steps
-            const stepX = Math.random() > 0.5 ? dx : 0;
-            const stepZ = stepX === 0 ? dz : 0;
-            
-            targetX = Math.max(13, Math.min(19, ship.headX + stepX));
-            targetZ = Math.max(13, Math.min(19, ship.headZ + stepZ));
-        } else {
-            // Normal AI: Evasive/Stealth. 
-            // If it was hit, move to a far corner of the quadrant.
-            const isHit = ship.segments.some(s => !s);
-            if (isHit) {
-                // Move away from current position
-                targetX = Math.random() > 0.5 ? 13 : 19;
-                targetZ = Math.random() > 0.5 ? 13 : 19;
+            if (detectedEnemy) {
+                // Move towards detected enemy
+                const dx = Math.sign(detectedEnemy.x - ship.headX);
+                const dz = Math.sign(detectedEnemy.z - ship.headZ);
+                targetX = ship.headX + dx;
+                targetZ = ship.headZ + dz;
             } else {
-                // Randomly reposition within quadrant [13-19, 13-19]
-                targetX = 13 + Math.floor(Math.random() * 7);
-                targetZ = 13 + Math.floor(Math.random() * 7);
+                // Search: Move towards player quadrant center [3, 3]
+                const dx = Math.sign(3 - ship.headX);
+                const dz = Math.sign(3 - ship.headZ);
+                
+                // Deterministic step for search in tests, but allow some variety
+                if (dx !== 0) targetX = ship.headX + dx;
+                else if (dz !== 0) targetZ = ship.headZ + dz;
+            }
+        } else {
+            // Normal AI: Evasive/Tactical
+            const isDamaged = ship.segments.some(s => !s);
+            if (isDamaged) {
+                // Move away from current hits/detected enemies
+                targetX = ship.headX + (Math.random() > 0.5 ? 5 : -5);
+                targetZ = ship.headZ + (Math.random() > 0.5 ? 5 : -5);
+            } else if (detectedEnemy) {
+                // Tactical: maintain distance 8-10
+                const dist = this.getDistance(ship.headX, ship.headZ, detectedEnemy.x, detectedEnemy.z);
+                if (dist < 8) {
+                    // Back away
+                    targetX = ship.headX - Math.sign(detectedEnemy.x - ship.headX);
+                    targetZ = ship.headZ - Math.sign(detectedEnemy.z - ship.headZ);
+                } else if (dist > 10) {
+                    // Close in
+                    targetX = ship.headX + Math.sign(detectedEnemy.x - ship.headX);
+                    targetZ = ship.headZ + Math.sign(detectedEnemy.z - ship.headZ);
+                } else {
+                    // Already at good range, maybe lateral?
+                    targetX = ship.headX + (Math.random() > 0.5 ? 1 : -1);
+                    targetZ = ship.headZ + (Math.random() > 0.5 ? 1 : -1);
+                }
+            } else {
+                // Patrol player half
+                targetX = Math.floor(Math.random() * 10);
+                targetZ = Math.floor(Math.random() * 10);
             }
         }
 
-        // Validate if it can fit. If not, just stay put (return null).
-        if (match.validatePlacement(board, ship, targetX, targetZ, targetOrient)) {
-            // Don't move to same spot
+        // Keep within board bounds
+        targetX = Math.max(0, Math.min(board.width - 1, targetX));
+        targetZ = Math.max(0, Math.min(board.height - 1, targetZ));
+
+        // Validate if it can fit. 
+        if (match.validatePlacement(board, ship, targetX, targetZ, targetOrient, ship)) {
             if (targetX === ship.headX && targetZ === ship.headZ) return null;
             return { x: targetX, z: targetZ, orientation: targetOrient };
+        } else {
+             // Try variations if direct move blocked
+             const offsets = [[1,0], [-1,0], [0,1], [0,-1]];
+             for (const [ox, oz] of offsets) {
+                 const tx = Math.max(0, Math.min(board.width - 1, ship.headX + ox));
+                 const tz = Math.max(0, Math.min(board.height - 1, ship.headZ + oz));
+                 if (match.validatePlacement(board, ship, tx, tz, targetOrient, ship)) {
+                     return { x: tx, z: tz, orientation: targetOrient };
+                 }
+             }
         }
 
         return null;
     }
 
+    private getDistance(x1: number, z1: number, x2: number, z2: number): number {
+        return Math.max(Math.abs(x1 - x2), Math.abs(z1 - z2)); // Chebyshev
+    }
+
     private findVisibleEnemyInRange(ship: Ship, board: Board, range: number): { x: number, z: number } | null {
-        // AI "sees" everything for now or just what is proximate?
-        // User requirements say "search then attack".
-        // Let's assume AI only "sees" player ships if they are revealed or if we implement vision for AI.
-        // For simplicity: AI sees player ships that have were previously hit or are within a certain radius.
-        
+        // AI "sees" player ships that are within its visionRadius or were previously hit
         for (const playerShip of board.ships) {
             if (playerShip.isEnemy) continue;
             if (playerShip.isSunk()) continue;
 
             const coords = playerShip.getOccupiedCoordinates();
             for (const c of coords) {
-                const dist = Math.max(Math.abs(c.x - ship.headX), Math.abs(c.z - ship.headZ));
+                const dist = this.getDistance(ship.headX, ship.headZ, c.x, c.z);
                 if (dist <= range) {
-                    // In Rogue mode, all player ships are "known" to AI for attacking?
-                    // Actually, let's say AI knows player ship position ONLY if it was previously hit OR is within 7 cells.
+                    // Detect if within ship's actual vision radius OR already hit
                     const idx = getIndex(c.x, c.z, board.width);
                     const state = board.gridState[idx];
-                    if (state === CellState.Hit || dist <= 7) {
+                    if (state === CellState.Hit || dist <= ship.visionRadius) {
                         return { x: c.x, z: c.z };
                     }
                 }

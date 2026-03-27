@@ -208,6 +208,35 @@ const init = () => {
             isQuitting = true;
         });
 
+        // --- Global DOM Event Emitters ---
+        window.addEventListener('resize', () => {
+            eventBus.emit(GameEventType.WINDOW_RESIZE, { 
+                width: window.innerWidth, 
+                height: window.innerHeight 
+            });
+        });
+
+        document.addEventListener('keydown', (e) => {
+            eventBus.emit(GameEventType.DOCUMENT_KEYDOWN, e);
+        });
+
+        document.addEventListener('click', (e) => {
+            eventBus.emit(GameEventType.DOCUMENT_CLICK, e);
+        });
+
+        // --- Global Interaction & Audio Resume ---
+        const handleFirstInteraction = () => {
+            eventBus.emit(GameEventType.GLOBAL_INTERACTION, undefined as any);
+            window.removeEventListener('mousedown', handleFirstInteraction);
+            window.removeEventListener('keydown', handleFirstInteraction);
+        };
+        window.addEventListener('mousedown', handleFirstInteraction);
+        window.addEventListener('keydown', handleFirstInteraction);
+
+        eventBus.on(GameEventType.GLOBAL_INTERACTION, () => {
+            AudioEngine.getInstance().resume();
+        });
+
         window.addEventListener('beforeunload', () => {
             if (!isQuitting && gameLoop.match && gameLoop.hasUnsavedProgress()) {
                 const isEnemyBoardShowing = entityManager.boardOrientation === 'enemy';
@@ -238,14 +267,6 @@ const init = () => {
             gameLoop,
             uiManager
         );
-
-        // Global Audio Resume on first interaction
-        window.addEventListener('mousedown', () => {
-            AudioEngine.getInstance().resume();
-        }, { once: true });
-        window.addEventListener('keydown', () => {
-            AudioEngine.getInstance().resume();
-        }, { once: true });
 
         gameRunner.start();
         console.log('App successfully initialized, loop running.');

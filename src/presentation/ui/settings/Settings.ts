@@ -5,6 +5,7 @@ import { GeneralSettings } from './GeneralSettings';
 import { VideoSettings } from './VideoSettings';
 import { AudioSettings } from './AudioSettings';
 import { KeybindingEditor } from './KeybindingEditor';
+import { eventBus, GameEventType } from '../../../application/events/GameEventBus';
 
 export class Settings extends BaseUIComponent {
     private gameLoop: any;
@@ -81,11 +82,13 @@ export class Settings extends BaseUIComponent {
         this.audioSettings.attachListeners();
         this.keybindingEditor.attachListeners();
 
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && this.isVisible) {
-                this.hide();
-            }
-        });
+        eventBus.on(GameEventType.DOCUMENT_KEYDOWN, (e) => this.handleGlobalKeydown(e));
+    }
+
+    private handleGlobalKeydown(e: KeyboardEvent): void {
+        if (e.key === 'Escape' && this.isVisible) {
+            this.hide();
+        }
     }
 
     protected onShow() {

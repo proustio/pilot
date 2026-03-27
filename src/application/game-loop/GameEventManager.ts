@@ -31,7 +31,7 @@ export class GameEventManager {
             }
         });
 
-        document.addEventListener('keydown', (e: KeyboardEvent) => {
+        eventBus.on(GameEventType.DOCUMENT_KEYDOWN, (e) => {
             this.handleKeydown(e);
         });
 

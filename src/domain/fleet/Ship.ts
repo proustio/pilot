@@ -41,7 +41,7 @@ export class Ship {
         this.orientation = Orientation.Horizontal; // default
         this.segments = new Array(size).fill(true);
         this.maxMoves = Math.max(0, 5 - this.size);
-        this.visionRadius = size > 1 ? 5 : 0; // Default vision; special weapons set explicitly
+        this.visionRadius = 5; // Default vision for all ships; special weapons set explicitly
     }
 
     /**

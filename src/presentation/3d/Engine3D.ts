@@ -130,7 +130,9 @@ export class Engine3D {
       InteractivityGuard.setCameraTransitioning(true);
     });
 
-    window.addEventListener('resize', this.onWindowResize.bind(this));
+    eventBus.on(GameEventType.WINDOW_RESIZE, () => {
+        this.onWindowResize();
+    });
   }
 
   private setupLighting() {
