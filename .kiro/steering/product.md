@@ -46,7 +46,13 @@ Browser-based Battleships game with a Minecraft-style 3D voxel aesthetic, built 
 - Attacker Selection: A random player vessel is selected to animate as "firing" when an attack is initiated.
 - Interaction: Raycasting-based grid selection with glowing, translucent 3D hover highlights.
 - Camera transitions between player/enemy boards per turn phase
+## Distribution & Platforms
+- **Web (PWA)**: Primary target for browser-based play, fully offline-capable via Service Workers.
+- **Desktop (Steam / Itch.io)**: Distributed via an **Electron** wrapper to ensure consistent rendering (Three.js/Shaders) and native API access (Steamworks).
+- **Mobile (iOS / Android)**: Distributed via **Capacitor**, utilizing native mobile SDKs while maintaining a single web-based source.
+
 ## Design Priorities
 - **Maintainability through Modularity**: Prevent codebase rot by proactively decomposing large classes and monolithic CSS files into smaller, responsibility-focused modules.
 - **Lightweight Performance**: Maintain fast-loading voxel assets and efficient instanced rendering.
 - **Architectural Extensibility**: Ensure the engine can easily accommodate new game modes (like the upcoming Rogue mode) by keeping core domain logic decoupled from presentation.
+- **Platform Independence**: Core game logic and rendering must remain decoupled from wrapper-specific code (Electron/Capacitor) to ensure a single `dist/` output can be deployed everywhere.

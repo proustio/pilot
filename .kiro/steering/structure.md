@@ -28,6 +28,8 @@ src/
 ├── infrastructure/            # External concerns
 │   ├── audio/AudioEngine.ts   # Web Audio API sound engine (singleton, layered synthesis)
 │   ├── config/Config.ts       # Runtime config (visual settings, timing, game speed)
+│   ├── network/               # WebSocket/WebRTC adapters for multiplayer
+│   ├── platform/              # [NEW] Platform detection and hardware abstraction service
 │   └── storage/Storage.ts     # Save/load interfaces and localStorage adapter
 │
 ├── presentation/              # All rendering and UI
@@ -78,9 +80,13 @@ src/
 ├── styles/                    # Modular CSS files
 │   ├── theme.css              # Theme variables (Day/Night) and base HTML/Body styles
 │   ├── components.css         # Shared UI components (panels, buttons, selects)
+│   ├── native-shell.css       # [NEW] Native app UI hardening (scrolling, selection)
 │   ├── main-menu.css          # Main menu layout and card components
 │   ├── hud.css                # HUD layout, indicators, and switchboard
 │   └── dialogs.css            # Dialogs, overlays, and coordination indicators
+│
+├── desktop/                    # [NEW] Electron desktop shell/wrapper
+└── mobile/                     # [NEW] Capacitor mobile shell/project
 ```
 
 ## Architecture Rules

@@ -48,3 +48,9 @@ npm run preview  # Preview production build locally
 - **DDD Rationale**: Decoupling `domain/` and `application/` from Three.js/DOM allows for "headless" logic simulation (useful for AI training or unit testing).
 - **Weapon Profiles**: All attacks use a `weaponType` profile (default 1x1) to support Rogue mode variations like AoE strikes or special weapons. In Rogue mode, hit/miss markers are transient and vanish after the opponent's subsequent turn, while kill markers are permanent.
 - **Shared Board Architecture**: Unlike the dual-board setup in Classic mode, Rogue mode utilizes a single 20x20 shared coordinate space. Ships start in opposing 10x10 corners, and the viewport/orientation remains static throughout the match. Cells occupied by destroyed ships remain blocked and impassable for the remainder of the game.
+- **Multi-Platform Architecture**: The project uses a "Best of Breed" split for distribution.
+  - **Desktop**: Electron-based shell wrapping the Vite `dist/` output.
+  - **Mobile**: Capacitor-based container for native iOS/Android deployment.
+  - **CSS Hardening**: Native-feel UI requirements (disabling scrolling, user-selection, and magnifying glass) are handled via targeted CSS media queries or platform-specific classes.
+  - **Platform Abstraction**: Use a centralized `PlatformService` (planned) to abstract hardware-specific logic like file persistence or native notifications.
+
