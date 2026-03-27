@@ -6,6 +6,8 @@ import { VideoSettings } from './VideoSettings';
 import { AudioSettings } from './AudioSettings';
 import { KeybindingEditor } from './KeybindingEditor';
 import { eventBus, GameEventType } from '../../../application/events/GameEventBus';
+import { TemplateEngine } from '../templates/TemplateEngine';
+import settingsTemplate from '../templates/Settings.html?raw';
 
 export class Settings extends BaseUIComponent {
     private gameLoop: any;
@@ -38,37 +40,12 @@ export class Settings extends BaseUIComponent {
     }
 
     protected render(): void {
-        this.container.innerHTML = `
-            <div class="voxel-panel settings-panel">
-                <h2 class="voxel-title">Settings</h2>
-                
-                <div class="settings-content" style="max-height: 70vh; overflow-y: auto; padding-right: 10px;">
-                    <h3 class="settings-section-title">General</h3>
-                    <div id="settings-general">
-                        ${this.generalSettings.render()}
-                    </div>
-
-                    <h3 class="settings-section-title">Video & Theme</h3>
-                    <div id="settings-video">
-                        ${this.videoSettings.render()}
-                    </div>
-
-                    <h3 class="settings-section-title">Audio</h3>
-                    <div id="settings-audio">
-                        ${this.audioSettings.render()}
-                    </div>
-
-                    <h3 class="settings-section-title">Controls</h3>
-                    <div id="settings-controls">
-                        ${this.keybindingEditor.render()}
-                    </div>
-                </div>
-
-                <div class="settings-footer" style="margin-top: 20px; display: flex; gap: 10px;">
-                    <button id="btn-settings-close" class="voxel-btn primary" style="flex-grow: 1;">Close</button>
-                </div>
-            </div>
-        `;
+        this.container.innerHTML = TemplateEngine.render(settingsTemplate, {
+            generalSettings: this.generalSettings,
+            videoSettings: this.videoSettings,
+            audioSettings: this.audioSettings,
+            keybindingEditor: this.keybindingEditor
+        });
     }
 
     private attachListeners() {

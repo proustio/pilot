@@ -3,6 +3,8 @@ import { GameLoop } from '../../../application/game-loop/GameLoop';
 import { CellState } from '../../../domain/board/Board';
 import { Config } from '../../../infrastructure/config/Config';
 import { eventBus, GameEventType } from '../../../application/events/GameEventBus';
+import { TemplateEngine } from '../templates/TemplateEngine';
+import unifiedBoardTemplate from '../templates/UnifiedBoardUI.html?raw';
 
 export class UnifiedBoardUI extends BaseUIComponent {
     private gameLoop: GameLoop;
@@ -53,18 +55,7 @@ export class UnifiedBoardUI extends BaseUIComponent {
 
     protected render(): void {
         const isRogue = Config.rogueMode;
-        this.container.innerHTML = `
-            <div class="unified-board-container ${isRogue ? 'rogue-layout' : ''}">
-                <div class="mini-board-wrapper">
-                    <div class="mini-board-title">${isRogue ? 'BATTLEFIELD' : 'YOU'}</div>
-                    <div id="mini-player-grid" class="mini-grid"></div>
-                </div>
-                <div class="mini-board-wrapper" style="display: ${isRogue ? 'none' : 'block'};">
-                    <div class="mini-board-title">ENEMY</div>
-                    <div id="mini-enemy-grid" class="mini-grid"></div>
-                </div>
-            </div>
-        `;
+        this.container.innerHTML = TemplateEngine.render(unifiedBoardTemplate, { isRogue });
 
         this.playerGridContainer = this.container.querySelector('#mini-player-grid') as HTMLElement;
         this.enemyGridContainer = this.container.querySelector('#mini-enemy-grid') as HTMLElement;

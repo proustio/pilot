@@ -1,0 +1,18 @@
+<div class="slot-wrapper" style="display: flex; justify-content: center; width: 100%;">
+    <button class="save-slot voxel-btn ${disabledClass}" data-slot="${i}" ${isDisabled ? 'disabled' : ''} style="flex-grow: 1; max-width: 300px;">
+        <div class="slot-header">Slot ${i}</div>
+        <div class="slot-info">
+            ${isEmpty ? `<span class="slot-empty">— Empty —</span>` : `
+                <span class="slot-mode">${meta.mode.toUpperCase()}</span>
+                <span class="slot-date">${new Date(meta.date).toLocaleString()}</span>
+                <span class="slot-turns">Turns: ${meta.turnCount}</span>
+            `}
+        </div>
+    </button>
+    ${!isEmpty ? `
+    <button class="slot-delete-btn voxel-btn danger" data-slot="${i}" title="Delete Save">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+            <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
+        </svg>
+    </button>` : ''}
+</div>

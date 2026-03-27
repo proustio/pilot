@@ -4,6 +4,9 @@ import { Config } from '../../../infrastructure/config/Config';
 import { FogManager } from './FogManager';
 import { ThemeManager } from '../../theme/ThemeManager';
 import { eventBus, GameEventType } from '../../../application/events/GameEventBus';
+import fogShaderMain from '../shaders/Fog.vert?raw';
+import fogShaderNormal from '../shaders/FogNormal.vert?raw';
+import fogShaderPosition from '../shaders/FogPosition.vert?raw';
 
 export interface BoardBuildResult {
     playerGridTiles: THREE.Object3D[];
@@ -42,43 +45,7 @@ export class BoardBuilder {
             rippleTimes: { value: [0.0, 0.0, 0.0, 0.0, 0.0] }
         });
 
-        // ───── Industrial Texture (Procedural) ─────
-        const createIndustrialTexture = () => {
-            const size = 256;
-            const canvas = document.createElement('canvas');
-            canvas.width = size;
-            canvas.height = size;
-            const ctx = canvas.getContext('2d')!;
-
-            ctx.fillStyle = '#050515';
-            ctx.fillRect(0, 0, size, size);
-
-            ctx.strokeStyle = 'rgba(65, 105, 225, 0.15)';
-            ctx.lineWidth = 1;
-            for (let i = 0; i < size; i += 16) {
-                ctx.beginPath();
-                ctx.moveTo(i, 0); ctx.lineTo(i, size);
-                ctx.stroke();
-                ctx.beginPath();
-                ctx.moveTo(0, i); ctx.lineTo(size, i);
-                ctx.stroke();
-            }
-
-            for (let i = 0; i < 500; i++) {
-                const x = Math.random() * size;
-                const y = Math.random() * size;
-                const s = Math.random() * 1.5;
-                ctx.fillStyle = Math.random() > 0.5 ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.2)';
-                ctx.fillRect(x, y, s, s);
-            }
-
-            const tex = new THREE.CanvasTexture(canvas);
-            tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-            tex.repeat.set(4, 1);
-            return tex;
-        };
-
-        const industrialTex = createIndustrialTexture();
+        const industrialTex = ThemeManager.getInstance().getIndustrialTexture();
 
         // ───── Frame Material ─────
         const frameMat = new THREE.MeshStandardMaterial({
@@ -150,7 +117,8 @@ export class BoardBuilder {
 
         // ───── Rivets ─────
         const rivetGeo = new THREE.CylinderGeometry(0.06, 0.06, 0.04, 6);
-        const rivetMat = new THREE.MeshStandardMaterial({ color: 0x444455, metalness: 0.8, roughness: 0.2 });
+        const tm = ThemeManager.getInstance();
+        const rivetMat = new THREE.MeshStandardMaterial({ color: tm.getRivetColor(), metalness: 0.8, roughness: 0.2 });
 
         const spawnRivets = (count: number, start: THREE.Vector3, end: THREE.Vector3) => {
             for (let i = 0; i < count; i++) {
@@ -171,7 +139,7 @@ export class BoardBuilder {
         // ───── Screws ─────
         const screwGeo = new THREE.CylinderGeometry(0.12, 0.12, 0.05, 8);
         const screwMat = new THREE.MeshStandardMaterial({
-            color: 0x444444,
+            color: tm.getScrewColor(),
             metalness: 0.9,
             roughness: 0.1
         });
@@ -266,74 +234,18 @@ export class BoardBuilder {
             fogMat.userData.shader = shader;
 
             shader.vertexShader = `
-                uniform float uFogTime;
-                attribute vec3 aBasePos;
-                attribute float aScale;
-                attribute float aPhase;
-                attribute float aSpeed;
-
-                mat4 rotationXYZ(vec3 euler) {
-                    float cX = cos(euler.x); float sX = sin(euler.x);
-                    float cY = cos(euler.y); float sY = sin(euler.y);
-                    float cZ = cos(euler.z); float sZ = sin(euler.z);
-                    
-                    mat4 rotX = mat4(1.0, 0.0, 0.0, 0.0,
-                                     0.0, cX, sX, 0.0,
-                                     0.0, -sX, cX, 0.0,
-                                     0.0, 0.0, 0.0, 1.0);
-                                     
-                    mat4 rotY = mat4(cY, 0.0, -sY, 0.0,
-                                     0.0, 1.0, 0.0, 0.0,
-                                     sY, 0.0, cY, 0.0,
-                                     0.0, 0.0, 0.0, 1.0);
-                                     
-                    mat4 rotZ = mat4(cZ, sZ, 0.0, 0.0,
-                                     -sZ, cZ, 0.0, 0.0,
-                                     0.0, 0.0, 1.0, 0.0,
-                                     0.0, 0.0, 0.0, 1.0);
-                                     
-                    return rotZ * rotY * rotX;
-                }
-                
+                ${fogShaderMain}
                 ${shader.vertexShader}
             `;
 
             shader.vertexShader = shader.vertexShader.replace(
                 `#include <beginnormal_vertex>`,
-                `
-                #include <beginnormal_vertex>
-                
-                // Use the cell's world position from modelMatrix to offset animation per-cell
-                float cellOffset = modelMatrix[3].x * 0.8 + modelMatrix[3].z * 1.2;
-                float fogCloudTime = uFogTime * 2.0;
-                
-                // Multiply by 2.0 to increase the maximum rotation angle to +/- 2 radians
-                vec3 fogRot = vec3(
-                    sin(fogCloudTime * 0.8 + aPhase + cellOffset) * 2.0,
-                    cos(fogCloudTime * 0.7 + aPhase + cellOffset) * 2.0,
-                    sin(fogCloudTime * 0.9 + aPhase + cellOffset) * 2.0
-                );
-                mat4 customRot = rotationXYZ(fogRot);
-                
-                objectNormal = (customRot * vec4(objectNormal, 0.0)).xyz;
-                `
+                fogShaderNormal
             );
 
             shader.vertexShader = shader.vertexShader.replace(
                 `#include <begin_vertex>`,
-                `
-                #include <begin_vertex>
-                
-                transformed *= aScale;
-                transformed = (customRot * vec4(transformed, 1.0)).xyz;
-                
-                vec3 fogPos = aBasePos;
-                // Reuse the same cellOffset for vertical bobbing
-                float cellOffsetBob = modelMatrix[3].x * 0.8 + modelMatrix[3].z * 1.2;
-                // Halved amplitude from 0.4 to 0.2 to keep it wavy but not too tall
-                fogPos.y += sin(fogCloudTime * aSpeed + aPhase + cellOffsetBob) * 0.2;
-                transformed += fogPos;
-                `
+                fogShaderPosition
             );
         };
 
@@ -436,6 +348,12 @@ export class BoardBuilder {
             (pGrid.material as any).needsUpdate = true;
             (eGrid.material as any).color.copy(bLinesColor);
             (eGrid.material as any).needsUpdate = true;
+            
+            rivetMat.color.copy(tm.getRivetColor());
+            screwMat.color.copy(tm.getScrewColor());
+            
+            // Update frame material map if theme changed significantly (optional, or just update emissive)
+            frameMat.map = tm.getIndustrialTexture();
         };
 
         eventBus.on(GameEventType.THEME_CHANGED, updateBoardTheme);

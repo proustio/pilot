@@ -25,7 +25,10 @@ export const Config = {
             enemyShip: '#8D2B00',
             waterPrimary: '#00563F',
             waterSecondary: '#3D5E42',
-            boardLines: '#2C3F50'
+            boardLines: '#2C3F50',
+            industrialBase: '#050515',
+            rivet: '#444455',
+            screw: '#444444'
         },
         showGeekStats: true,
         fpsCap: 30,

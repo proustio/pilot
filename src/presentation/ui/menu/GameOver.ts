@@ -1,5 +1,7 @@
 import { BaseUIComponent } from '../components/BaseUIComponent';
 import { eventBus, GameEventType } from '../../../application/events/GameEventBus';
+import { TemplateEngine } from '../templates/TemplateEngine';
+import gameOverTemplate from '../templates/GameOver.html?raw';
 
 export class GameOver extends BaseUIComponent {
     constructor() {
@@ -8,23 +10,22 @@ export class GameOver extends BaseUIComponent {
     }
 
     protected render(): void {
-        this.container.innerHTML = `
-            <h1 id="game-over-title" class="voxel-title" style="font-size: 3rem; margin-bottom: 10px;">Game Over</h1>
-            <p id="game-over-message" style="margin-bottom: 30px; font-size: 1.5rem;"></p>
-            <button id="btn-gameover-restart" class="voxel-btn primary">Play Again</button>
-            <button id="btn-gameover-exit" class="voxel-btn secondary">Main Menu</button>
-        `;
+        this.container.innerHTML = TemplateEngine.render(gameOverTemplate, {});
 
         const restartBtn = this.container.querySelector('#btn-gameover-restart') as HTMLButtonElement;
-        restartBtn.addEventListener('click', () => {
-            window.location.reload();
-        });
+        if (restartBtn) {
+            restartBtn.addEventListener('click', () => {
+                window.location.reload();
+            });
+        }
 
         const exitBtn = this.container.querySelector('#btn-gameover-exit') as HTMLButtonElement;
-        exitBtn.addEventListener('click', () => {
-            eventBus.emit(GameEventType.EXIT_GAME, undefined as any);
-            window.location.reload();
-        });
+        if (exitBtn) {
+            exitBtn.addEventListener('click', () => {
+                eventBus.emit(GameEventType.EXIT_GAME, undefined as any);
+                window.location.reload();
+            });
+        }
     }
 
     public updateMessage(status: string) {

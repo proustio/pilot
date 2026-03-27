@@ -1,0 +1,12 @@
+${rows.map(row => `
+    <div style="display: flex; justify-content: center; gap: 5px; margin-bottom: 5px;">
+        ${row.map(key => {
+            const isBound = allBinds.includes(key);
+            return `
+            <div class="key-cap" 
+                 style="width: 30px; height: 30px; border: 1px solid var(--panel-border); display: flex; align-items: center; justify-content: center; font-size: 0.8em; background: ${isBound ? 'var(--accent-color)' : 'transparent'}; opacity: ${isBound ? '1' : '0.5'};">
+                ${key}
+            </div>`;
+        }).join('')}
+    </div>
+`).join('')}

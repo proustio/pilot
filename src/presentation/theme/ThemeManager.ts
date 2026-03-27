@@ -8,6 +8,9 @@ export interface ThemeColors {
     waterPrimary: string;
     waterSecondary: string;
     boardLines: string;
+    industrialBase: string;
+    rivet: string;
+    screw: string;
 }
 
 export const DefaultThemeColors: ThemeColors = {
@@ -15,7 +18,10 @@ export const DefaultThemeColors: ThemeColors = {
     enemyShip: '#8D2B00',  // Oxide Rust
     waterPrimary: '#00563F', // Evening Sea
     waterSecondary: '#3D5E42', // Tom Thumb
-    boardLines: '#2C3F50' // Deep Charcoal
+    boardLines: '#2C3F50', // Deep Charcoal
+    industrialBase: '#050515',
+    rivet: '#444455',
+    screw: '#444444'
 };
 
 export const GrayscaleThemeColors: ThemeColors = {
@@ -23,7 +29,10 @@ export const GrayscaleThemeColors: ThemeColors = {
     enemyShip: '#404040',  
     waterPrimary: '#808080', 
     waterSecondary: '#606060', 
-    boardLines: '#202020' 
+    boardLines: '#202020',
+    industrialBase: '#303030',
+    rivet: '#606060',
+    screw: '#505050'
 };
 
 export class ThemeManager {
@@ -86,6 +95,18 @@ export class ThemeManager {
         return this.getColor(Config.visual.isDayMode ? '#ECF0F1' : '#050608');
     }
 
+    public getIndustrialBaseColor(): THREE.Color {
+        return this.getColor(Config.visual.isDayMode ? '#C0C0C0' : this.getActiveColors().industrialBase);
+    }
+
+    public getRivetColor(): THREE.Color {
+        return this.getColor(this.getActiveColors().rivet);
+    }
+
+    public getScrewColor(): THREE.Color {
+        return this.getColor(this.getActiveColors().screw);
+    }
+
     public getFogColor(): THREE.Color {
         // Match background for seamless fog
         return this.getBackgroundColor();
@@ -136,5 +157,45 @@ export class ThemeManager {
             root.style.setProperty('--btn-border', colors.playerShip);
             root.style.setProperty('--btn-text', colors.playerShip);
         }
+    }
+
+    public getIndustrialTexture(): THREE.Texture {
+        const size = 256;
+        const canvas = document.createElement('canvas');
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext('2d')! ;
+
+        const baseColor = this.getIndustrialBaseColor().getStyle();
+        const gridColor = this.getBoardLinesColor().getStyle();
+
+        ctx.fillStyle = baseColor;
+        ctx.fillRect(0, 0, size, size);
+
+        ctx.strokeStyle = gridColor;
+        ctx.globalAlpha = 0.15;
+        ctx.lineWidth = 1;
+        for (let i = 0; i < size; i += 16) {
+            ctx.beginPath();
+            ctx.moveTo(i, 0); ctx.lineTo(i, size);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(0, i); ctx.lineTo(size, i);
+            ctx.stroke();
+        }
+        ctx.globalAlpha = 1.0;
+
+        for (let i = 0; i < 500; i++) {
+            const x = Math.random() * size;
+            const y = Math.random() * size;
+            const s = Math.random() * 1.5;
+            ctx.fillStyle = Math.random() > 0.5 ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.2)';
+            ctx.fillRect(x, y, s, s);
+        }
+
+        const tex = new THREE.CanvasTexture(canvas);
+        tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+        tex.repeat.set(4, 1);
+        return tex;
     }
 }

@@ -1,6 +1,8 @@
 import { Config } from '../../../infrastructure/config/Config';
 import { eventBus, GameEventType } from '../../../application/events/GameEventBus';
 import { GameState } from '../../../application/game-loop/GameLoop';
+import { TemplateEngine } from '../templates/TemplateEngine';
+import generalSettingsTemplate from '../templates/GeneralSettings.html?raw';
 
 export class GeneralSettings {
     private container: HTMLElement;
@@ -24,60 +26,11 @@ export class GeneralSettings {
         const isGameStarted = this.gameLoop.currentState !== GameState.MAIN_MENU &&
                              this.gameLoop.currentState !== GameState.SETUP_BOARD;
 
-        return `
-            <div class="settings-row" id="difficulty-row" style="${isGameStarted ? 'opacity: 0.5;' : ''}">
-                <label>Enemy AI Difficulty:</label>
-                <div id="ai-difficulty-dropdown" class="custom-dropdown ${isGameStarted ? 'disabled' : ''}" style="${isGameStarted ? 'pointer-events: none;' : ''}">
-                    <div class="custom-dropdown-selected" id="ai-difficulty-selected">
-                        <span id="ai-difficulty-selected-text">${this.gameLoop.aiEngine.difficulty === 'easy' ? '✔ Easy (Random)' : '✔ Normal (Hunt/Target)'}</span>
-                        <span class="custom-dropdown-arrow">▾</span>
-                    </div>
-                    <div class="custom-dropdown-options" id="ai-difficulty-options">
-                        <div class="custom-dropdown-option ${this.gameLoop.aiEngine.difficulty === 'easy' ? 'active' : ''}" data-value="easy">
-                            <span class="option-check">${this.gameLoop.aiEngine.difficulty === 'easy' ? '✔' : '&nbsp;'}</span>
-                            <span class="option-text">Easy (Random)</span>
-                        </div>
-                        <div class="custom-dropdown-option ${this.gameLoop.aiEngine.difficulty === 'normal' ? 'active' : ''}" data-value="normal">
-                            <span class="option-check">${this.gameLoop.aiEngine.difficulty === 'normal' ? '✔' : '&nbsp;'}</span>
-                            <span class="option-text">Normal (Hunt/Target)</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="settings-row">
-                <label>Auto-Battler:</label>
-                <input type="checkbox" id="toggle-auto-battler" ${Config.autoBattler ? 'checked' : ''} style="transform: scale(2);">
-            </div>
-
-            <div class="settings-row">
-                <label>Game Speed:</label>
-                <div id="game-speed-dropdown" class="custom-dropdown">
-                    <div class="custom-dropdown-selected" id="game-speed-selected">
-                        <span id="game-speed-selected-text">✔ ${Config.timing.gameSpeedMultiplier === 0.5 ? '0.5x (Slow)' : Config.timing.gameSpeedMultiplier === 1.0 ? '1.0x (Normal)' : Config.timing.gameSpeedMultiplier === 2.0 ? '2.0x (Fast)' : '4.0x (Very Fast)'}</span>
-                        <span class="custom-dropdown-arrow">▾</span>
-                    </div>
-                    <div class="custom-dropdown-options" id="game-speed-options">
-                        <div class="custom-dropdown-option ${Config.timing.gameSpeedMultiplier === 0.5 ? 'active' : ''}" data-value="0.5">
-                            <span class="option-check">${Config.timing.gameSpeedMultiplier === 0.5 ? '✔' : '&nbsp;'}</span>
-                            <span class="option-text">0.5x (Slow)</span>
-                        </div>
-                        <div class="custom-dropdown-option ${Config.timing.gameSpeedMultiplier === 1.0 ? 'active' : ''}" data-value="1.0">
-                            <span class="option-check">${Config.timing.gameSpeedMultiplier === 1.0 ? '✔' : '&nbsp;'}</span>
-                            <span class="option-text">1.0x (Normal)</span>
-                        </div>
-                        <div class="custom-dropdown-option ${Config.timing.gameSpeedMultiplier === 2.0 ? 'active' : ''}" data-value="2.0">
-                            <span class="option-check">${Config.timing.gameSpeedMultiplier === 2.0 ? '✔' : '&nbsp;'}</span>
-                            <span class="option-text">2.0x (Fast)</span>
-                        </div>
-                        <div class="custom-dropdown-option ${Config.timing.gameSpeedMultiplier === 4.0 ? 'active' : ''}" data-value="4.0">
-                            <span class="option-check">${Config.timing.gameSpeedMultiplier === 4.0 ? '✔' : '&nbsp;'}</span>
-                            <span class="option-text">4.0x (Very Fast)</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
+        return TemplateEngine.render(generalSettingsTemplate, {
+            isGameStarted,
+            gameLoop: this.gameLoop,
+            Config: Config
+        });
     }
 
     public attachListeners(): void {

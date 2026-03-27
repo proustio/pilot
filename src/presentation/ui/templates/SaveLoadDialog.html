@@ -1,0 +1,14 @@
+<h2 class="voxel-title" style="font-size: 2rem;">${title}</h2>
+<div class="save-slots-container">
+    ${slotsHtml}
+</div>
+<button id="btn-close-save-load" class="voxel-btn" style="margin-top: 15px;">Cancel</button>
+<div id="confirm-overlay" class="confirm-overlay" style="display:none;">
+    <div class="confirm-dialog voxel-panel">
+        <p id="confirm-message">Overwrite this save?</p>
+        <div style="display:flex; gap:10px; justify-content:center;">
+            <button id="confirm-yes" class="voxel-btn primary" style="width:auto; padding:10px 24px;">Yes</button>
+            <button id="confirm-no" class="voxel-btn" style="width:auto; padding:10px 24px;">No</button>
+        </div>
+    </div>
+</div>

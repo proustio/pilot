@@ -1,0 +1,16 @@
+${actions.map(action => {
+    const binds = Config.keybindings[action];
+    return `
+        <div class="settings-row" style="margin-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px;">
+            <label style="font-size: 0.9em; flex-grow: 1;">${action}:</label>
+            <div style="display: flex; gap: 5px; flex-wrap: wrap;">
+                ${binds.map((key, idx) => `
+                    <span class="key-bind-tag" style="background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 4px; font-size: 0.8em; cursor: pointer;">
+                        ${key} <span class="remove-bind" data-action="${action}" data-index="${idx}">×</span>
+                    </span>
+                `).join('')}
+                ${binds.length < 3 ? `<button class="voxel-btn mini add-bind" data-action="${action}" style="padding: 2px 6px; font-size: 0.8em;">+</button>` : ''}
+            </div>
+        </div>
+    `;
+}).join('')}

@@ -1,5 +1,7 @@
 import { Config } from '../../../infrastructure/config/Config';
 import { AudioEngine } from '../../../infrastructure/audio/AudioEngine';
+import { TemplateEngine } from '../templates/TemplateEngine';
+import audioSettingsTemplate from '../templates/AudioSettings.html?raw';
 
 export class AudioSettings {
     private container: HTMLElement;
@@ -9,13 +11,10 @@ export class AudioSettings {
     }
 
     public render(): string {
-        return `
-            <div class="settings-row">
-                <label>Master Volume:</label>
-                <input type="range" id="sound-volume" min="0" max="1" step="0.05" value="${Config.audio.masterVolume}" class="voxel-slider" style="flex-grow: 1; margin-left: 20px;">
-                <span id="volume-value" style="width: 40px; text-align: right;">${Math.round(Config.audio.masterVolume * 100)}%</span>
-            </div>
-        `;
+        return TemplateEngine.render(audioSettingsTemplate, {
+            Config: Config,
+            Math: Math
+        });
     }
 
     public attachListeners(): void {

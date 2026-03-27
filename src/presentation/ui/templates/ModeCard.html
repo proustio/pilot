@@ -1,0 +1,21 @@
+                <div class="mtg-card ${meta.class}">
+                    <div class="mtg-card-header">
+                        <span class="mtg-card-name">${meta.name}</span>
+                        <span class="mtg-card-mana">${meta.mana}</span>
+                    </div>
+                    <div class="mtg-card-image-container">
+                        <img src="${meta.image}" alt="${meta.name}" class="mtg-card-image">
+                    </div>
+                    <div class="mtg-card-type">
+                        Game Mode &mdash; ${meta.type}
+                    </div>
+                    <div class="mtg-card-text-box">
+                        <ul class="mtg-card-features">
+                            ${meta.features.map((f) => `<li>${f}</li>`).join('')}
+                        </ul>
+                        <p class="mtg-card-flavor">${meta.flavor}</p>
+                    </div>
+                    <div class="mtg-card-footer">
+                        <span class="mtg-card-power-toughness">${meta.stats}</span>
+                    </div>
+                </div>

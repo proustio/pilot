@@ -7,6 +7,8 @@ import { bindHUDControls } from './HUDControls';
 import { updateGameStats } from './HUDStats';
 import { Ship } from '../../../domain/fleet/Ship';
 import { eventBus, GameEventType } from '../../../application/events/GameEventBus';
+import { TemplateEngine } from '../templates/TemplateEngine';
+import hudTemplate from '../templates/HUD.html?raw';
 
 /**
  * Main HUD component that orchestrates the top-bar (stats, turn, fleet)
@@ -52,89 +54,7 @@ export class HUD extends BaseUIComponent {
     }
 
     protected render(): void {
-        this.container.innerHTML = `
-            <div class="hud-top-bar">
-                <div class="hud-top-left">
-                    <div id="unified-board-anchor" class="retro-panel">
-                        <div class="sw-screw tl"></div><div class="sw-screw tr"></div>
-                        <div class="sw-screw bl"></div><div class="sw-screw br"></div>
-                    </div>
-                    <div id="game-stats" class="hud-game-stats retro-panel ${Config.rogueMode ? 'hidden' : ''}">
-                        <div class="sw-screw tl"></div><div class="sw-screw tr"></div>
-                        <div class="sw-screw bl"></div><div class="sw-screw br"></div>
-                        <div class="stat-item">SHOTS: <span id="stat-shots">0</span></div>
-                        <div class="stat-item">RATIO: <span id="stat-ratio">0%</span></div>
-                        <div class="stat-item win-prob-item">PROB: <span id="stat-prob">50%</span></div>
-                    </div>
-
-                    <div id="rogue-action-bar" class="rogue-action-bar ${Config.rogueMode ? '' : 'hidden'}">
-                        <button id="btn-rogue-move" class="action-btn move-btn">MOVE</button>
-                        <button id="btn-rogue-attack" class="action-btn attack-btn">ATTACK</button>
-                        <button id="btn-rogue-skip" class="action-btn skip-btn">SKIP</button>
-                    </div>
-
-                    <div class="hud-arsenal-panel retro-panel ${Config.rogueMode ? 'collapsed' : 'hidden'}" id="arsenal-panel">
-                        <div class="sw-screw tl"></div><div class="sw-screw tr"></div>
-                        <div class="sw-screw bl"></div><div class="sw-screw br"></div>
-                        <div class="arsenal-title">MOVE SYSTEMS</div>
-                        <div class="arsenal-items">
-                            <button class="arsenal-btn" data-weapon="sonar" title="Sonar Ping (2 Remaining)">📡</button>
-                            <button class="arsenal-btn" data-weapon="mine" title="Place Mine (5 Remaining)">💣</button>
-                        </div>
-                    </div>
-                </div>
-                
-                <div id="turn-indicator" class="hud-turn-indicator">
-                    <div class="sw-screw tl" style="transform: scale(0.7); top: 4px; left: 4px;"></div>
-                    <div class="sw-screw tr" style="transform: scale(0.7); top: 4px; right: 4px;"></div>
-                    <div class="sw-screw bl" style="transform: scale(0.7); bottom: 4px; left: 4px;"></div>
-                    <div class="sw-screw br" style="transform: scale(0.7); bottom: 4px; right: 4px;"></div>
-                    WAITING...
-                </div>
-            </div>
-            
-            <div class="hud-bottom-bar">
-                <div class="hud-controls-panel ui-interactive" style="grid-template-columns: repeat(9, 1fr);">
-                    <div class="sw-screw tl"></div><div class="sw-screw tr"></div>
-                    <div class="sw-screw bl"></div><div class="sw-screw br"></div>
-                    <div class="sw-mount"><div class="sw-label">STATS</div><div id="led-geek-stats" class="sw-led ${Config.visual.showGeekStats ? 'on-gold' : ''}"></div><div id="hud-btn-geek-stats" class="sw-toggle ${Config.visual.showGeekStats ? 'active' : ''}" title="Toggle Geek Stats"></div></div>
-                    <div class="sw-mount"><div class="sw-label">AUTO</div><div id="led-auto-battler" class="sw-led ${Config.autoBattler ? 'on-red' : ''}"></div><div id="hud-btn-auto-battler" class="sw-rocker ${Config.autoBattler ? 'active' : ''}" title="Toggle Auto-Battler"></div></div>
-                    <div class="sw-mount ${Config.rogueMode ? 'hidden' : ''}"><div class="sw-label">PEEK</div><div id="led-peek" class="sw-led"></div><div id="hud-btn-peek" class="sw-toggle" title="Peek at other side"></div></div>
-                    <div class="sw-mount"><div class="sw-label">MODE</div><div id="led-day-night" class="sw-led ${Config.visual.isDayMode ? 'on-gold' : 'on-blue'}"></div><button id="hud-btn-day-night" class="sw-push" title="Toggle Day/Night" style="font-size: 1.2rem;">${Config.visual.isDayMode ? '🌘' : '🌖'}</button></div>
-                    <div class="sw-mount"><div class="sw-label">CAM</div><div id="led-cam-reset" class="sw-led"></div><button id="hud-btn-cam-reset" class="sw-push" title="Reset Camera" style="font-size: 0.8rem;">👁️</button></div>
-                    <div class="sw-mount"><div class="sw-label">FPS</div><div class="sw-led on-green"></div><button id="hud-btn-fps" class="sw-push" title="Cycle FPS Cap" style="font-size: 0.7rem;">${Config.visual.fpsCap || 60}<br></button></div>
-                    <div class="sw-mount"><div class="sw-label">SPEED</div><div class="sw-led on-green"></div><button id="hud-btn-speed" class="sw-push" title="Cycle Speed" style="font-size: 0.7rem;">${Config.timing.gameSpeedMultiplier}X</button></div>
-                    <div class="sw-mount" style="grid-column: span 2;"><div class="sw-label">SYSTEM PAUSE</div><div class="sw-led on-red"></div><button id="hud-btn-settings" class="sw-push red" title="Pause Menu" style="width: 100px; border-radius: 4px;">PAUSE</button></div>
-                </div>
-            </div>
-            
-            <div id="geek-stats" class="geek-stats-panel" style="display: ${Config.visual.showGeekStats ? 'block' : 'none'};">
-                <div class="sw-screw tl" style="transform: scale(0.6); top: 6px; left: 6px;"></div><div class="sw-screw tr" style="transform: scale(0.6); top: 6px; right: 6px;"></div>
-                <div class="sw-screw bl" style="transform: scale(0.6); bottom: 6px; left: 6px;"></div><div class="sw-screw br" style="transform: scale(0.6); bottom: 6px; right: 6px;"></div>
-                <div class="geek-stats-title">⚙ GEEK STATS</div>
-                <div class="retro-display">
-                    <div class="geek-stats-row"><span class="gs-label">FPS</span><span class="gs-value" id="gs-fps">--</span></div>
-                    <div class="geek-stats-row"><span class="gs-label">FRAME</span><span class="gs-value" id="gs-frame">-- ms</span></div>
-                    <div class="geek-stats-row"><span class="gs-label">RAM</span><span class="gs-value" id="gs-ram">-- MB</span></div>
-                    <div class="geek-stats-row"><span class="gs-label">CPU</span><span class="gs-value" id="gs-cpu">-- %</span></div>
-                    <div class="geek-stats-row" title="Three.js Render Info: Draw Calls / Triangles">
-                        <span class="gs-label">GPU</span>
-                        <span class="gs-value"><span id="gs-gpu-calls">--</span> 🎨🔔 / <span id="gs-gpu-tris">--</span> △s</span>
-                    </div>
-                    <div class="geek-stats-row">
-                        <span><span class="gs-label">NET ⬇️</span><span class="gs-value" id="gs-net-down">--</span></span>
-                        <span><span class="gs-label">⬆️</span><span class="gs-value" id="gs-net-up">--</span></span>
-                    </div>
-                    <div class="geek-stats-row" title="Distance from camera target"><span class="gs-label">DIST</span><span class="gs-value" id="gs-zoom">--</span></div>
-                    <div class="geek-stats-row" title="Camera World Position"><span class="gs-label">POS</span><span class="gs-value" id="gs-pos">--</span></div>
-                    <div class="geek-stats-row" title="Camera Target Position"><span class="gs-label">TGT</span><span class="gs-value" id="gs-tgt">--</span></div>
-                    <div class="geek-stats-row"><span class="gs-label">STATUS</span><span class="gs-value gs-online" id="gs-status">● LOCAL</span></div>
-                    <div class="geek-stats-row"><span class="gs-label">ENGINE</span><span class="gs-value" id="gs-engine">--</span></div>
-                    <div class="geek-stats-row"><span class="gs-label">TIME</span><span class="gs-value" id="gs-time">00:00</span></div>
-                </div>
-            </div>
-            <div id="mouse-coords" class="mouse-coords" style="display: none;">(0,0)</div>
-        `;
+        this.container.innerHTML = TemplateEngine.render(hudTemplate, { Config: Config });
 
         this.turnIndicator = this.container.querySelector('#turn-indicator') as HTMLElement;
 
