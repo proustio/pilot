@@ -1,5 +1,5 @@
 import { BaseUIComponent } from './BaseUIComponent';
-import { Storage, SaveMetadata } from '../../../infrastructure/storage/Storage';
+import { Storage } from '../../../infrastructure/storage/Storage';
 import { eventBus, GameEventType } from '../../../application/events/GameEventBus';
 import { Config } from '../../../infrastructure/config/Config';
 import { TemplateEngine } from '../templates/TemplateEngine';
@@ -24,12 +24,12 @@ export class SaveLoadDialog extends BaseUIComponent {
     }
 
     protected onShow(): void {
-        eventBus.emit(GameEventType.PAUSE_GAME, undefined as any);
+        eventBus.emit(GameEventType.PAUSE_GAME, undefined);
         eventBus.emit(GameEventType.SET_INTERACTION_ENABLED, { enabled: false });
     }
 
     protected onHide(): void {
-        eventBus.emit(GameEventType.SHOW_PAUSE_MENU, undefined as any);
+        eventBus.emit(GameEventType.SHOW_PAUSE_MENU, undefined);
     }
 
     protected render(): void {

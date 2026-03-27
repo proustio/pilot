@@ -18,7 +18,7 @@ export class TemplateEngine {
             // Use new Function to create a scoped execution environment for the template literal.
             // This allows us to use standard JS expressions inside the ${} in the template.
             const renderer = new Function(...keys, `return \`${template}\`;`);
-            return renderer(...values);
+            return renderer.apply(context, values);
         } catch (error) {
             console.error('TemplateEngine: Error rendering template', error);
             console.error('Context keys:', keys);
