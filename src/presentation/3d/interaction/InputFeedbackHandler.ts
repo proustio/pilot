@@ -1,12 +1,17 @@
 import * as THREE from 'three';
 import { Config } from '../../../infrastructure/config/Config';
 import { Orientation } from '../../../domain/fleet/Ship';
+import { ThemeManager } from '../../theme/ThemeManager';
+import { eventBus, GameEventType } from '../../../application/events/GameEventBus';
 
 export class InputFeedbackHandler {
     public hoverCursor: THREE.Group;
     public ghostGroup: THREE.Group;
     public moveHighlightGroup: THREE.Group;
     private currentGhostSize: number = 0;
+    private hoverCursorVoxels!: THREE.InstancedMesh;
+    private dummy: THREE.Object3D = new THREE.Object3D();
+    private readonly VOXEL_COUNT = 120;
 
     constructor(scene: THREE.Scene, entityManager: any) {
         // 1. Ghost Group for placement preview
@@ -22,49 +27,101 @@ export class InputFeedbackHandler {
         const highlightParent = entityManager.playerBoardGroup;
         highlightParent.add(this.moveHighlightGroup);
 
-        // 3. Hover Cursor with custom shader
+        // 3. Hover Cursor (Voxel Tornado)
         this.hoverCursor = this.createHoverCursor();
         this.hoverCursor.visible = false;
         scene.add(this.hoverCursor);
+
+        // Handle Dynamic Themes
+        eventBus.on(GameEventType.THEME_CHANGED, () => this.updateVoxelTheme());
+    }
+
+    private updateVoxelTheme() {
+        if (!this.hoverCursorVoxels) return;
+        const color = ThemeManager.getInstance().getPlayerShipColor();
+        const mat = this.hoverCursorVoxels.material as THREE.MeshStandardMaterial;
+        mat.color.copy(color);
+        mat.emissive.copy(color).multiplyScalar(0.5);
+        
+        for (let i = 0; i < this.VOXEL_COUNT; i++) {
+            this.hoverCursorVoxels.setColorAt(i, color);
+        }
+        if (this.hoverCursorVoxels.instanceColor) {
+            this.hoverCursorVoxels.instanceColor.needsUpdate = true;
+        }
     }
 
     private createHoverCursor(): THREE.Group {
-        const glowVertexShader = `
-          varying vec2 vUv;
-          void main() {
-            vUv = uv;
-            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-          }
-        `;
-        const glowFragmentShader = `
-          varying vec2 vUv;
-          void main() {
-            float hFade = 1.0 - pow(abs(vUv.x - 0.5) * 2.0, 2.0);
-            float vFade = pow(1.0 - vUv.y, 2.0);
-            float alpha = hFade * vFade * 0.6;
-            gl_FragColor = vec4(1.0, 0.95, 0.3, alpha);
-          }
-        `;
-        const glowMat = new THREE.ShaderMaterial({
-          vertexShader: glowVertexShader,
-          fragmentShader: glowFragmentShader,
-          transparent: true,
-          depthTest: false,
-          depthWrite: false,
-          side: THREE.DoubleSide,
-          blending: THREE.AdditiveBlending
+        const voxelSize = 0.1;
+        const geometry = new THREE.BoxGeometry(voxelSize, voxelSize, voxelSize);
+        const color = ThemeManager.getInstance().getPlayerShipColor();
+        
+        const material = new THREE.MeshStandardMaterial({
+            color: color,
+            emissive: color,
+            emissiveIntensity: 0.5,
+            transparent: true,
+            opacity: 0.8,
+            metalness: 0.8,
+            roughness: 0.2
         });
 
-        const glowGroup = new THREE.Group();
-        const planeGeo = new THREE.PlaneGeometry(1.0, 2.5);
-        const plane1 = new THREE.Mesh(planeGeo, glowMat);
-        const plane2 = new THREE.Mesh(planeGeo, glowMat.clone());
-        plane2.rotation.y = Math.PI / 2;
-        glowGroup.add(plane1);
-        glowGroup.add(plane2);
-        glowGroup.renderOrder = 999;
+        this.hoverCursorVoxels = new THREE.InstancedMesh(geometry, material, this.VOXEL_COUNT);
+        this.hoverCursorVoxels.renderOrder = 999;
+        this.hoverCursorVoxels.frustumCulled = false; // Always render while visible to avoid flicker
 
-        return glowGroup;
+        const group = new THREE.Group();
+        group.add(this.hoverCursorVoxels);
+        return group;
+    }
+
+    public update(time: number) {
+        if (!this.hoverCursorVoxels || !this.hoverCursor.visible) return;
+
+        const totalHeight = 2.5;
+        const speed = 0.005;
+        const tightness = Math.PI * 4; 
+        const baseRadius = 0.05;
+        const topRadius = 0.7;
+        
+        // Helical spiral count
+        const spiralCount = 6;
+        const voxelsPerSpiral = this.VOXEL_COUNT / spiralCount;
+
+        // Global pulsation
+        const pulse = Math.sin(time * 0.004) * 0.15;
+
+        for (let i = 0; i < this.VOXEL_COUNT; i++) {
+            const spiralIndex = i % spiralCount;
+            const stepInSpiral = Math.floor(i / spiralCount);
+            const t = stepInSpiral / voxelsPerSpiral;
+
+            const y = (t * totalHeight) - (totalHeight / 2);
+            
+            // 6-way helical offset
+            const angleOffset = (spiralIndex / spiralCount) * Math.PI * 2;
+            const angle = (time * speed) + (t * tightness) + angleOffset;
+            
+            // Funnel radius with pulsation
+            const r = (baseRadius + (t * (topRadius - baseRadius))) * (1.0 + pulse * t);
+            
+            const x = Math.cos(angle) * r;
+            const z = Math.sin(angle) * r;
+
+            this.dummy.position.set(x, y, z);
+            
+            // Individual voxel scale pulsation
+            const individualPulse = Math.sin(time * 0.01 + t * 10.0) * 0.1;
+            const scale = (0.7 + individualPulse) * (0.5 + t * 0.5);
+            this.dummy.scale.setScalar(scale);
+            
+            this.dummy.rotation.set(angle, t * Math.PI, 0);
+            
+            this.dummy.updateMatrix();
+            this.hoverCursorVoxels.setMatrixAt(i, this.dummy.matrix);
+        }
+
+        this.hoverCursorVoxels.instanceMatrix.needsUpdate = true;
     }
 
     public updateGhost(ship: any, orientation: Orientation, pickedTile: THREE.Object3D, isValid: boolean) {

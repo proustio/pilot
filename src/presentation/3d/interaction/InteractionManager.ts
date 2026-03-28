@@ -164,6 +164,7 @@ export class InteractionManager {
   }
 
   public update() {
+    this.feedbackHandler.update(performance.now());
     const pickedTile = this.raycastService.getPickedTile() as THREE.Object3D;
     
     // Core game state blocks (animations, menus, game over)
