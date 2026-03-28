@@ -24,30 +24,30 @@ export class Match {
      * Classic US: 1x5, 1x4, 2x3, 1x2 (Total 5 ships, 17 hits)
      * Russian: 1x4, 2x3, 3x2, 4x1 (Total 10 ships, 20 hits)
      */
-    public getRequiredFleet(): Ship[] {
+    public getRequiredFleet(idPrefix: string = ''): Ship[] {
         if (this.mode === MatchMode.Classic) {
             return [
-                new Ship('carrier', 5),
-                new Ship('battleship', 4),
-                new Ship('destroyer', 3),
-                new Ship('submarine', 3),
-                new Ship('patrol', 2)
+                new Ship(idPrefix + 'carrier', 5),
+                new Ship(idPrefix + 'battleship', 4),
+                new Ship(idPrefix + 'destroyer', 3),
+                new Ship(idPrefix + 'submarine', 3),
+                new Ship(idPrefix + 'patrol', 2)
             ];
         } else if (this.mode === MatchMode.Rogue) {
             // Smaller fleet for Rogue mode balance in 20x20 with 7x7 quadrants
             return [
-                new Ship('battleship-r', 4),
-                new Ship('destroyer-r', 3),
-                new Ship('submarine-r', 2),
-                new Ship('patrol-r', 2)
+                new Ship(idPrefix + 'battleship-r', 4),
+                new Ship(idPrefix + 'destroyer-r', 3),
+                new Ship(idPrefix + 'submarine-r', 2),
+                new Ship(idPrefix + 'patrol-r', 2)
             ];
         } else {
             // Russian ruleset
             return [
-                new Ship('battleship-1', 4),
-                new Ship('cruiser-1', 3), new Ship('cruiser-2', 3),
-                new Ship('destroyer-1', 2), new Ship('destroyer-2', 2), new Ship('destroyer-3', 2),
-                new Ship('submarine-1', 1), new Ship('submarine-2', 1), new Ship('submarine-3', 1), new Ship('submarine-4', 1)
+                new Ship(idPrefix + 'battleship-1', 4),
+                new Ship(idPrefix + 'cruiser-1', 3), new Ship(idPrefix + 'cruiser-2', 3),
+                new Ship(idPrefix + 'destroyer-1', 2), new Ship(idPrefix + 'destroyer-2', 2), new Ship(idPrefix + 'destroyer-3', 2),
+                new Ship(idPrefix + 'submarine-1', 1), new Ship(idPrefix + 'submarine-2', 1), new Ship(idPrefix + 'submarine-3', 1), new Ship(idPrefix + 'submarine-4', 1)
             ];
         }
     }
@@ -66,7 +66,7 @@ export class Match {
             return false;
         }
 
-        // Rogue mode: Enforce quadrant placement ONLY during initial setup (when !ship.isPlaced)
+        // Rogue mode: Enforce quadrant placement ONLY during initial setup (first placement)
         if (this.mode === MatchMode.Rogue && !shipToPlace.isPlaced) {
             for (let i = 0; i < shipToPlace.size; i++) {
                 let cx = headX;

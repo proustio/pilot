@@ -19,21 +19,7 @@ export class RogueActionHandler {
         const dist = Math.abs(dx) + Math.abs(dz);
         
         if (dist === 0) return;
-
-        let totalCost = 0;
-        const isHorizontal = ship.orientation === Orientation.Horizontal;
-        const moveDirX = targetX > ship.headX ? 1 : (targetX < ship.headX ? -1 : 0);
-        const moveDirZ = targetZ > ship.headZ ? 1 : (targetZ < ship.headZ ? -1 : 0);
-        
-        if (isHorizontal) {
-            if (moveDirZ !== 0) totalCost = dist; // Lateral
-            else if (moveDirX > 0) totalCost = dist * 0.5; // Forward
-            else totalCost = dist * 2.0; // Backward
-        } else {
-            if (moveDirX !== 0) totalCost = dist; // Lateral
-            else if (moveDirZ > 0) totalCost = dist * 0.5; // Forward
-            else totalCost = dist * 2.0; // Backward
-        }
+        const totalCost = ship.calculateMoveCost(targetX, targetZ);
 
         if (totalCost > 0 && totalCost <= ship.movesRemaining) {
             let newOrient = ship.orientation;

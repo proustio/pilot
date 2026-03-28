@@ -24,7 +24,9 @@ export interface TurnExecutorState {
     attackResultListeners: AttackResultListener[];
     onAnimationsComplete: (() => void) | null;
     activeRogueShipIndex: number;
+    activeEnemyRogueShipIndex: number;
     rogueShipOrder: Ship[];
+    enemyRogueShipOrder: Ship[];
     transitionTo: (state: GameState) => void;
     advanceRogueShipTurn: () => void;
     advanceEnemyRogueShipTurn: () => void;
@@ -79,9 +81,8 @@ export class TurnExecutor {
                     
                     if (this.s.match.mode === MatchMode.Rogue) {
                         // Rogue AI Logic: Multiple ships, Move OR Attack
-                        const activeIndex = (this.s as any).activeEnemyRogueShipIndex !== undefined ? (this.s as any).activeEnemyRogueShipIndex : 0;
-                        const enemyShips = targetBoard.ships.filter(s => s.isEnemy && !s.isSunk()).sort((a,b) => a.size - b.size);
-                        const ship = enemyShips[activeIndex];
+                        const activeIndex = this.s.activeEnemyRogueShipIndex;
+                        const ship = this.s.enemyRogueShipOrder[activeIndex];
 
                         if (!ship) {
                             this.s.advanceEnemyRogueShipTurn();
@@ -90,27 +91,41 @@ export class TurnExecutor {
 
                         const action = this.s.aiEngine.decideAction(ship, targetBoard, this.s.match);
                         
+                        const completeAction = () => {
+                            this.s.isAnimating = false;
+                            
+                            // Check game end before advancing
+                            const status = this.s.match!.checkGameEnd();
+                            if (status !== 'ongoing') {
+                                this.s.transitionTo(GameState.GAME_OVER);
+                            } else {
+                                this.s.advanceEnemyRogueShipTurn();
+                            }
+                        };
+
                         if (action === 'move') {
                             const move = this.s.aiEngine.computeMove(ship, targetBoard, this.s.match);
                             if (move) {
                                 const moved = targetBoard.moveShip(ship, move.x, move.z, move.orientation);
                                 if (moved.success) {
+                                    const cost = ship.calculateMoveCost(move.x, move.z);
+                                    ship.movesRemaining = Math.max(0, ship.movesRemaining - cost);
                                     ship.hasActedThisTurn = true;
-                                    ship.movesRemaining = 0;
-                                    // Visual event
                                     this.s.onShipMovedInvoke(ship, move.x, move.z, move.orientation);
                                     
-                                    this.s.onAnimationsComplete = () => {
-                                        this.s.isAnimating = false;
-                                        this.s.advanceEnemyRogueShipTurn();
-                                    };
+                                    this.s.onAnimationsComplete = completeAction;
+                                    // Safety fallback: if no animation triggered, complete manually
+                                    setTimeout(() => {
+                                        if (this.s.onAnimationsComplete === completeAction) {
+                                            this.s.onAnimationsComplete = null;
+                                            completeAction();
+                                        }
+                                    }, 500); 
                                     return;
                                 }
                             }
-                            // If move failed or not computed, fallback or skip
                         } else if (action === 'attack') {
                             const target = this.s.aiEngine.computeNextMove(targetBoard, this.s.match);
-                            // Check range (10 cells)
                             const dist = Math.max(Math.abs(target.x - ship.headX), Math.abs(target.z - ship.headZ));
                             if (dist <= 10) {
                                 const result = targetBoard.receiveAttack(target.x, target.z);
@@ -119,18 +134,21 @@ export class TurnExecutor {
                                 this.s.aiEngine.reportResult(target.x, target.z, result.toString(), targetBoard);
                                 this.s.attackResultListeners.forEach(l => l(target.x, target.z, result.toString(), false, false));
                                 
-                                this.s.onAnimationsComplete = () => {
-                                    this.s.isAnimating = false;
-                                    this.s.advanceEnemyRogueShipTurn();
-                                };
+                                this.s.onAnimationsComplete = completeAction;
+                                // Safety fallback: if no animation triggered (e.g. miss that doesn't trigger falling marker)
+                                setTimeout(() => {
+                                    if (this.s.onAnimationsComplete === completeAction) {
+                                        this.s.onAnimationsComplete = null;
+                                        completeAction();
+                                    }
+                                }, 1500); 
                                 return;
                             }
                         }
                         
-                        // Default: skip or advance
+                        // Default fallback
                         ship.hasActedThisTurn = true;
-                        this.s.isAnimating = false;
-                        this.s.advanceEnemyRogueShipTurn();
+                        completeAction();
                     } else {
                         // Classic AI Logic
                         const target = this.s.aiEngine.computeNextMove(targetBoard, this.s.match);

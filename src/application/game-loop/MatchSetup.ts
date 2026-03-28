@@ -47,18 +47,14 @@ export class MatchSetup {
         // Reset global resources
         Ship.resources = { airStrikes: 1, sonars: 2, mines: 5 };
 
-        this.state.playerShipsToPlace = match.getRequiredFleet().map(s => {
-            s.id = `player-${s.id}`;
-            s.isEnemy = false;
-            return s;
-        });
+        this.state.playerShipsToPlace = match.getRequiredFleet('player-');
+        this.state.playerShipsToPlace.forEach(s => s.isEnemy = false);
 
         if (this.state.config.autoBattler) {
             const isRogue = match.mode === MatchMode.Rogue;
             const playerTargetBoard = isRogue ? match.sharedBoard : match.playerBoard;
-            const playerShips = match.getRequiredFleet();
+            const playerShips = match.getRequiredFleet('player-');
             for (const ship of playerShips) {
-                ship.id = `player-${ship.id}`;
                 ship.isEnemy = false;
                 let placed = false;
                 let attempts = 0;
@@ -89,9 +85,8 @@ export class MatchSetup {
 
         // Always place enemy fleet
         const targetBoard = match.mode === MatchMode.Rogue ? match.sharedBoard : match.enemyBoard;
-        const enemyShips = match.getRequiredFleet();
+        const enemyShips = match.getRequiredFleet('enemy-');
         for (const ship of enemyShips) {
-            ship.id = `enemy-${ship.id}`;
             ship.isEnemy = true;
             let placed = false;
             let attempts = 0;

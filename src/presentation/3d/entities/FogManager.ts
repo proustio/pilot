@@ -88,6 +88,7 @@ export class FogManager {
 
     private temporarilyRevealedCells: Map<number, number> = new Map();
     private permanentlyRevealedCells: Set<number> = new Set();
+    private lastShipsOnBoard: Ship[] | null = null;
 
     public revealCellTemporarily(x: number, z: number, duration: number = 2) {
         const boardWidth = Config.board.width;
@@ -130,6 +131,9 @@ export class FogManager {
 
         const lerpFactor = 0.1; 
 
+        // Update ship vision for legal checks
+        this.lastShipsOnBoard = shipsOnBoard;
+        
         for (let z = 0; z < boardHeight; z++) {
             for (let x = 0; x < boardWidth; x++) {
                 const fogIdx = z * boardWidth + x;
@@ -236,12 +240,48 @@ export class FogManager {
         // In Rogue mode, if not yet initialized, nothing is revealed
         if (this.rogueMode && !this.isInitialized) return false;
 
-        const fogIdx = z * Config.board.width + x;
+        const boardWidth = Config.board.width;
+        const fogIdx = z * boardWidth + x;
+
+        // Permanent and temporary (ping) reveals are always true
+        if (this.permanentlyRevealedCells.has(fogIdx)) return true;
+        if (this.temporarilyRevealedCells.has(fogIdx)) return true;
+
+        if (this.rogueMode) {
+            // Check if within any player ship's vision radius
+            if (this.lastShipsOnBoard) {
+                for (const ship of this.lastShipsOnBoard) {
+                    if (ship.isEnemy || ship.isSunk()) continue;
+                    const coords = ship.getOccupiedCoordinates();
+                    for (const c of coords) {
+                        const dx = Math.abs(c.x - x);
+                        const dz = Math.abs(c.z - z);
+                        if (Math.max(dx, dz) <= ship.visionRadius) return true;
+                    }
+                }
+            }
+            
+            // Check if specific ship segment is hit or sunk at this location
+            if (this.lastShipsOnBoard) {
+                for (const ship of this.lastShipsOnBoard) {
+                    const coords = ship.getOccupiedCoordinates();
+                    for (let i = 0; i < coords.length; i++) {
+                        if (coords[i].x === x && coords[i].z === z) {
+                            if (ship.isSunk() || ship.segments[i] === false) return true;
+                        }
+                    }
+                }
+            }
+
+            // Setup phase reveal
+            if (this.isSetupPhase && x < 7 && z < 7) return true;
+        }
+
+        // Classic/Fallback: Check mesh opacity
         const fogMesh = this.fogMeshes[fogIdx];
-        if (!fogMesh) return true; // No mesh means fully revealed (for Classic) or target opacity was 0 (for Rogue)
-        
+        if (!fogMesh) return true;
         const mat = (fogMesh as THREE.Mesh).material as THREE.MeshStandardMaterial;
-        return mat.opacity < 0.2; // Treat as revealed if opacity is low
+        return mat.opacity < 0.2;
     }
 
     private createFogMesh(x: number, z: number): THREE.InstancedMesh | null {

@@ -99,6 +99,10 @@ export class EntityManager {
             this.clearTransientMarkers();
         });
 
+        eventBus.on(GameEventType.ROGUE_MOVE_SHIP, () => {
+            this.visibilityManager.forceUpdate();
+        });
+
         eventBus.on(GameEventType.MINE_PLACED, (payload) => {
             const ship = this.visibilityManager.allShips.find(s => s.specialType === 'mine' && s.headX === payload.x && s.headZ === payload.z);
             if (ship) this.addShip(ship, payload.x, payload.z, Orientation.Horizontal, payload.isPlayer);
@@ -176,6 +180,13 @@ export class EntityManager {
         }
 
         if (!isPlayer) shipGroup.visible = false;
+        
+        // Prevent ghosting: remove old group if it exists
+        const oldGroup = this.visibilityManager.getGroupForShip(ship);
+        if (oldGroup && oldGroup.parent) {
+            oldGroup.parent.remove(oldGroup);
+        }
+        
         this.visibilityManager.trackShip(ship, shipGroup);
 
         const boardOffset = Config.board.width / 2;
@@ -248,7 +259,7 @@ export class EntityManager {
         if (!targetGroup || !parentGroup) return;
 
         if (targetGroup.userData.shipOrientation !== orientation) {
-            const isPlayer = parentGroup === this.playerBoardGroup;
+            const isPlayer = !ship.isEnemy;
             parentGroup.remove(targetGroup);
             const newShipGroup = ShipFactory.createShip(ship, ship.headX, ship.headZ, orientation, isPlayer, parentGroup);
             newShipGroup.position.copy(targetGroup.position); 

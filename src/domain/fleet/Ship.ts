@@ -147,4 +147,31 @@ export class Ship {
             default: return ['cannon'];
         }
     }
+
+    /**
+     * Calculates the movement point cost to reach targetX, targetZ.
+     * Forward: 0.5, Lateral: 1, Backward: 2 per cell.
+     */
+    public calculateMoveCost(targetX: number, targetZ: number): number {
+        if (!this.isPlaced) return 0;
+        
+        const dx = targetX - this.headX;
+        const dz = targetZ - this.headZ;
+        const dist = Math.abs(dx) + Math.abs(dz);
+        if (dist === 0) return 0;
+
+        const isHorizontal = this.orientation === Orientation.Horizontal;
+        const moveDirX = dx > 0 ? 1 : (dx < 0 ? -1 : 0);
+        const moveDirZ = dz > 0 ? 1 : (dz < 0 ? -1 : 0);
+        
+        if (isHorizontal) {
+            if (moveDirZ !== 0) return dist; // Lateral
+            else if (moveDirX > 0) return dist * 0.5; // Forward
+            else return dist * 2.0; // Backward
+        } else {
+            if (moveDirX !== 0) return dist; // Lateral
+            else if (moveDirZ > 0) return dist * 0.5; // Forward (+z is down/forward in 2D grid)
+            else return dist * 2.0; // Backward
+        }
+    }
 }

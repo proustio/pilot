@@ -28,6 +28,10 @@ export class VesselVisibilityManager {
         }
     }
 
+    public forceUpdate() {
+        this.updateEnemyShipVisibility();
+    }
+
     private updateEnemyShipVisibility() {
         this.shipMap.forEach((shipGroup, ship) => {
             if (!ship.isEnemy) return;
@@ -111,5 +115,9 @@ export class VesselVisibilityManager {
     public reset() {
         this.allShips = [];
         this.shipMap.clear();
+    }
+
+    public getGroupForShip(ship: Ship): THREE.Group | undefined {
+        return this.shipMap.get(ship);
     }
 }

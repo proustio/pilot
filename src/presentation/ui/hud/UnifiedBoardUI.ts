@@ -44,6 +44,10 @@ export class UnifiedBoardUI extends BaseUIComponent {
         eventBus.on(GameEventType.ACTIVE_SHIP_CHANGED, () => {
             this.refresh();
         });
+
+        eventBus.on(GameEventType.ROGUE_MOVE_SHIP, () => {
+            this.refresh();
+        });
     }
 
     private handle3DHover(detail: any): void {

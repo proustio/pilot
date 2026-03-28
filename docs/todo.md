@@ -6,7 +6,6 @@ steering
 
 Here is some stuff we need to do around our codebase in no particular order or preference:
 
-1. translate most of the CSS into tailwind
 1. hovering over minimap should highlight respective cells on the main battle field as if those are being hovered over.
 1. ships should shoot twice as far as they can see
 1. ships should be moving twice the distance they move now

@@ -55,75 +55,60 @@ export class AIEngine {
         const isEasy = this.difficulty === 'easy';
         const detectedEnemy = this.findVisibleEnemyInRange(ship, board, ship.visionRadius + 5); 
         
-        let targetX = ship.headX;
-        let targetZ = ship.headZ;
-        let targetOrient = ship.orientation;
+        let bestTarget: { x: number, z: number, orientation: Orientation } | null = null;
+        let minDistanceToGoal = Infinity;
 
-        if (isEasy) {
-            if (detectedEnemy) {
-                // Move towards detected enemy
-                const dx = Math.sign(detectedEnemy.x - ship.headX);
-                const dz = Math.sign(detectedEnemy.z - ship.headZ);
-                targetX = ship.headX + dx;
-                targetZ = ship.headZ + dz;
-            } else {
-                // Search: Move towards player quadrant center [3, 3]
-                const dx = Math.sign(3 - ship.headX);
-                const dz = Math.sign(3 - ship.headZ);
-                
-                // Deterministic step for search in tests, but allow some variety
-                if (dx !== 0) targetX = ship.headX + dx;
-                else if (dz !== 0) targetZ = ship.headZ + dz;
-            }
-        } else {
-            // Normal AI: Evasive/Tactical
-            const isDamaged = ship.segments.some(s => !s);
-            if (isDamaged) {
-                // Move away from current hits/detected enemies
-                targetX = ship.headX + (Math.random() > 0.5 ? 5 : -5);
-                targetZ = ship.headZ + (Math.random() > 0.5 ? 5 : -5);
-            } else if (detectedEnemy) {
-                // Tactical: maintain distance 8-10
-                const dist = this.getDistance(ship.headX, ship.headZ, detectedEnemy.x, detectedEnemy.z);
-                if (dist < 8) {
-                    // Back away
-                    targetX = ship.headX - Math.sign(detectedEnemy.x - ship.headX);
-                    targetZ = ship.headZ - Math.sign(detectedEnemy.z - ship.headZ);
-                } else if (dist > 10) {
-                    // Close in
-                    targetX = ship.headX + Math.sign(detectedEnemy.x - ship.headX);
-                    targetZ = ship.headZ + Math.sign(detectedEnemy.z - ship.headZ);
-                } else {
-                    // Already at good range, maybe lateral?
-                    targetX = ship.headX + (Math.random() > 0.5 ? 1 : -1);
-                    targetZ = ship.headZ + (Math.random() > 0.5 ? 1 : -1);
+        // Determine goal: detected enemy or quadrant center [3,3]
+        const goalX = detectedEnemy ? detectedEnemy.x : 3;
+        const goalZ = detectedEnemy ? detectedEnemy.z : 3;
+
+        // Search for best valid move within reach
+        // We look at cells within a radius equal to current moves (approximate)
+        const radius = Math.ceil(ship.movesRemaining / 0.5); 
+        for (let dx = -radius; dx <= radius; dx++) {
+            for (let dz = -radius; dz <= radius; dz++) {
+                const tx = ship.headX + dx;
+                const tz = ship.headZ + dz;
+
+                if (board.isOutOfBounds(tx, tz)) continue;
+                if (tx === ship.headX && tz === ship.headZ) continue;
+
+                const cost = ship.calculateMoveCost(tx, tz);
+                if (cost > 0 && cost <= ship.movesRemaining) {
+                    const orients = [ship.orientation, ship.orientation === Orientation.Horizontal ? Orientation.Vertical : Orientation.Horizontal];
+                    for (const orient of orients) {
+                        if (match.validatePlacement(board, ship, tx, tz, orient, ship)) {
+                            const dist = this.getDistance(tx, tz, goalX, goalZ);
+                            let score: number;
+
+                            if (isEasy || !detectedEnemy) {
+                                // Simple approach for easy AI or when just searching
+                                score = dist + (isEasy ? Math.random() * 2 : 0);
+                            } else {
+                                // Tactical range: 8-10 cells
+                                if (dist < 8) {
+                                    // Too close, move away (punish small distances)
+                                    score = 20 - dist; 
+                                } else if (dist > 10) {
+                                    // Too far, close in
+                                    score = dist;
+                                } else {
+                                    // Ideal range, stay here
+                                    score = 0;
+                                }
+                            }
+
+                            if (score < minDistanceToGoal) {
+                                minDistanceToGoal = score;
+                                bestTarget = { x: tx, z: tz, orientation: orient };
+                            }
+                        }
+                    }
                 }
-            } else {
-                // Patrol player half
-                targetX = Math.floor(Math.random() * 10);
-                targetZ = Math.floor(Math.random() * 10);
             }
         }
 
-        // Keep within board bounds
-        targetX = Math.max(0, Math.min(board.width - 1, targetX));
-        targetZ = Math.max(0, Math.min(board.height - 1, targetZ));
-
-        // Validate if it can fit. 
-        if (match.validatePlacement(board, ship, targetX, targetZ, targetOrient, ship)) {
-            if (targetX === ship.headX && targetZ === ship.headZ) return null;
-            return { x: targetX, z: targetZ, orientation: targetOrient };
-        } else {
-             // Try variations if direct move blocked
-             const offsets = [[1,0], [-1,0], [0,1], [0,-1]];
-             for (const [ox, oz] of offsets) {
-                 const tx = Math.max(0, Math.min(board.width - 1, ship.headX + ox));
-                 const tz = Math.max(0, Math.min(board.height - 1, ship.headZ + oz));
-                 if (match.validatePlacement(board, ship, tx, tz, targetOrient, ship)) {
-                     return { x: tx, z: tz, orientation: targetOrient };
-                 }
-             }
-        }
+        return bestTarget;
 
         return null;
     }
@@ -205,8 +190,11 @@ export class AIEngine {
         let x = 0;
         let z = 0;
         let valid = false;
+        let attempts = 0;
+        const maxAttempts = board.width * board.height * 2;
         
-        while (!valid) {
+        while (!valid && attempts < maxAttempts) {
+            attempts++;
             x = Math.floor(Math.random() * board.width);
             z = Math.floor(Math.random() * board.height);
             
@@ -220,6 +208,21 @@ export class AIEngine {
                     continue; // skip own ship
                 }
                 valid = true;
+            }
+        }
+        
+        // If no valid move found after many attempts, pick first available empty/ship cell
+        if (!valid) {
+            for (let i = 0; i < board.gridState.length; i++) {
+                const state = board.gridState[i];
+                if (state === CellState.Empty || state === CellState.Ship) {
+                    const tx = i % board.width;
+                    const tz = Math.floor(i / board.width);
+                    const ship = board.ships.find(s => s.occupies(tx, tz));
+                    if (!(ship && ship.isEnemy)) {
+                        return { x: tx, z: tz };
+                    }
+                }
             }
         }
         
