@@ -1,29 +1,29 @@
-<div class="voxel-panel settings-panel">
-    <h2 class="voxel-title">Settings</h2>
+<div class="bg-[rgba(20,20,20,0.55)] backdrop-blur-[8px] border-4 border-[#333] rounded shadow-voxel-panel text-[#eee] p-8 pointer-events-auto relative text-shadow-voxel w-[500px] max-w-[90vw] mx-auto">
+    <h2 class="font-mono font-bold uppercase tracking-[2px] text-theme-text text-shadow-voxel-title text-center text-[2.5rem] mb-8">Settings</h2>
     
-    <div class="settings-content" style="max-height: 70vh; overflow-y: auto; padding-right: 10px;">
-        <h3 class="settings-section-title">General</h3>
+    <div class="max-h-[70vh] overflow-y-auto pr-2.5 scrollbar-thin scrollbar-thumb-theme-primary scrollbar-track-transparent">
+        <h3 class="font-mono text-[1.1rem] font-bold text-theme-secondary uppercase border-b border-white/10 mb-2.5 pb-[5px] tracking-wider">General</h3>
         <div id="settings-general">
             ${generalSettings.render()}
         </div>
 
-        <h3 class="settings-section-title">Video & Theme</h3>
+        <h3 class="font-mono text-[1.1rem] font-bold text-theme-secondary uppercase border-b border-white/10 mb-2.5 pb-[5px] mt-8 tracking-wider">Video & Theme</h3>
         <div id="settings-video">
             ${videoSettings.render()}
         </div>
 
-        <h3 class="settings-section-title">Audio</h3>
+        <h3 class="font-mono text-[1.1rem] font-bold text-theme-secondary uppercase border-b border-white/10 mb-2.5 pb-[5px] mt-8 tracking-wider">Audio</h3>
         <div id="settings-audio">
             ${audioSettings.render()}
         </div>
 
-        <h3 class="settings-section-title">Controls</h3>
+        <h3 class="font-mono text-[1.1rem] font-bold text-theme-secondary uppercase border-b border-white/10 mb-2.5 pb-[5px] mt-8 tracking-wider">Controls</h3>
         <div id="settings-controls">
             ${keybindingEditor.render()}
         </div>
     </div>
 
-    <div class="settings-footer" style="margin-top: 20px; display: flex; gap: 10px;">
-        <button id="btn-settings-close" class="voxel-btn primary" style="flex-grow: 1;">Close</button>
+    <div class="mt-8 flex gap-2.5">
+        <button id="btn-settings-close" class="bg-btn-primary-bg text-white border border-theme-secondary rounded shadow-voxel-btn-primary px-6 py-3 my-2.5 font-mono text-[1.5rem] font-bold uppercase cursor-pointer transition-all duration-100 flex-grow min-w-[50px] text-shadow-[0_0_5px_var(--color-secondary)] tracking-wider hover:bg-btn-primary-hover hover:shadow-[inset_0_0_15px_rgba(34,139,34,0.8),0_0_10px_rgba(34,139,34,0.5)] active:shadow-voxel-btn-active active:translate-y-[2px]">Close</button>
     </div>
 </div>

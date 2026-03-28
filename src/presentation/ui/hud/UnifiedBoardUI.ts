@@ -1,6 +1,7 @@
 import { BaseUIComponent } from '../components/BaseUIComponent';
 import { GameLoop } from '../../../application/game-loop/GameLoop';
 import { CellState } from '../../../domain/board/Board';
+import { Orientation } from '../../../domain/fleet/Ship';
 import { Config } from '../../../infrastructure/config/Config';
 import { eventBus, GameEventType } from '../../../application/events/GameEventBus';
 import { TemplateEngine } from '../templates/TemplateEngine';
@@ -11,6 +12,7 @@ export class UnifiedBoardUI extends BaseUIComponent {
     private entityManager: any;
     private playerGridContainer!: HTMLElement;
     private enemyGridContainer!: HTMLElement;
+    private lastHoveredKey: string | null = null;
 
     constructor(gameLoop: GameLoop, entityManager: any) {
         super('unified-board');
@@ -20,6 +22,16 @@ export class UnifiedBoardUI extends BaseUIComponent {
         this.gameLoop.onShipPlaced(() => this.refresh());
         this.gameLoop.onAttackResult((_x, _z, _result, _isPlayer, _isReplay) => this.refresh());
         this.gameLoop.onStateChange(() => this.refresh());
+
+        eventBus.on(GameEventType.SET_ROGUE_WEAPON, (payload) => {
+            (window as any).selectedRogueWeapon = payload.weapon;
+            this.refresh();
+        });
+
+        eventBus.on(GameEventType.SET_ROGUE_ACTION_SECTION, (payload) => {
+            (window as any).selectedRogueAction = payload.section;
+            this.refresh();
+        });
 
         eventBus.on(GameEventType.MOUSE_CELL_HOVER, (payload) => {
             this.handle3DHover(payload);
@@ -35,21 +47,49 @@ export class UnifiedBoardUI extends BaseUIComponent {
     }
 
     private handle3DHover(detail: any): void {
-        // Clear all highlights first
-        this.container.querySelectorAll('.mini-cell.highlight').forEach(el => el.classList.remove('highlight'));
+        const isRogue = Config.rogueMode;
         
-        if (!detail) return;
+        if (!detail) {
+            if (this.lastHoveredKey !== null) {
+                this.container.querySelectorAll('.mini-cell.highlight').forEach(el => el.classList.remove('highlight'));
+                this.lastHoveredKey = null;
+            }
+            return;
+        }
 
         const { x, z, isPlayerSide } = detail;
-        const targetContainer = isPlayerSide ? this.playerGridContainer : this.enemyGridContainer;
-        if (targetContainer) {
-            const cells = targetContainer.querySelectorAll('.mini-cell');
-            const boardWidth = this.gameLoop.match ? this.gameLoop.match.playerBoard.width : Config.board.width;
+        const currentKey = `${x},${z},${isPlayerSide}`;
+        
+        if (this.lastHoveredKey === currentKey) return;
+        this.lastHoveredKey = currentKey;
+
+        // Clear all highlights
+        this.container.querySelectorAll('.mini-cell.highlight').forEach(el => el.classList.remove('highlight'));
+        
+        const targetContainer = (isRogue || isPlayerSide) ? this.playerGridContainer : this.enemyGridContainer;
+        if (!targetContainer) return;
+
+        const cells = targetContainer.querySelectorAll('.mini-cell');
+        const boardWidth = this.gameLoop.match ? (isRogue ? this.gameLoop.match.sharedBoard.width : this.gameLoop.match.playerBoard.width) : Config.board.width;
+        
+        const weapon = (window as any).selectedRogueWeapon;
+        if (isRogue && (weapon === 'airstrike' || (weapon as any) === 'air-strike')) {
+            const isVertical = this.gameLoop.airStrikeOrientation === Orientation.Vertical;
+            const length = 10;
+            const start = isVertical ? Math.max(0, z - 4) : Math.max(0, x - 4);
+            const end = Math.min(boardWidth - 1, start + length - 1);
+
+            for (let i = start; i <= end; i++) {
+                const tx = isVertical ? x : i;
+                const tz = isVertical ? i : z;
+                const index = tz * boardWidth + tx;
+                const cell = cells[index] as HTMLElement;
+                if (cell) cell.classList.add('highlight');
+            }
+        } else {
             const index = z * boardWidth + x;
             const cell = cells[index] as HTMLElement;
-            if (cell) {
-                cell.classList.add('highlight');
-            }
+            if (cell) cell.classList.add('highlight');
         }
     }
 
@@ -73,6 +113,7 @@ export class UnifiedBoardUI extends BaseUIComponent {
 
             container.style.gridTemplateColumns = `repeat(${boardWidth}, 8px)`;
             container.style.gridTemplateRows = `repeat(${boardHeight}, 8px)`;
+            container.style.gap = '2px';
             
             for (let i = 0; i < cellCount; i++) {
                 const cell = document.createElement('div');

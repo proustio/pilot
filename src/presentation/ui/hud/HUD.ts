@@ -9,6 +9,7 @@ import { Ship } from '../../../domain/fleet/Ship';
 import { eventBus, GameEventType } from '../../../application/events/GameEventBus';
 import { TemplateEngine } from '../templates/TemplateEngine';
 import hudTemplate from '../templates/HUD.html?raw';
+import { EntityManager } from '../../3d/entities/EntityManager';
 
 /**
  * Main HUD component that orchestrates the top-bar (stats, turn, fleet)
@@ -25,7 +26,7 @@ export class HUD extends BaseUIComponent {
     private activeRogueShip: Ship | null = null;
     private entityManager: any;
 
-    constructor(gameLoop: GameLoop, entityManager: any) {
+    constructor(gameLoop: GameLoop, entityManager: EntityManager) {
         super('hud');
         this.gameLoop = gameLoop;
         this.entityManager = entityManager;
@@ -168,11 +169,12 @@ export class HUD extends BaseUIComponent {
         // Update Turn Indicator
         if (isPlayerTurn) {
             this.turnIndicator.innerHTML = `
-                <div style="font-size: 0.7rem; color: #888; margin-bottom: 2px;">ACTIVE SHIP</div>
-                <div style="font-size: 1.1rem; color: #fff; font-weight: bold;">${ship.id}</div>
-                <div style="font-size: 0.8rem; color: #0f0; margin-top: 4px;">MOVES: ${ship.movesRemaining}/${ship.maxMoves}</div>
+                <div class="text-[0.7rem] text-[#888] mb-[2px] uppercase tracking-wider">ACTIVE SHIP</div>
+                <div class="text-[1.1rem] text-white font-bold uppercase tracking-widest">${ship.id}</div>
+                <div class="text-[0.8rem] text-theme-primary mt-1 font-mono">MOVES: ${ship.movesRemaining}/${ship.maxMoves}</div>
             `;
-            this.turnIndicator.style.color = "#0f0";
+            this.turnIndicator.classList.add('text-theme-primary');
+            this.turnIndicator.classList.remove('text-theme-danger');
         }
 
         // Update Action Bar buttons
@@ -222,21 +224,29 @@ export class HUD extends BaseUIComponent {
                 this.updateRogueShipDisplay(this.activeRogueShip);
             } else {
                 indicator.innerText = "YOUR TURN";
-                indicator.style.color = "#0f0";
+                indicator.classList.add('text-theme-primary');
+                indicator.classList.remove('text-theme-danger');
             }
         } else if (state === GameState.ENEMY_TURN) {
             indicator.innerText = "ENEMY TURN";
-            indicator.style.color = "#0c0";
+            indicator.classList.add('text-theme-primary');
+            indicator.classList.remove('text-theme-danger');
         } else if (state === GameState.SETUP_BOARD) {
             indicator.innerHTML = `
-                <div style="font-size: 1.6rem;">PLACE YOUR SHIPS</div>
-                <div style="font-size: 0.9rem; margin-top: 8px; color: #0a0; opacity: 0.8;">PRESS 'R' TO ROTATE</div>
+                <div class="text-[1.6rem] uppercase tracking-tighter">PLACE YOUR SHIPS</div>
+                <div class="text-[0.9rem] mt-2 text-theme-primary/80 uppercase font-mono tracking-widest">PRESS 'R' TO ROTATE</div>
             `;
-            indicator.style.color = "#0f0";
+            indicator.classList.add('text-theme-primary');
         } else if (state === GameState.GAME_OVER) {
             const matchStatus = this.gameLoop.match?.checkGameEnd();
             indicator.innerText = matchStatus === 'player_wins' ? "VICTORY!" : "DEFEAT!";
-            indicator.style.color = matchStatus === 'player_wins' ? "#0f0" : "#080";
+            if (matchStatus === 'player_wins') {
+                indicator.classList.add('text-theme-primary');
+                indicator.classList.remove('text-theme-danger');
+            } else {
+                indicator.classList.add('text-theme-danger');
+                indicator.classList.remove('text-theme-primary');
+            }
         }
         this.updateCounters();
     }

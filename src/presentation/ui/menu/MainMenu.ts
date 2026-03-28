@@ -46,8 +46,7 @@ export class MainMenu extends BaseUIComponent {
     constructor(gameLoop: GameLoop) {
         super('main-menu');
         this.gameLoop = gameLoop;
-        this.container.classList.remove('voxel-panel');
-        this.container.style.width = 'auto';
+        this.container.classList.add('absolute', 'top-1/2', 'left-1/2', '-translate-x-1/2', '-translate-y-1/2', 'scale-120', 'flex', 'flex-col', 'items-center', 'justify-center', 'z-[200]', 'pointer-events-auto');
     }
 
     protected render(): void {

@@ -76,7 +76,7 @@ export class EntityManager {
         this.enemyGridTiles = buildResult.enemyGridTiles;
         
         this.waterManager = new WaterShaderManager(buildResult.playerWaterUniforms, buildResult.enemyWaterUniforms);
-        this.visibilityManager = new VesselVisibilityManager(this.fogManager, this.playerBoardGroup, this.enemyBoardGroup);
+        this.visibilityManager = new VesselVisibilityManager(this.fogManager);
 
         this.projectileManager = new ProjectileManager(
             this.particleSystem,
@@ -176,7 +176,7 @@ export class EntityManager {
         }
 
         if (!isPlayer) shipGroup.visible = false;
-        this.visibilityManager.trackShip(ship);
+        this.visibilityManager.trackShip(ship, shipGroup);
 
         const boardOffset = Config.board.width / 2;
         let cx = x, cz = z;
@@ -253,6 +253,7 @@ export class EntityManager {
             const newShipGroup = ShipFactory.createShip(ship, ship.headX, ship.headZ, orientation, isPlayer, parentGroup);
             newShipGroup.position.copy(targetGroup.position); 
             targetGroup = newShipGroup;
+            this.visibilityManager.trackShip(ship, targetGroup);
         }
 
         const boardOffset = Config.board.width / 2;

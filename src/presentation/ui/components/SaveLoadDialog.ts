@@ -13,8 +13,7 @@ export class SaveLoadDialog extends BaseUIComponent {
 
     constructor() {
         super('save-load-dialog');
-        this.container.classList.add('voxel-panel');
-        this.container.style.zIndex = '200';
+        this.container.classList.add('absolute', 'top-1/2', 'left-1/2', '-translate-x-1/2', '-translate-y-1/2', 'bg-[rgba(20,20,20,0.55)]', 'backdrop-blur-[8px]', 'border-4', 'border-[#333]', 'rounded', 'shadow-voxel-panel', 'text-[#eee]', 'p-8', 'pointer-events-auto', 'text-shadow-voxel', 'z-[200]', 'w-[900px]', 'max-w-[95vw]', 'max-h-[90vh]', 'overflow-hidden', 'flex', 'flex-row', 'gap-8');
     }
 
     public openAs(mode: SaveLoadMode): void {

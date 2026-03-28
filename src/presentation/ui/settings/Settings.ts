@@ -19,6 +19,7 @@ export class Settings extends BaseUIComponent {
 
     constructor(gameLoop: any) {
         super('settings-modal');
+        this.container.classList.add('fixed', 'inset-0', 'bg-black/85', 'backdrop-blur-sm', 'flex', 'flex-col', 'items-center', 'justify-center', 'z-[200]', 'pointer-events-auto');
         this.gameLoop = gameLoop;
 
         this.generalSettings = new GeneralSettings(

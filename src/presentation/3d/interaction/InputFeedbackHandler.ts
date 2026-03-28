@@ -107,7 +107,7 @@ export class InputFeedbackHandler {
         this.hoverCursor.scale.set(scaleX, 1, scaleZ);
     }
 
-    public updateHoverCursorFromUI(tile: THREE.Object3D) {
+    public updateHoverCursorFromUI(tile: THREE.Object3D, scaleX: number = 1, scaleZ: number = 1) {
         const localOffset = new THREE.Vector3(0, 1.25, 0);
         const worldPos = tile.localToWorld(localOffset);
         this.hoverCursor.position.copy(worldPos);
@@ -115,6 +115,7 @@ export class InputFeedbackHandler {
         const boardQuat = new THREE.Quaternion();
         tile.getWorldQuaternion(boardQuat);
         this.hoverCursor.quaternion.copy(boardQuat);
+        this.hoverCursor.scale.set(scaleX, 1, scaleZ);
         this.hoverCursor.visible = true;
     }
 

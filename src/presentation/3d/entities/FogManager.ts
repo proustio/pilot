@@ -218,7 +218,10 @@ export class FogManager {
 
                 if (fogMesh) {
                     const mat = fogMesh.material as THREE.MeshStandardMaterial;
-                    mat.opacity += (targetOpacity - mat.opacity) * lerpFactor;
+                    
+                    // Use a faster lerp for reveals (fade-out) and standard for fade-in
+                    const activeLerp = (targetOpacity < mat.opacity) ? 0.25 : lerpFactor;
+                    mat.opacity += (targetOpacity - mat.opacity) * activeLerp;
                     
                     if (mat.opacity < 0.01 && targetOpacity === 0.0) {
                         fogMesh.parent?.remove(fogMesh);

@@ -49,6 +49,14 @@ export class InteractionManager {
         }
     });
 
+    eventBus.on(GameEventType.SET_ROGUE_WEAPON, (payload) => {
+      (window as any).selectedRogueWeapon = payload.weapon;
+    });
+
+    eventBus.on(GameEventType.SET_ROGUE_ACTION_SECTION, (payload) => {
+      (window as any).selectedRogueAction = payload.section;
+    });
+
     eventBus.on(GameEventType.MOUSE_CELL_HOVER, (payload) => {
       if (!payload || payload.source === '3d') {
         if (payload === null) {
@@ -62,7 +70,9 @@ export class InteractionManager {
 
   private handleCellLeave() {
     this.feedbackHandler.hoverCursor.visible = false;
-    eventBus.emit(GameEventType.MOUSE_CELL_HOVER, null);
+    if (!this.uiHoveredCell) {
+        eventBus.emit(GameEventType.MOUSE_CELL_HOVER, null);
+    }
   }
 
   public setGameLoop(gameLoop: any) {
@@ -155,10 +165,17 @@ export class InteractionManager {
 
   public update() {
     const pickedTile = this.raycastService.getPickedTile() as THREE.Object3D;
-    const isInteractionBlocked = InteractivityGuard.isBlocked() || 
-                                 !this.interactionEnabled || 
-                                 (this.gameLoop && (this.gameLoop.isAnimating || this.gameLoop.currentState === GameState.GAME_OVER)) ||
-                                 InteractivityGuard.isPointerOverUI(this.lastMouseClientX, this.lastMouseClientY);
+    
+    // Core game state blocks (animations, menus, game over)
+    const isStateBlocked = InteractivityGuard.isBlocked() || 
+                           !this.interactionEnabled || 
+                           (this.gameLoop && (this.gameLoop.isAnimating || this.gameLoop.currentState === GameState.GAME_OVER));
+    
+    // Physical pointer blocks (e.g. mouse is over a UI panel)
+    const isPointerOverUI = InteractivityGuard.isPointerOverUI(this.lastMouseClientX, this.lastMouseClientY);
+    
+    // We block 3D-initiated hover/clicks if the pointer is over UI or if game state is blocked
+    const isInteractionBlocked = isStateBlocked || isPointerOverUI;
 
     if (pickedTile && !isInteractionBlocked) {
       if (this.gameLoop && this.gameLoop.currentState === GameState.SETUP_BOARD && this.gameLoop.playerShipsToPlace.length > 0) {
@@ -197,12 +214,7 @@ export class InteractionManager {
         }
 
         if (showHover) {
-          let scaleX = 1, scaleZ = 1;
-          const weapon = (window as any).selectedRogueWeapon;
-          if (Config.rogueMode && weapon === 'airstrike') {
-            const isVertical = this.gameLoop.airStrikeOrientation === Orientation.Vertical;
-            if (isVertical) scaleZ = 10; else scaleX = 10;
-          }
+          const { scaleX, scaleZ } = this.calculateHoverScale();
           this.feedbackHandler.updateHoverCursor(pickedTile, scaleX, scaleZ);
         } else {
           this.feedbackHandler.hoverCursor.visible = false;
@@ -229,7 +241,7 @@ export class InteractionManager {
       
       this.handleCellLeave();
       
-      if (this.uiHoveredCell && !isInteractionBlocked) {
+      if (this.uiHoveredCell && !isStateBlocked) {
         const { x, z, isPlayerSide } = this.uiHoveredCell;
         const tiles = isPlayerSide ? this.entityManager.playerGridTiles : this.entityManager.enemyGridTiles;
         const boardWidth = Config.board.width;
@@ -237,7 +249,8 @@ export class InteractionManager {
         const tile = tiles[tileIndex];
 
         if (tile) {
-          this.feedbackHandler.updateHoverCursorFromUI(tile);
+          const { scaleX, scaleZ } = this.calculateHoverScale();
+          this.feedbackHandler.updateHoverCursorFromUI(tile, scaleX, scaleZ);
         } else {
           this.feedbackHandler.hoverCursor.visible = false;
         }
@@ -248,6 +261,18 @@ export class InteractionManager {
 
     this.updateMoveHighlight();
     this.updateHoverState();
+  }
+
+  private calculateHoverScale(): { scaleX: number, scaleZ: number } {
+    let scaleX = 1, scaleZ = 1;
+    if (Config.rogueMode) {
+      const weapon = (window as any).selectedRogueWeapon;
+      if (weapon === 'airstrike' || (weapon as any) === 'air-strike') {
+        const isVertical = this.gameLoop.airStrikeOrientation === Orientation.Vertical;
+        if (isVertical) scaleZ = 10; else scaleX = 10;
+      }
+    }
+    return { scaleX, scaleZ };
   }
 
   private updateHoverState() {

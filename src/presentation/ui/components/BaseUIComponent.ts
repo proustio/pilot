@@ -5,8 +5,7 @@ export abstract class BaseUIComponent {
     constructor(id: string) {
         this.container = document.createElement('div');
         this.container.id = id;
-        this.container.classList.add('ui-component');
-        this.container.style.display = 'none';
+        this.container.classList.add('hidden');
     }
 
     /**
@@ -38,7 +37,10 @@ export abstract class BaseUIComponent {
      */
     public show(): void {
         if (!this.isVisible) {
-            this.container.style.display = 'flex'; // Or appropriate display type
+            this.container.classList.remove('hidden');
+            this.container.classList.add('flex');
+            this.container.classList.add('items-center');
+            this.container.classList.add('justify-center');
             this.isVisible = true;
             this.onShow();
         }
@@ -49,7 +51,8 @@ export abstract class BaseUIComponent {
      */
     public hide(): void {
         if (this.isVisible) {
-            this.container.style.display = 'none';
+            this.container.classList.add('hidden');
+            this.container.classList.remove('flex');
             this.isVisible = false;
             this.onHide();
         }
