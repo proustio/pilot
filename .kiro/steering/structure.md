@@ -76,8 +76,8 @@ src/
 │           └── KeybindingEditor.ts # [NEW] Visual keyboard and action binder
 │
 ├── main.ts                    # Application entry point: initializes Engine3D, GameLoop, UIManager
-├── style.css                  # Main CSS barrel (imports thematic styles)
-├── styles/                    # Modular CSS files
+├── style.css                  # Main CSS barrel (imports Tailwind directives and thematic styles)
+├── styles/                    # Modular CSS files (can use @apply or standard CSS)
 │   ├── theme.css              # Theme variables (Day/Night) and base HTML/Body styles
 │   ├── components.css         # Shared UI components (panels, buttons, selects)
 │   ├── native-shell.css       # [NEW] Native app UI hardening (scrolling, selection)
@@ -85,6 +85,8 @@ src/
 │   ├── hud.css                # HUD layout, indicators, and switchboard
 │   └── dialogs.css            # Dialogs, overlays, and coordination indicators
 │
+├── tailwind.config.js         # [NEW] Tailwind CSS configuration
+├── postcss.config.js          # [NEW] PostCSS configuration (includes tailwindcss/autoprefixer)
 ├── desktop/                    # [NEW] Electron desktop shell/wrapper
 └── mobile/                     # [NEW] Capacitor mobile shell/project
 ```

@@ -15,11 +15,12 @@ inclusion: always
 ## Dependencies
 - three.js 0.183.x — 3D rendering, shaders, instanced meshes, raycasting
 - @types/three — type definitions
+- Tailwind CSS 3.4.x — Utility-first styling framework
 - Web Audio API — Layered procedural sound synthesis via `AudioEngine` (no audio file assets)
 - MagicaVoxel — Primary tool for creating and exporting voxel 3D models.
 
 ## UI
-- Vanilla HTML/CSS/TypeScript — no UI framework
+- Vanilla HTML/TypeScript with Tailwind CSS 3.x for styling
 - CSS custom properties dynamically hydrated by `ThemeManager` for real-time Day/Night and custom Tactical Color Schemes
 - All UI components extend `BaseUIComponent` abstract class
 - UI is injected into `#ui-layer` div overlay above the Three.js canvas
@@ -39,7 +40,12 @@ npm run preview  # Preview production build locally
 - **Delegation Pattern**: Primary classes (like `GameLoop`) act as thin coordinators/orchestrators, delegating specific logic to specialized helper classes (e.g., `MatchSetup`, `TurnExecutor`).
 - **Shared State**: Communication between coordinators and helpers is managed via explicit state interfaces or minimal public APIs rather than direct field access.
 - **Static Builders**: Heavy procedural generation (e.g., 3D board construction) is extracted into static `build()` methods in dedicated classes like `BoardBuilder`.
-- **CSS Modularity**: Global styles are decomposed into thematic modules (`theme.css`, `components.css`, `hud.css`, etc.) and bundled via build-time `@import` statements in `style.css`.
+- **CSS Strategy**: Tailwind-first utility-based styling.
+  - **Preference Order**:
+    1. **Built-in Tailwind classes** (utility-first approach).
+    2. **Custom Tailwind classes** (via `tailwind.config.js` or `@layer`).
+    3. **Custom CSS** (only as a last resort).
+  - **Philosophy**: Avoid writing direct CSS whenever a Tailwind utility can achieve the same result. Global and feature-specific styles are still decomposed into thematic modules (`theme.css`, `components.css`, `hud.css`, etc.) but are bundled via standard `@import` alongside Tailwind directives in `src/style.css`.
 - **Event-Driven Architecture**: Cross-layer communication is centralized in `src/application/events/GameEventBus.ts`. This singleton provides a typed pub/sub interface for game state changes, UI triggers, and configuration updates, replacing legacy `document`-level event listeners.
 - **Visual Consistency & Theming**: All presentation layers (DOM and Three.js) MUST query explicit hexes and variables from `ThemeManager.ts`. Avoid hardcoding colors directly in meshes or shaders; instead, dynamically react to the `THEME_CHANGED` event on the `GameEventBus` to support real-time user-defined color customization.
 - **InteractivityGuard**: A centralized static class (`presentation/InteractivityGuard.ts`) blocks all user input during camera transitions, turn animations, and menu overlays. Toggles the `.interactivity-blocked` CSS class on `<body>` and interacts with the `GameEventBus` where necessary.

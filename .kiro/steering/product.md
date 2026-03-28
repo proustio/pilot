@@ -52,7 +52,7 @@ Browser-based Battleships game with a Minecraft-style 3D voxel aesthetic, built 
 - **Mobile (iOS / Android)**: Distributed via **Capacitor**, utilizing native mobile SDKs while maintaining a single web-based source.
 
 ## Design Priorities
-- **Maintainability through Modularity**: Prevent codebase rot by proactively decomposing large classes and monolithic CSS files into smaller, responsibility-focused modules.
+- **Maintainability through Modularity**: Prevent codebase rot by proactively decomposing large classes and leveraging **utility-first CSS (Tailwind)**. Prefer built-in Tailwind classes over custom CSS whenever possible to maintain a lean, consistent styling layer.
 - **Lightweight Performance**: Maintain fast-loading voxel assets and efficient instanced rendering.
 - **Architectural Extensibility**: Ensure the engine can easily accommodate new game modes (like the upcoming Rogue mode) by keeping core domain logic decoupled from presentation.
 - **Platform Independence**: Core game logic and rendering must remain decoupled from wrapper-specific code (Electron/Capacitor) to ensure a single `dist/` output can be deployed everywhere.
