@@ -38,10 +38,7 @@ const init = () => {
             engine.setDayMode(Config.visual.isDayMode);
         });
 
-        interactionManager.onClick((hit: any) => {
-            const gridX = hit.object.userData.cellX;
-            const gridZ = hit.object.userData.cellZ;
-            const isPlayerSide = hit.object.userData.isPlayerSide;
+        interactionManager.onClick((gridX: number, gridZ: number, isPlayerSide: boolean) => {
             gameLoop.onGridClick(gridX, gridZ, isPlayerSide);
         });
 

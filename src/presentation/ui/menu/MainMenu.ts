@@ -53,7 +53,7 @@ export class MainMenu extends BaseUIComponent {
         this.container.innerHTML = TemplateEngine.render(mainMenuTemplate, { Config: Config });
 
         const newGameBtn = this.container.querySelector('#btn-new-game') as HTMLButtonElement;
-        const autoBattlerToggle = this.container.querySelector('#auto-battler-toggle') as HTMLInputElement;
+        const themeToggle = this.container.querySelector('#theme-toggle') as HTMLInputElement;
         const cardAnchor = this.container.querySelector('#mtg-card-anchor') as HTMLElement;
 
         // --- Custom Dropdown Logic ---
@@ -132,7 +132,6 @@ export class MainMenu extends BaseUIComponent {
         updateCard(selectedMode);
 
         newGameBtn.addEventListener('click', () => {
-            Config.autoBattler = autoBattlerToggle.checked;
             Config.saveConfig();
 
             let matchMode = MatchMode.Classic;
@@ -176,9 +175,18 @@ export class MainMenu extends BaseUIComponent {
             eventBus.emit(GameEventType.SHOW_SETTINGS, undefined as any);
         });
 
-        eventBus.on(GameEventType.TOGGLE_AUTO_BATTLER, (payload) => {
-            if (payload && payload.enabled !== undefined) {
-                autoBattlerToggle.checked = payload.enabled;
+        if (themeToggle) {
+            themeToggle.addEventListener('change', () => {
+                Config.visual.isDayMode = themeToggle.checked;
+                Config.saveConfig();
+                eventBus.emit(GameEventType.TOGGLE_DAY_NIGHT, undefined as any);
+                eventBus.emit(GameEventType.THEME_CHANGED, undefined as any);
+            });
+        }
+
+        eventBus.on(GameEventType.TOGGLE_DAY_NIGHT, () => {
+            if (themeToggle) {
+                themeToggle.checked = Config.visual.isDayMode;
             }
         });
     }

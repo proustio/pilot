@@ -20,6 +20,7 @@ export class PauseMenu extends BaseUIComponent {
             <button id="btn-pause-save" class="bg-btn-bg text-btn-text border border-btn-border rounded shadow-voxel-btn px-6 py-3 my-1 font-mono text-[1.2rem] font-bold uppercase cursor-pointer transition-all duration-100 w-full text-shadow-voxel-btn tracking-wider hover:bg-btn-hover hover:shadow-voxel-btn-hover hover:text-shadow-[0_0_8px_rgba(255,215,0,1)] active:shadow-voxel-btn-active active:translate-y-[2px]">Save</button>
             <button id="btn-pause-load" class="bg-btn-bg text-btn-text border border-btn-border rounded shadow-voxel-btn px-6 py-3 my-1 font-mono text-[1.2rem] font-bold uppercase cursor-pointer transition-all duration-100 w-full text-shadow-voxel-btn tracking-wider hover:bg-btn-hover hover:shadow-voxel-btn-hover hover:text-shadow-[0_0_8px_rgba(255,215,0,1)] active:shadow-voxel-btn-active active:translate-y-[2px]">Load</button>
             <button id="btn-pause-settings" class="bg-btn-bg text-btn-text border border-btn-border rounded shadow-voxel-btn px-6 py-3 my-1 font-mono text-[1.2rem] font-bold uppercase cursor-pointer transition-all duration-100 w-full text-shadow-voxel-btn tracking-wider hover:bg-btn-hover hover:shadow-voxel-btn-hover hover:text-shadow-[0_0_8px_rgba(255,215,0,1)] active:shadow-voxel-btn-active active:translate-y-[2px]">Settings</button>
+            <button id="btn-pause-purge" class="bg-[rgba(100,20,20,0.8)] text-[#ff6666] border border-[#ff3333] rounded shadow-[0_4px_0_#990000] px-6 py-3 my-1 font-mono text-[1.2rem] font-bold uppercase cursor-pointer transition-all duration-100 w-full text-shadow-[0_0_5px_#ff0000] tracking-wider hover:bg-[rgba(150,30,30,0.9)] hover:text-white active:shadow-[0_0_0_#990000] active:translate-y-[4px]">Purge Data</button>
             <button id="btn-pause-exit" class="bg-btn-danger-bg text-theme-danger border border-theme-danger rounded shadow-voxel-btn-danger px-6 py-3 my-1 font-mono text-[1.2rem] font-bold uppercase cursor-pointer transition-all duration-100 w-full text-shadow-voxel-btn tracking-wider hover:bg-btn-danger-hover hover:text-white active:shadow-voxel-btn-active active:translate-y-[2px]">Quit</button>
 
             <div id="exit-confirm-overlay" class="confirm-overlay hidden fixed inset-0 bg-black/80 z-[1000] flex items-center justify-center">
@@ -28,6 +29,17 @@ export class PauseMenu extends BaseUIComponent {
                     <div class="flex gap-4 justify-center">
                         <button id="exit-confirm-yes" class="bg-btn-primary-bg text-white border border-theme-secondary rounded shadow-voxel-btn-primary px-6 py-2.5 font-mono text-[1.2rem] font-bold uppercase cursor-pointer transition-all duration-100 w-auto text-shadow-[0_0_5px_var(--color-secondary)] tracking-wider hover:bg-btn-primary-hover hover:shadow-[inset_0_0_15px_rgba(34,139,34,0.8),0_0_10px_rgba(34,139,34,0.5)] active:shadow-voxel-btn-active active:translate-y-[2px]">Yes</button>
                         <button id="exit-confirm-no" class="bg-btn-bg text-btn-text border border-btn-border rounded shadow-voxel-btn px-6 py-2.5 font-mono text-[1.2rem] font-bold uppercase cursor-pointer transition-all duration-100 w-auto text-shadow-voxel-btn tracking-wider hover:bg-btn-hover hover:shadow-voxel-btn-hover hover:text-shadow-[0_0_8px_rgba(255,215,0,1)] active:shadow-voxel-btn-active active:translate-y-[2px]">No</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="purge-confirm-overlay" class="hidden fixed inset-0 bg-black/80 z-[1000] flex flex-col items-center justify-center items-center">
+                <div class="bg-[rgba(40,10,10,0.85)] backdrop-blur-[8px] border-4 border-[#990000] rounded shadow-[0_0_20px_#ff0000] text-[#eee] p-8 pointer-events-auto relative text-shadow-voxel max-w-[450px]">
+                    <h3 class="text-center font-bold text-[#ff6666] text-2xl mb-4">FACTORY RESET</h3>
+                    <p class="mb-6 text-center text-[1.1rem]">This will completely wipe all cookies, localStorage saves, progression flags, settings, and cache.<br><br><span class="text-[#ff3333] font-bold">This cannot be undone!</span></p>
+                    <div class="flex gap-4 justify-center">
+                        <button id="purge-confirm-yes" class="bg-[rgba(100,20,20,0.8)] text-[#ff6666] border border-[#ff3333] rounded shadow-[0_4px_0_#990000] px-6 py-2.5 font-mono text-[1.2rem] font-bold uppercase cursor-pointer transition-all duration-100 w-auto text-shadow-[0_0_5px_#ff0000] tracking-wider hover:bg-[rgba(150,30,30,0.9)] hover:text-white active:shadow-[0_0_0_#990000] active:translate-y-[4px]">WIPE IT</button>
+                        <button id="purge-confirm-no" class="bg-btn-bg text-btn-text border border-btn-border rounded shadow-voxel-btn px-6 py-2.5 font-mono text-[1.2rem] font-bold uppercase cursor-pointer transition-all duration-100 w-auto text-shadow-voxel-btn tracking-wider hover:bg-btn-hover hover:shadow-voxel-btn-hover hover:text-shadow-[0_0_8px_rgba(255,215,0,1)] active:shadow-voxel-btn-active active:translate-y-[2px]">Cancel</button>
                     </div>
                 </div>
             </div>
@@ -56,6 +68,44 @@ export class PauseMenu extends BaseUIComponent {
         settingsBtn.addEventListener('click', () => {
             // Keep PauseMenu visible underneath settings
             eventBus.emit(GameEventType.SHOW_SETTINGS, undefined as any);
+        });
+
+        // Purge Data
+        const purgeBtn = this.container.querySelector('#btn-pause-purge') as HTMLButtonElement;
+        const purgeOverlay = this.container.querySelector('#purge-confirm-overlay') as HTMLElement;
+        const purgeYesBtn = this.container.querySelector('#purge-confirm-yes') as HTMLButtonElement;
+        const purgeNoBtn = this.container.querySelector('#purge-confirm-no') as HTMLButtonElement;
+
+        purgeBtn.addEventListener('click', () => {
+            purgeOverlay.classList.remove('hidden');
+        });
+
+        purgeNoBtn.addEventListener('click', () => {
+            purgeOverlay.classList.add('hidden');
+        });
+
+        purgeYesBtn.addEventListener('click', () => {
+            // 1. Clear Local Storage
+            localStorage.clear();
+            // 2. Clear Session Storage
+            sessionStorage.clear();
+            // 3. Clear Cookies
+            document.cookie.split(";").forEach((c) => {
+                document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+            });
+            // 4. Clear Cache Storage
+            if ('caches' in window) {
+                caches.keys().then((names) => {
+                    names.forEach(name => {
+                        caches.delete(name);
+                    });
+                });
+            }
+            // 5. Explicitly flag the game as exiting so beforeunload doesn't re-save the session
+            eventBus.emit(GameEventType.EXIT_GAME, undefined as any);
+
+            // 6. Reload to completely reset runtime state
+            window.location.reload();
         });
 
         // Exit to Main Menu

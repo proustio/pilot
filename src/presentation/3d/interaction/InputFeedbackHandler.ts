@@ -124,7 +124,7 @@ export class InputFeedbackHandler {
         this.hoverCursorVoxels.instanceMatrix.needsUpdate = true;
     }
 
-    public updateGhost(ship: any, orientation: Orientation, pickedTile: THREE.Object3D, isValid: boolean) {
+    public updateGhost(ship: any, orientation: Orientation, pickedTile: THREE.Object3D, isValid: boolean, x?: number, z?: number) {
         if (this.currentGhostSize !== ship.size) {
             this.buildGhost(ship.size);
             this.currentGhostSize = ship.size;
@@ -147,7 +147,15 @@ export class InputFeedbackHandler {
         });
 
         const ghostWorldPos = new THREE.Vector3();
-        pickedTile.getWorldPosition(ghostWorldPos);
+        if (x !== undefined && z !== undefined) {
+            const localOffset = new THREE.Vector3(x - Config.board.width/2 + 0.5, 0, z - Config.board.width/2 + 0.5);
+            const boardGrp = pickedTile.parent || pickedTile;
+            boardGrp.localToWorld(localOffset);
+            ghostWorldPos.copy(localOffset);
+        } else {
+            pickedTile.getWorldPosition(ghostWorldPos);
+        }
+        
         this.ghostGroup.position.copy(ghostWorldPos);
         this.ghostGroup.position.y += 0.45;
         this.ghostGroup.quaternion.copy(pickedTile.parent!.quaternion);

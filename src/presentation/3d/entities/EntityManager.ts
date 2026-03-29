@@ -21,8 +21,8 @@ export class EntityManager {
 
     private targetRotationX: number = 0;
 
-    private playerGridTiles: THREE.Object3D[] = [];
-    private enemyGridTiles: THREE.Object3D[] = [];
+    private playerRaycastPlanes: THREE.Object3D[] = [];
+    private enemyRaycastPlanes: THREE.Object3D[] = [];
 
     public get boardOrientation(): 'player' | 'enemy' {
         return Math.abs(this.targetRotationX - Math.PI) < 0.1 ? 'enemy' : 'player';
@@ -72,8 +72,8 @@ export class EntityManager {
             this.fogManager
         );
 
-        this.playerGridTiles = buildResult.playerGridTiles;
-        this.enemyGridTiles = buildResult.enemyGridTiles;
+        this.playerRaycastPlanes = buildResult.playerRaycastPlanes;
+        this.enemyRaycastPlanes = buildResult.enemyRaycastPlanes;
         
         this.waterManager = new WaterShaderManager(buildResult.playerWaterUniforms, buildResult.enemyWaterUniforms);
         this.visibilityManager = new VesselVisibilityManager(this.fogManager);
@@ -137,7 +137,7 @@ export class EntityManager {
 
     public getInteractableObjects(): readonly THREE.Object3D[] {
         const isEnemyUp = Math.abs(this.masterBoardGroup.rotation.x - Math.PI) < 0.1;
-        return isEnemyUp ? this.enemyGridTiles : this.playerGridTiles;
+        return isEnemyUp ? this.enemyRaycastPlanes : this.playerRaycastPlanes;
     }
 
     public showPlayerBoard() {
@@ -336,24 +336,29 @@ export class EntityManager {
         this.fogManager.setSetupPhase(isSetup);
     }
 
-    private updatePlacementHighlight() {
-        if (!Config.rogueMode || !this.isSetupPhase) return;
-        const currentIntensity = 0.1 + ((Math.sin(this.time * 5) + 1) / 2) * 0.3;
-        const highlightColor = new THREE.Color(0x00ffff);
+    private placementHighlightMesh?: THREE.Mesh;
 
-        this.playerGridTiles.forEach(tile => {
-            const { cellX, cellZ } = tile.userData;
-            let isInArea = cellX < 7 && cellZ < 7;
-            const mat = (tile as THREE.Mesh).material as THREE.MeshStandardMaterial;
-            if (isInArea) {
-                mat.emissive.copy(highlightColor);
-                mat.emissiveIntensity = currentIntensity;
-                mat.opacity = 0.3;
-            } else {
-                mat.emissiveIntensity = 0;
-                mat.opacity = 0.05;
-            }
-        });
+    private updatePlacementHighlight() {
+        if (!Config.rogueMode || !this.isSetupPhase) {
+            if (this.placementHighlightMesh) this.placementHighlightMesh.visible = false;
+            return;
+        }
+
+        if (!this.placementHighlightMesh) {
+            const geo = new THREE.PlaneGeometry(6.9, 6.9);
+            const mat = new THREE.MeshBasicMaterial({ color: 0x00ffff, transparent: true, opacity: 0.2, depthWrite: false });
+            this.placementHighlightMesh = new THREE.Mesh(geo, mat);
+            this.placementHighlightMesh.rotation.x = -Math.PI / 2;
+            const offset = Config.board.width / 2;
+            // Center of a 7x7 grid from (0,0) to (6,6) is (3,3). 
+            // In offset coords, 3 is at (3.5 - offset).
+            this.placementHighlightMesh.position.set(3.5 - offset, 0.02, 3.5 - offset);
+            this.playerBoardGroup.add(this.placementHighlightMesh);
+        }
+
+        this.placementHighlightMesh.visible = true;
+        const currentIntensity = 0.1 + ((Math.sin(this.time * 5) + 1) / 2) * 0.2;
+        (this.placementHighlightMesh.material as THREE.MeshBasicMaterial).opacity = currentIntensity;
     }
 
     private addRipple(worldX: number, worldZ: number, isPlayerBoard: boolean) {

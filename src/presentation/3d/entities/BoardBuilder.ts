@@ -11,6 +11,8 @@ import fogShaderPosition from '../shaders/FogPosition.vert?raw';
 export interface BoardBuildResult {
     playerGridTiles: THREE.Object3D[];
     enemyGridTiles: THREE.Object3D[];
+    playerRaycastPlanes: THREE.Object3D[];
+    enemyRaycastPlanes: THREE.Object3D[];
     playerWaterUniforms: any;
     enemyWaterUniforms: any;
 }
@@ -31,6 +33,8 @@ export class BoardBuilder {
     ): BoardBuildResult {
         const playerGridTiles: THREE.Object3D[] = [];
         const enemyGridTiles: THREE.Object3D[] = [];
+        const playerRaycastPlanes: THREE.Object3D[] = [];
+        const enemyRaycastPlanes: THREE.Object3D[] = [];
 
         const boardSize = Config.board.width;
         const offset = boardSize / 2;
@@ -273,24 +277,30 @@ export class BoardBuilder {
 
         fogManager.initializeDynamicAssets(fogVoxelGeo, fogMat);
 
+        const numTiles = boardSize * boardSize;
+        const pGridInstanced = new THREE.InstancedMesh(tileGeometry, tilePlayerMat, numTiles);
+        pGridInstanced.userData = { isInstancedGrid: true, isPlayerSide: true };
+        playerBoardGroup.add(pGridInstanced);
+        playerGridTiles.push(pGridInstanced);
+        
+        const eGridInstanced = new THREE.InstancedMesh(tileGeometry, tileEnemyMat, numTiles);
+        eGridInstanced.userData = { isInstancedGrid: true, isPlayerSide: false };
+        enemyBoardGroup.add(eGridInstanced);
+        enemyGridTiles.push(eGridInstanced);
+
+        const dummy = new THREE.Object3D();
+
         for (let z = 0; z < boardSize; z++) {
             for (let x = 0; x < boardSize; x++) {
                 const worldX = x - offset + 0.5;
                 const worldZ = z - offset + 0.5;
+                const i = z * boardSize + x;
 
-                // Player tile
-                const ptile = new THREE.Mesh(tileGeometry, tilePlayerMat);
-                ptile.position.set(worldX, 0, worldZ);
-                ptile.userData = { isGridTile: true, cellX: x, cellZ: z, isPlayerSide: true };
-                playerBoardGroup.add(ptile);
-                playerGridTiles.push(ptile);
+                dummy.position.set(worldX, 0, worldZ);
+                dummy.updateMatrix();
 
-                // Enemy tile
-                const etile = new THREE.Mesh(tileGeometry, tileEnemyMat);
-                etile.position.set(worldX, 0, worldZ);
-                etile.userData = { isGridTile: true, cellX: x, cellZ: z, isPlayerSide: false };
-                enemyBoardGroup.add(etile);
-                enemyGridTiles.push(etile);
+                pGridInstanced.setMatrixAt(i, dummy.matrix);
+                eGridInstanced.setMatrixAt(i, dummy.matrix);
 
                 // Fog cloud (skip static creation if rogue mode)
                 if (!fogManager.rogueMode) {
@@ -298,8 +308,8 @@ export class BoardBuilder {
                     fogCloud.position.set(worldX, 0.0, worldZ);
 
                     const identity = new THREE.Matrix4();
-                    for (let i = 0; i < numVoxels; i++) {
-                        fogCloud.setMatrixAt(i, identity);
+                    for (let j = 0; j < numVoxels; j++) {
+                        fogCloud.setMatrixAt(j, identity);
                     }
                     
                     fogCloud.userData = { isFog: true };
@@ -310,7 +320,6 @@ export class BoardBuilder {
             }
         }
 
-        // ───── Grid Lines ─────
         const pGrid = new THREE.GridHelper(boardSize, boardSize);
         pGrid.position.y = 0.05;
         pGrid.material.transparent = true; pGrid.material.opacity = 0.4;
@@ -324,6 +333,23 @@ export class BoardBuilder {
         eGrid.material.depthWrite = false;
         (eGrid.material as any).vertexColors = false;
         enemyBoardGroup.add(eGrid);
+
+        // ───── Raycast Planes for Chromium Perf ─────
+        const raycastGeo = new THREE.PlaneGeometry(boardSize, boardSize);
+        raycastGeo.rotateX(-Math.PI / 2);
+        const raycastMat = new THREE.MeshBasicMaterial({ depthWrite: false, colorWrite: false, transparent: true, opacity: 0 });
+        
+        const pRaycast = new THREE.Mesh(raycastGeo, raycastMat);
+        pRaycast.position.y = 0.05;
+        pRaycast.userData = { isRaycastPlane: true, isPlayerSide: true };
+        playerBoardGroup.add(pRaycast);
+        playerRaycastPlanes.push(pRaycast);
+        
+        const eRaycast = new THREE.Mesh(raycastGeo, raycastMat);
+        eRaycast.position.y = 0.05;
+        eRaycast.userData = { isRaycastPlane: true, isPlayerSide: false };
+        enemyBoardGroup.add(eRaycast);
+        enemyRaycastPlanes.push(eRaycast);
 
         const updateBoardTheme = () => {
             const tm = ThemeManager.getInstance();
@@ -362,6 +388,8 @@ export class BoardBuilder {
         return {
             playerGridTiles,
             enemyGridTiles,
+            playerRaycastPlanes,
+            enemyRaycastPlanes,
             playerWaterUniforms,
             enemyWaterUniforms
         };
