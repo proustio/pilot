@@ -10,13 +10,9 @@ export interface SaveMetadata {
 }
 
 export interface ViewState {
-    cameraX: number;
-    cameraY: number;
-    cameraZ: number;
+    camera: string;
     cameraDist?: number;
-    targetX: number;
-    targetY: number;
-    targetZ: number;
+    target: string;
     boardOrientation: 'player' | 'enemy';
     isDayMode: boolean;
     gameSpeedMultiplier: number;

@@ -90,9 +90,6 @@ export const Config = {
                 if (parsedConfig.rogueMode !== undefined) {
                     this.rogueMode = parsedConfig.rogueMode;
                 }
-                if (parsedConfig.autoBattler !== undefined) {
-                    this.autoBattler = parsedConfig.autoBattler;
-                }
                 if (parsedConfig.aiDifficulty !== undefined) {
                     this.aiDifficulty = parsedConfig.aiDifficulty;
                 }
@@ -131,7 +128,6 @@ export const Config = {
                     height: this.board.height
                 },
                 rogueMode: this.rogueMode,
-                autoBattler: this.autoBattler,
                 aiDifficulty: this.aiDifficulty,
                 audio: {
                     masterVolume: this.audio.masterVolume

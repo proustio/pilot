@@ -24,8 +24,8 @@
     </div>
 </div>
 
-<div id="confirm-overlay" class="confirm-overlay" style="display:none;">
-    <div class="confirm-dialog bg-[rgba(20,20,20,0.55)] backdrop-blur-[8px] border-4 border-[#333] rounded shadow-voxel-panel text-[#eee] p-8 pointer-events-auto relative text-shadow-voxel">
+<div id="confirm-overlay" class="absolute inset-0 z-[100] bg-[rgba(0,0,0,0.7)] backdrop-blur-sm items-center justify-center rounded" style="display:none;">
+    <div class="confirm-dialog bg-[rgba(15,15,20,0.95)] border-4 border-theme-secondary rounded shadow-[0_10px_40px_rgba(0,0,0,1)] text-[#eee] px-10 py-8 pointer-events-auto relative text-shadow-voxel text-center max-w-[80%] min-w-[350px]">
         <p id="confirm-message" class="mb-6 text-xl">Overwrite this save?</p>
         <div class="flex gap-4 justify-center">
             <button id="confirm-yes" class="bg-btn-primary-bg text-white border border-theme-secondary rounded shadow-voxel-btn-primary px-8 py-3 font-mono text-[1.2rem] font-bold uppercase cursor-pointer transition-all duration-100 text-shadow-[0_0_5px_var(--color-secondary)] tracking-wider hover:bg-btn-primary-hover hover:shadow-[inset_0_0_15px_rgba(34,139,34,0.8),0_0_10px_rgba(34,139,34,0.5)] active:shadow-voxel-btn-active active:translate-y-[2px]">Yes</button>

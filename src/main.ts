@@ -107,13 +107,9 @@ const init = () => {
 
             const isEnemyBoardShowing = entityManager.boardOrientation === 'enemy';
             const vs: ViewState = {
-                cameraX: parseFloat(engine.camera.position.x.toFixed(4)),
-                cameraY: parseFloat(engine.camera.position.y.toFixed(4)),
-                cameraZ: parseFloat(engine.camera.position.z.toFixed(4)),
+                camera: `${engine.camera.position.x.toFixed(4)}, ${engine.camera.position.y.toFixed(4)}, ${engine.camera.position.z.toFixed(4)}`,
+                target: `${engine.orbitControls.target.x.toFixed(4)}, ${engine.orbitControls.target.y.toFixed(4)}, ${engine.orbitControls.target.z.toFixed(4)}`,
                 cameraDist: parseFloat(engine.orbitControls.getDistance().toFixed(4)),
-                targetX: parseFloat(engine.orbitControls.target.x.toFixed(4)),
-                targetY: parseFloat(engine.orbitControls.target.y.toFixed(4)),
-                targetZ: parseFloat(engine.orbitControls.target.z.toFixed(4)),
                 boardOrientation: isEnemyBoardShowing ? 'enemy' : 'player',
                 isDayMode: Config.visual.isDayMode,
                 gameSpeedMultiplier: Config.timing.gameSpeedMultiplier,
@@ -153,12 +149,16 @@ const init = () => {
             const defTgt = { x: 0, y: 0, z: 0 };
             const defDist = 18;
 
-            const camX = vs?.cameraX ?? defPos.x;
-            const camY = vs?.cameraY ?? defPos.y;
-            const camZ = vs?.cameraZ ?? defPos.z;
-            const tgtX = vs?.targetX ?? defTgt.x;
-            const tgtY = vs?.targetY ?? defTgt.y;
-            const tgtZ = vs?.targetZ ?? defTgt.z;
+            const parseCoord = (s: string | undefined) => s ? s.split(',').map(v => parseFloat(v.trim())) : null;
+            const camCoords = parseCoord(vs?.camera);
+            const tgtCoords = parseCoord(vs?.target);
+
+            const camX = camCoords?.[0] ?? defPos.x;
+            const camY = camCoords?.[1] ?? defPos.y;
+            const camZ = camCoords?.[2] ?? defPos.z;
+            const tgtX = tgtCoords?.[0] ?? defTgt.x;
+            const tgtY = tgtCoords?.[1] ?? defTgt.y;
+            const tgtZ = tgtCoords?.[2] ?? defTgt.z;
             const camDist = vs?.cameraDist ?? defDist;
 
             isRestoringState = true;
@@ -240,13 +240,9 @@ const init = () => {
             if (!isQuitting && gameLoop.match && gameLoop.hasUnsavedProgress()) {
                 const isEnemyBoardShowing = entityManager.boardOrientation === 'enemy';
                 const vs: ViewState = {
-                    cameraX: engine.camera.position.x,
-                    cameraY: engine.camera.position.y,
-                    cameraZ: engine.camera.position.z,
+                    camera: `${engine.camera.position.x.toFixed(4)}, ${engine.camera.position.y.toFixed(4)}, ${engine.camera.position.z.toFixed(4)}`,
+                    target: `${engine.orbitControls.target.x.toFixed(4)}, ${engine.orbitControls.target.y.toFixed(4)}, ${engine.orbitControls.target.z.toFixed(4)}`,
                     cameraDist: engine.orbitControls.getDistance(),
-                    targetX: engine.orbitControls.target.x,
-                    targetY: engine.orbitControls.target.y,
-                    targetZ: engine.orbitControls.target.z,
                     boardOrientation: isEnemyBoardShowing ? 'enemy' : 'player',
                     isDayMode: Config.visual.isDayMode,
                     gameSpeedMultiplier: Config.timing.gameSpeedMultiplier,

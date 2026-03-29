@@ -18,6 +18,7 @@ export class InteractionManager {
 
   private lastMouseClientX: number = 0;
   private lastMouseClientY: number = 0;
+  private isShiftDown: boolean = false;
 
   public hoveredCell: { x: number, z: number } | null = null;
   private uiHoveredCell: { x: number, z: number, isPlayerSide: boolean } | null = null;
@@ -36,6 +37,8 @@ export class InteractionManager {
 
     window.addEventListener('mousemove', this.onMouseMove.bind(this));
     window.addEventListener('click', this.onMouseClick.bind(this));
+    window.addEventListener('keydown', (e) => { if (e.key === 'Shift') this.isShiftDown = true; });
+    window.addEventListener('keyup', (e) => { if (e.key === 'Shift') this.isShiftDown = false; });
 
     this.setupGlobalListeners();
   }
@@ -107,6 +110,8 @@ export class InteractionManager {
   }
 
   private onMouseClick(event: MouseEvent) {
+    if (event.shiftKey) return;
+
     if (InteractivityGuard.isBlocked() || !this.interactionEnabled || 
         (this.gameLoop && (this.gameLoop.isAnimating || this.gameLoop.currentState === GameState.GAME_OVER))) {
         return;
@@ -168,6 +173,7 @@ export class InteractionManager {
   }
 
   private onMouseMove(event: MouseEvent) {
+    this.isShiftDown = event.shiftKey;
     if (!this.interactionEnabled) return;
     this.raycastService.updateMouse(event.clientX, event.clientY);
     this.lastMouseClientX = event.clientX;
@@ -184,6 +190,7 @@ export class InteractionManager {
     // Core game state blocks (animations, menus, game over)
     const isStateBlocked = InteractivityGuard.isBlocked() || 
                            !this.interactionEnabled || 
+                           this.isShiftDown ||
                            (this.gameLoop && (this.gameLoop.isAnimating || this.gameLoop.currentState === GameState.GAME_OVER));
     
     // Physical pointer blocks (e.g. mouse is over a UI panel)
