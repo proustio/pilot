@@ -26,3 +26,8 @@ Here is some stuff we need to do around our codebase in no particular order or p
 1. support ship-specific weapons, per ship type. we should show which weapon systems are available and hide those that aren't
 1. improve ship models: add huge guns to all combat vessels, add flightdeck to aircraft carrier, make submarine go under water (move special to the ship type) etc.
 1. ships should produce visible ripples as they move
+1. settings screen should be reworked to reflect that retro feeling as well
+1. highlight vision and attack ranges relative to friendly ships
+1. see weapon and movement systems and active ship displayed as enemies move or attack
+1. fix sonar and mines deployment and visibility (currently invisible or don't deploy)
+1. broadly support all available weapon and movement systems across entities

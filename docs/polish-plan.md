@@ -1,6 +1,8 @@
 ### **UI, UX & Tech Debt**
 
-- **Hover State:** Change the mouse hover highlight on the grid from a standard cross to a tornado swirl.
+- **Settings Screen:** Rework the settings screen to reflect that retro feeling as well.
+- **HUD & Feedback:** Highlight vision and attack ranges relative to friendly ships.
+- **Enemy Turn UI:** Display weapon and movement systems and highlight the active ship continuously as enemies move or attack.
 
 ### **Game Mechanics: Movement & Collision**
 
@@ -15,6 +17,7 @@
 
 - **Dynamic Ammo:** Ships should be able to fire as many times as they have active sections (firing capacity adjusts down as the ship takes damage).
 - **Firing Range:** The firing range is a 2x multiplier of the ship's vision range.
+- **Weapon & Movement Systems:** Broadly support all available weapon and movement systems natively across all valid units.
 
 ### **Entities, Environment & AI**
 
@@ -23,6 +26,7 @@
   - **Easy:** "Search and destroy" protocol. AI will travel until it encounters an opponent, then move all ships to kill it ASAP. Afterwards, it defaults to random cruising or occasional blind fire.
   - **Normal:** Adds a sense of self-preservation. Once it notices the enemy, it remembers the location for the current and next turn. It will actively try to retreat and fire from safety.
 - **Static Entities (Mines & Sonars):**
+  - **Bug Fix:** Fix deployment and visibility (currently they are either invisible or fail to deploy).
   - Mines are static, visible only to submarines, carriers, and sonars. They explode when an opponent vessel comes within a 1-cell distance.
   - Sonars are static and visible to anyone within a 7-cell distance.
 
