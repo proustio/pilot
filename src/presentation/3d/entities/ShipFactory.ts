@@ -3,10 +3,12 @@ import { Ship, Orientation } from '../../../domain/fleet/Ship';
 import { Config } from '../../../infrastructure/config/Config';
 import { ThemeManager } from '../../theme/ThemeManager';
 import { eventBus, GameEventType } from '../../../application/events/GameEventBus';
+import { ShipVoxelBuilder } from './ShipVoxelBuilder';
 
 /**
  * Constructs voxel ship models (hull, deck, bridge, turrets, wireframe overlay)
- * and adds them to the appropriate board group.
+ * and adds them to the appropriate board group. Delegates hull voxel generation
+ * to ShipVoxelBuilder.
  */
 export class ShipFactory {
     /**
@@ -25,7 +27,7 @@ export class ShipFactory {
         shipGroup.userData = {
             isShip: true,
             isSinking: false,
-            ship: ship, // Store reference to domain object
+            ship: ship,
             shipOrientation: orientation,
             coversCell: (tx: number, tz: number) => {
                 const coords = ship.getOccupiedCoordinates();
@@ -38,7 +40,6 @@ export class ShipFactory {
         const originWorldZ = z - boardOffset + 0.5;
         shipGroup.position.set(originWorldX, 0, originWorldZ);
 
-        // Apply rotation based on orientation
         if (orientation === Orientation.Vertical) {
             shipGroup.rotation.y = -Math.PI / 2;
         } else if (orientation === Orientation.Left) {
@@ -47,145 +48,18 @@ export class ShipFactory {
             shipGroup.rotation.y = Math.PI / 2;
         }
 
-        // In Rogue mode, all ships on the same board are visible initially? 
-        // No, they should be hidden by fog. 
         shipGroup.visible = isPlayer || !Config.rogueMode;
 
         if (Config.rogueMode) {
-            ship.isEnemy = !isPlayer; // Sync domain object
+            ship.isEnemy = !isPlayer;
         }
 
-        // ───── Colors ─────
-        let hullColor = new THREE.Color(0x111111);
-        let deckColor = new THREE.Color(0x222222);
-        let bridgeColor = new THREE.Color(0x1a1a1a);
-        let darkAccent = new THREE.Color(0x050505);
-
-        if (!isPlayer) {
-            const invert = (c: THREE.Color) => new THREE.Color(1 - c.r, 1 - c.g, 1 - c.b);
-            hullColor = invert(hullColor);
-            deckColor = invert(deckColor);
-            bridgeColor = invert(bridgeColor);
-            darkAccent = invert(darkAccent);
-        }
-
-        const tm = ThemeManager.getInstance();
-        const accentColor = isPlayer ? tm.getPlayerShipColor() : tm.getEnemyShipColor();
-
-        // ───── Voxel Hull ─────
-        const voxelSize = 0.1;
-        const voxelGeo = new THREE.BoxGeometry(voxelSize, voxelSize, voxelSize);
-
-        const length = ship.size;
-        const width = 1;
-
-        const voxelsData: { pos: THREE.Vector3, color: THREE.Color, isAccent: boolean }[] = [];
-
-        const L = ship.size * 10;
-        const centerX = L / 2 - 0.5;
-
-        const isCarrier = ship.size === 5;
-        const isBattleship = ship.size === 4;
-        const isDestroyer = ship.size === 3;
-
-        const getHullWidth = (xNorm: number): number => {
-            const absX = Math.abs(xNorm);
-            if (isCarrier) {
-                if (absX > 0.8) return 2.0 + 3.0 * (1.0 - (absX - 0.8) / 0.2);
-                return 5.0;
-            } else if (isBattleship) {
-                if (absX > 0.7) return 1.5 + 2.5 * (1.0 - (absX - 0.7) / 0.3);
-                return 4.0;
-            } else if (isDestroyer) {
-                if (absX > 0.6) return 1.0 + 2.0 * (1.0 - (absX - 0.6) / 0.4);
-                return 3.0;
-            } else {
-                if (absX > 0.5) return 1.0 + 1.0 * (1.0 - (absX - 0.5) / 0.5);
-                return 2.0;
-            }
-        };
-
-        const getBridgeHeight = (xNorm: number, isEdge: boolean, shipWidthPos: number, maxW: number): number => {
-            const absX = Math.abs(xNorm);
-            if (isCarrier) {
-                const isIslandSide = (maxW - shipWidthPos) <= 2.0;
-                if (absX < 0.2 && isIslandSide && !isEdge) return 4;
-                return 1;
-            } else if (isBattleship) {
-                if (absX < 0.15 && !isEdge) return 5;
-                if (absX < 0.3 && !isEdge) return 3;
-                return 1;
-            } else if (isDestroyer) {
-                if (xNorm > -0.2 && xNorm < 0.1 && !isEdge) return 3;
-                return 1;
-            } else {
-                if (xNorm > 0.0 && xNorm < 0.4 && !isEdge) return 2;
-                return 1;
-            }
-        };
-
-        for (let lx = 0; lx < length * 10; lx++) {
-            for (let lz = 0; lz < width * 10; lz++) {
-                const shipLengthPos = lx;
-                const shipWidthPos = lz;
-
-                const xNorm = (shipLengthPos - centerX) / (L / 2);
-                const halfWidth = getHullWidth(xNorm);
-                const center = 4.5;
-                const minW = center - halfWidth;
-                const maxW = center + halfWidth;
-
-                if (shipWidthPos >= Math.floor(minW) && shipWidthPos <= Math.ceil(maxW)) {
-                    const isEdge = (shipWidthPos - minW) < 1.0 || (maxW - shipWidthPos) < 1.0;
-                    const isBowStern = Math.abs(xNorm) > 0.85;
-
-                    let maxLy = getBridgeHeight(xNorm, isEdge, shipWidthPos, maxW);
-
-                    if (isEdge || isBowStern) {
-                        const bowRise = isCarrier ? 0 : Math.pow(Math.max(0, Math.abs(xNorm) - 0.7) / 0.3, 2) * 2;
-                        maxLy = Math.max(maxLy, 2 + bowRise);
-                    }
-
-                    for (let ly = 1; ly <= maxLy; ly++) {
-                        let color = hullColor;
-                        let isAccent = false;
-
-                        // Front (bow) distinction: Use accent color for the tip of the deck at the front
-                        const isFront = xNorm > 0.8;
-
-                        if (ly === maxLy && !isEdge) {
-                            color = deckColor;
-                            if (isCarrier && !isEdge && shipWidthPos === Math.floor(center)) {
-                                color = darkAccent;
-                            }
-                            // Highlight the bow on the top deck
-                            if (isFront) {
-                                color = accentColor;
-                                isAccent = true;
-                            }
-                        } else if (isEdge && ly > 1) {
-                            color = accentColor;
-                            isAccent = true;
-                        } else if (ly > 2 && !isEdge) {
-                            color = bridgeColor;
-                            if (ly === maxLy && (lx % 2 === 0)) color = darkAccent;
-                        }
-
-                        voxelsData.push({
-                            pos: new THREE.Vector3(
-                                lx * voxelSize - (voxelSize / 2 * 9),
-                                ly * voxelSize,
-                                lz * voxelSize - (voxelSize / 2 * 9)
-                            ),
-                            color,
-                            isAccent
-                        });
-                    }
-                }
-            }
-        }
+        // ───── Voxel Hull (delegated to ShipVoxelBuilder) ─────
+        const voxelsData = ShipVoxelBuilder.buildVoxels(ship, isPlayer);
 
         // ───── Instanced Mesh ─────
+        const voxelSize = 0.1;
+        const voxelGeo = new THREE.BoxGeometry(voxelSize, voxelSize, voxelSize);
         const shipMaterial = new THREE.MeshStandardMaterial({
             color: 0xffffff,
             roughness: 0.2,
@@ -268,7 +142,6 @@ export class ShipFactory {
             const barrelMesh = new THREE.Mesh(barrelGeo, barrelMat);
             barrelMesh.castShadow = true;
 
-            // Always use horizontal layout for turrets as the group is rotated
             barrelMesh.rotation.z = Math.PI / 2;
             barrelMesh.position.x = 0.12;
             turretGroup.position.set(tPos, 0.2, 0);
@@ -290,7 +163,6 @@ export class ShipFactory {
             roughness: 0.2
         });
 
-        // Simple spiked ball voxel model
         const positions = [
             [0, 0, 0], [1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1],
             [2, 0, 0], [-2, 0, 0], [0, 2, 0], [0, -2, 0], [0, 0, 2], [0, 0, -2]
@@ -318,12 +190,11 @@ export class ShipFactory {
             roughness: 0.5
         });
 
-        // Simple buoy/tower voxel model
         const positions = [
             [0, 0, 0], [0, 1, 0], [0, 2, 0], [0, 3, 0], [0, 4, 0],
             [1, 0, 0], [-1, 0, 0], [0, 0, 1], [0, 0, -1],
             [1, 1, 0], [-1, 1, 0], [0, 1, 1], [0, 1, -1],
-            [0, 5, 0] // Antena top
+            [0, 5, 0]
         ];
 
         const instancedMesh = new THREE.InstancedMesh(geometry, material, positions.length);
@@ -336,7 +207,6 @@ export class ShipFactory {
 
         group.add(instancedMesh);
 
-        // Add a blinking light on top
         const lightGeom = new THREE.SphereGeometry(0.05, 8, 8);
         const lightMat = new THREE.MeshBasicMaterial({ color: 0x00ffff, transparent: true, opacity: 0.8 });
         const lightMesh = new THREE.Mesh(lightGeom, lightMat);

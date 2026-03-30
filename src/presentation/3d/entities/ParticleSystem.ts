@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { ThemeManager } from '../../theme/ThemeManager';
 import { eventBus, GameEventType } from '../../../application/events/GameEventBus';
 import { Config } from '../../../infrastructure/config/Config';
+import { EmitterManager } from './EmitterManager';
 
 interface Particle {
     mesh: THREE.Mesh;
@@ -13,21 +14,9 @@ interface Particle {
     group: THREE.Object3D;
 }
 
-interface Emitter {
-    id?: string;
-    x: number;
-    y: number;
-    z: number;
-    color: string;
-    hasFire: boolean;
-    nextSpawn: number;
-    intensity: number;
-    group: THREE.Object3D;
-}
-
 export class ParticleSystem {
     private particles: Particle[] = [];
-    private emitters: Emitter[] = [];
+    private emitterManager = new EmitterManager();
 
     private explosionGeo = new THREE.BoxGeometry(0.15, 0.15, 0.15);
     private smokeGeo = new THREE.BoxGeometry(0.12, 0.12, 0.12);
@@ -221,7 +210,7 @@ export class ParticleSystem {
         mesh.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
 
         group.add(mesh);
-        
+
         // Fire life set to half of smoke (~1.0-1.5s -> ~0.5-0.75s)
         const life = 0.5 + Math.random() * 0.25;
         this.particles.push({
@@ -237,35 +226,18 @@ export class ParticleSystem {
 
     public addEmitter(x: number, y: number, z: number, hasFire: boolean, group: THREE.Object3D, color?: string, intensity: number = 1.0, id?: string) {
         const emitterColor = color || this.blackSmokeMat.color.getStyle();
-        // If ID exists and already present, skip to preserve original (user requirement "sections remain as-is")
-        if (id && this.emitters.some(e => e.id === id)) return;
-        this.emitters.push({ x, y, z, color: emitterColor, hasFire, nextSpawn: 0, group, intensity, id });
+        this.emitterManager.addEmitter(x, y, z, hasFire, group, emitterColor, intensity, id);
     }
 
     public updateEmittersByIdPrefix(prefix: string, intensity: number) {
-        for (const emitter of this.emitters) {
-            if (emitter.id && emitter.id.startsWith(prefix)) {
-                emitter.intensity = intensity;
-            }
-        }
+        this.emitterManager.updateEmittersByIdPrefix(prefix, intensity);
     }
 
     public update() {
-        const now = Date.now();
+        // Delegate emitter spawn scheduling to EmitterManager
+        this.emitterManager.updateEmitters(this);
+
         const speed = Config.timing.gameSpeedMultiplier;
-        for (const emitter of this.emitters) {
-            if (now > emitter.nextSpawn) {
-                if (emitter.hasFire) {
-                    this.spawnFire(emitter.x, emitter.y, emitter.z, emitter.group, emitter.intensity);
-                    this.spawnSmoke(emitter.x, emitter.y + 0.2, emitter.z, emitter.color, emitter.group, emitter.intensity);
-                    // Spawn frequency scales with intensity and game speed
-                    emitter.nextSpawn = now + (150 / (emitter.intensity * speed));
-                } else {
-                    this.spawnSmoke(emitter.x, emitter.y, emitter.z, emitter.color, emitter.group, emitter.intensity);
-                    emitter.nextSpawn = now + (200 / (emitter.intensity * speed));
-                }
-            }
-        }
 
         for (let i = this.particles.length - 1; i >= 0; i--) {
             const p = this.particles[i];
@@ -326,10 +298,11 @@ export class ParticleSystem {
             }
         }
     }
+
     public clear() {
         this.particles.forEach(p => p.group.remove(p.mesh));
         this.particles = [];
-        this.emitters = [];
+        this.emitterManager.clear();
     }
 
     public dispose() {
