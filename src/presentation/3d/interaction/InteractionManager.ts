@@ -26,6 +26,8 @@ export class InteractionManager {
   private clickListeners: ((x: number, z: number, isPlayerSide: boolean) => void)[] = [];
 
   private lastMoveShipId: string | null = null;
+  private lastMoveShipX: number = -1;
+  private lastMoveShipZ: number = -1;
   private lastMoveAction: string | null = null;
   private lastMovesRemaining: number = -1;
 
@@ -39,7 +41,7 @@ export class InteractionManager {
     window.addEventListener('click', this.onMouseClick.bind(this));
     window.addEventListener('keydown', (e) => { if (e.key === 'Shift') this.isShiftDown = true; });
     window.addEventListener('keyup', (e) => { if (e.key === 'Shift') this.isShiftDown = false; });
-
+    
     this.setupGlobalListeners();
   }
 
@@ -315,6 +317,7 @@ export class InteractionManager {
     }
 
     this.updateMoveHighlight();
+    this.updateRangeHighlights();
     this.updateHoverState();
   }
 
@@ -362,6 +365,33 @@ export class InteractionManager {
           this.lastMoveShipId = activeShip.id;
           this.lastMoveAction = action;
           this.lastMovesRemaining = activeShip.movesRemaining;
+      }
+  }
+  private updateRangeHighlights() {
+      if (!this.gameLoop || !this.gameLoop.match || this.gameLoop.match.mode !== MatchMode.Rogue) {
+          this.feedbackHandler.visionHighlightGroup.visible = false;
+          this.feedbackHandler.attackHighlightGroup.visible = false;
+          return;
+      }
+
+      const order = this.gameLoop.rogueShipOrder;
+      const index = this.gameLoop.activeRogueShipIndex;
+      const activeShip = order && index >= 0 && index < order.length ? order[index] : null;
+
+      if (!activeShip || this.gameLoop.currentState !== GameState.PLAYER_TURN) {
+          this.feedbackHandler.visionHighlightGroup.visible = false;
+          this.feedbackHandler.attackHighlightGroup.visible = false;
+          return;
+      }
+
+      this.feedbackHandler.visionHighlightGroup.visible = true;
+      this.feedbackHandler.attackHighlightGroup.visible = true;
+
+      if (this.lastMoveShipId !== activeShip.id || this.lastMoveShipX !== activeShip.headX || this.lastMoveShipZ !== activeShip.headZ) {
+          this.feedbackHandler.rebuildRangeHighlights(activeShip, this.gameLoop.match.sharedBoard);
+          this.lastMoveShipId = activeShip.id;
+          this.lastMoveShipX = activeShip.headX;
+          this.lastMoveShipZ = activeShip.headZ;
       }
   }
 }

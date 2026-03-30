@@ -1,8 +1,8 @@
 ### **UI, UX & Tech Debt**
 
-- **Settings Screen:** Rework the settings screen to reflect that retro feeling as well.
-- **HUD & Feedback:** Highlight vision and attack ranges relative to friendly ships.
-- **Enemy Turn UI:** Display weapon and movement systems and highlight the active ship continuously as enemies move or attack.
+- [x] **Settings Screen:** Rework the settings screen to reflect that retro feeling as well.
+- [x] **HUD & Feedback:** Highlight vision and attack ranges relative to friendly ships.
+- [x] **Enemy Turn UI:** Display weapon and movement systems and highlight the active ship continuously as enemies move or attack.
 
 ### **Game Mechanics: Movement & Collision**
 
@@ -16,7 +16,7 @@
 ### **Game Mechanics: Combat & Stats**
 
 - **Dynamic Ammo:** Ships should be able to fire as many times as they have active sections (firing capacity adjusts down as the ship takes damage).
-- **Firing Range:** The firing range is a 2x multiplier of the ship's vision range.
+- [x] **Firing Range:** The firing range is a 2x multiplier of the ship's vision range.
 - **Weapon & Movement Systems:** Broadly support all available weapon and movement systems natively across all valid units.
 
 ### **Entities, Environment & AI**
@@ -44,5 +44,5 @@
 
 ### **Game Modes & Pacing**
 
-- **Game Speed Defaults:** Classic and Russian modes default to the current "4x" speed. Rogue mode defaults to "2x" speed.
+- **Game Speed Defaults:** Classic and Russian modes default to "4x" speed. Rogue mode defaults to "2x" speed.
 - **Speed Options:** Expand the speed toggles to include: 0.25x, 2x, 4x, 8x, 16x, and 32x.

@@ -215,6 +215,15 @@ export class GameLoop {
     public startNewMatch(match: Match): void {
         this.isAnimating = false;
         this.onAnimationsComplete = null;
+
+        // Apply mode-specific speed defaults
+        if (match.mode === MatchMode.Rogue) {
+            this.config.timing.gameSpeedMultiplier = 2.0;
+        } else {
+            this.config.timing.gameSpeedMultiplier = 4.0;
+        }
+        this.config.saveConfig();
+
         this.matchSetup.startNewMatch(match);
     }
 

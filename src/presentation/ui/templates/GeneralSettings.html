@@ -1,51 +1,66 @@
-<div class="flex justify-between items-center mb-[15px] w-full ${isGameStarted ? 'opacity-50' : ''}" id="difficulty-row">
-    <label class="font-mono text-theme-text uppercase tracking-wider">Enemy AI Difficulty:</label>
+<div class="flex justify-between items-center mb-6 w-full ${isGameStarted ? 'opacity-50' : ''}" id="difficulty-row">
+    <label class="font-mono text-theme-primary/80 uppercase tracking-widest text-sm">[ AI_CORE_LEVEL ]</label>
     <div id="ai-difficulty-dropdown" class="custom-dropdown relative w-full max-w-[280px] z-[60] group ${isGameStarted ? 'disabled pointer-events-none' : ''}">
-        <div class="custom-dropdown-selected flex items-center justify-between p-2 bg-[#111] border border-[#333] rounded text-theme-primary cursor-pointer transition-all duration-200 shadow-[inset_0_0_8px_rgba(0,0,0,0.8)] hover:bg-[#181818] hover:border-theme-primary/50" id="ai-difficulty-selected">
-            <span id="ai-difficulty-selected-text" class="font-mono text-[0.90rem] font-bold tracking-tight whitespace-nowrap">${gameLoop.aiEngine.difficulty === 'easy' ? '✔ Easy' : '✔ Normal'}</span>
-            <span class="custom-dropdown-arrow transition-all duration-300 ml-2 opacity-60 text-[1.1rem] leading-none">▾</span>
+        <div class="custom-dropdown-selected flex items-center justify-between p-2 bg-black border border-theme-primary/30 rounded text-theme-primary cursor-pointer transition-all duration-200 shadow-[0_0_10px_rgba(0,0,0,0.5),inset_0_0_5px_rgba(var(--player-primary-rgb),0.1)] hover:border-theme-primary" id="ai-difficulty-selected">
+            <span id="ai-difficulty-selected-text" class="font-mono text-[0.90rem] font-bold tracking-tight uppercase">${gameLoop.aiEngine.difficulty === 'easy' ? '✔ EASY_SEARCH' : '✔ NORMAL_HUNT'}</span>
+            <span class="custom-dropdown-arrow transition-all duration-300 ml-2 opacity-60 text-[1.1rem]">▾</span>
         </div>
-        <div class="custom-dropdown-options absolute left-0 right-0 top-full mt-1 bg-[rgba(15,15,15,0.98)] backdrop-blur-xl border border-[#333] rounded shadow-[0_10px_30px_rgba(0,0,0,0.8)] z-[70] overflow-hidden hidden" id="ai-difficulty-options">
-            <div class="custom-dropdown-option ${gameLoop.aiEngine.difficulty === 'easy' ? 'active' : ''} px-3 py-2 cursor-pointer transition-all duration-150 hover:bg-theme-primary/10 hover:text-white flex items-center gap-2 border-b border-white/5 last:border-0 [&.active]:bg-theme-primary/10 [&.active]:text-theme-primary [&.active]:font-bold" data-value="easy">
-                <span class="option-check w-5 flex-shrink-0 text-center font-bold">${gameLoop.aiEngine.difficulty === 'easy' ? '✔' : '&nbsp;'}</span>
-                <span class="option-text font-mono text-[0.85rem]">Easy (Random)</span>
+        <div class="custom-dropdown-options absolute left-0 right-0 top-full mt-1 bg-black border border-theme-primary/30 rounded shadow-[0_10px_30px_rgba(0,0,0,0.9)] z-[70] overflow-hidden hidden" id="ai-difficulty-options">
+            <div class="custom-dropdown-option ${gameLoop.aiEngine.difficulty === 'easy' ? 'active' : ''} px-3 py-2 cursor-pointer transition-all duration-150 hover:bg-theme-primary hover:text-black flex items-center gap-2 border-b border-white/5 last:border-0 [&.active]:bg-theme-primary/20 [&.active]:text-theme-primary" data-value="easy">
+                <span class="option-check w-5 flex-shrink-0 text-center font-bold">${gameLoop.aiEngine.difficulty === 'easy' ? '▶' : '&nbsp;'}</span>
+                <span class="option-text font-mono text-[0.85rem] uppercase">EASY (RANDOM)</span>
             </div>
-            <div class="custom-dropdown-option ${gameLoop.aiEngine.difficulty === 'normal' ? 'active' : ''} px-3 py-2 cursor-pointer transition-all duration-150 hover:bg-theme-primary/10 hover:text-white flex items-center gap-2 [&.active]:bg-theme-primary/10 [&.active]:text-theme-primary [&.active]:font-bold" data-value="normal">
-                <span class="option-check w-5 flex-shrink-0 text-center font-bold">${gameLoop.aiEngine.difficulty === 'normal' ? '✔' : '&nbsp;'}</span>
-                <span class="option-text font-mono text-[0.85rem]">Normal (Hunt/Target)</span>
+            <div class="custom-dropdown-option ${gameLoop.aiEngine.difficulty === 'normal' ? 'active' : ''} px-3 py-2 cursor-pointer transition-all duration-150 hover:bg-theme-primary hover:text-black flex items-center gap-2 [&.active]:bg-theme-primary/20 [&.active]:text-theme-primary" data-value="normal">
+                <span class="option-check w-5 flex-shrink-0 text-center font-bold">${gameLoop.aiEngine.difficulty === 'normal' ? '▶' : '&nbsp;'}</span>
+                <span class="option-text font-mono text-[0.85rem] uppercase">NORMAL (HUNT)</span>
             </div>
         </div>
     </div>
 </div>
 
-<div class="flex justify-between items-center mb-[15px] w-full">
-    <label class="font-mono text-theme-text uppercase tracking-wider">Auto-Battler:</label>
-    <input type="checkbox" id="toggle-auto-battler" ${Config.autoBattler ? 'checked' : ''} class="scale-[2] mr-2 cursor-pointer accent-theme-primary">
+<div class="flex justify-between items-center mb-6 w-full">
+    <label class="font-mono text-theme-primary/80 uppercase tracking-widest text-sm">[ AUTO_PILOT ]</label>
+    <div class="flex items-center gap-4">
+        <span class="font-mono text-[0.7rem] ${Config.autoBattler ? 'text-theme-primary animate-pulse' : 'text-white/20'} uppercase">${Config.autoBattler ? 'ACTIVE' : 'OFF'}</span>
+        <input type="checkbox" id="toggle-auto-battler" ${Config.autoBattler ? 'checked' : ''} class="w-10 h-5 cursor-pointer accent-theme-primary rounded-none bg-black border border-theme-primary/30">
+    </div>
 </div>
 
-<div class="flex justify-between items-center mb-[15px] w-full">
-    <label class="font-mono text-theme-text uppercase tracking-wider">Game Speed:</label>
+<div class="flex justify-between items-center mb-6 w-full">
+    <label class="font-mono text-theme-primary/80 uppercase tracking-widest text-sm">[ TIME_WARP ]</label>
     <div id="game-speed-dropdown" class="custom-dropdown relative w-full max-w-[280px] z-[60] group">
-        <div class="custom-dropdown-selected flex items-center justify-between p-2 bg-[#111] border border-[#333] rounded text-theme-primary cursor-pointer transition-all duration-200 shadow-[inset_0_0_8px_rgba(0,0,0,0.8)] hover:bg-[#181818] hover:border-theme-primary/50" id="game-speed-selected">
-            <span id="game-speed-selected-text" class="font-mono text-[0.90rem] font-bold tracking-tight whitespace-nowrap">✔ ${Config.timing.gameSpeedMultiplier === 0.5 ? '0.5x' : Config.timing.gameSpeedMultiplier === 1.0 ? '1.0x' : Config.timing.gameSpeedMultiplier === 2.0 ? '2.0x' : '4.0x'}</span>
-            <span class="custom-dropdown-arrow transition-all duration-300 ml-2 opacity-60 text-[1.1rem] leading-none">▾</span>
+        <div class="custom-dropdown-selected flex items-center justify-between p-2 bg-black border border-theme-primary/30 rounded text-theme-primary cursor-pointer transition-all duration-200 shadow-[0_0_10px_rgba(0,0,0,0.5),inset_0_0_5px_rgba(var(--player-primary-rgb),0.1)] hover:border-theme-primary" id="game-speed-selected">
+            <span id="game-speed-selected-text" class="font-mono text-[0.90rem] font-bold tracking-tight uppercase">✔ ${Config.timing.gameSpeedMultiplier}X_SPEED</span>
+            <span class="custom-dropdown-arrow transition-all duration-300 ml-2 opacity-60 text-[1.1rem]">▾</span>
         </div>
-        <div class="custom-dropdown-options absolute left-0 right-0 top-full mt-1 bg-[rgba(15,15,15,0.98)] backdrop-blur-xl border border-[#333] rounded shadow-[0_10px_30px_rgba(0,0,0,0.8)] z-[70] overflow-hidden hidden" id="game-speed-options">
-            <div class="custom-dropdown-option ${Config.timing.gameSpeedMultiplier === 0.5 ? 'active' : ''} px-3 py-2 cursor-pointer transition-all duration-150 hover:bg-theme-primary/10 hover:text-white flex items-center gap-2 border-b border-white/5 last:border-0 [&.active]:bg-theme-primary/10 [&.active]:text-theme-primary [&.active]:font-bold" data-value="0.5">
-                <span class="option-check w-5 flex-shrink-0 text-center font-bold">${Config.timing.gameSpeedMultiplier === 0.5 ? '✔' : '&nbsp;'}</span>
-                <span class="option-text font-mono text-[0.85rem]">0.5x (Slow)</span>
+        <div class="custom-dropdown-options absolute left-0 right-0 bottom-full mb-1 bg-black border border-theme-primary/30 rounded shadow-[0_-10px_30px_rgba(0,0,0,0.9)] z-[70] overflow-hidden hidden" id="game-speed-options">
+            <div class="custom-dropdown-option ${Config.timing.gameSpeedMultiplier === 0.25 ? 'active' : ''} px-3 py-2 cursor-pointer transition-all duration-150 hover:bg-theme-primary hover:text-black flex items-center gap-2 border-b border-white/5 [&.active]:bg-theme-primary/20 [&.active]:text-theme-primary" data-value="0.25">
+                <span class="option-check w-5 flex-shrink-0 text-center font-bold">${Config.timing.gameSpeedMultiplier === 0.25 ? '▶' : '&nbsp;'}</span>
+                <span class="option-text font-mono text-[0.85rem]">0.25X (SLO-MO)</span>
             </div>
-            <div class="custom-dropdown-option ${Config.timing.gameSpeedMultiplier === 1.0 ? 'active' : ''} px-3 py-2 cursor-pointer transition-all duration-150 hover:bg-theme-primary/10 hover:text-white flex items-center gap-2 border-b border-white/5 last:border-0 [&.active]:bg-theme-primary/10 [&.active]:text-theme-primary [&.active]:font-bold" data-value="1.0">
-                <span class="option-check w-5 flex-shrink-0 text-center font-bold">${Config.timing.gameSpeedMultiplier === 1.0 ? '✔' : '&nbsp;'}</span>
-                <span class="option-text font-mono text-[0.85rem]">1.0x (Normal)</span>
+            <div class="custom-dropdown-option ${Config.timing.gameSpeedMultiplier === 1.0 ? 'active' : ''} px-3 py-2 cursor-pointer transition-all duration-150 hover:bg-theme-primary hover:text-black flex items-center gap-2 border-b border-white/5 [&.active]:bg-theme-primary/20 [&.active]:text-theme-primary" data-value="1.0">
+                <span class="option-check w-5 flex-shrink-0 text-center font-bold">${Config.timing.gameSpeedMultiplier === 1.0 ? '▶' : '&nbsp;'}</span>
+                <span class="option-text font-mono text-[0.85rem]">1.0X (SYNC)</span>
             </div>
-            <div class="custom-dropdown-option ${Config.timing.gameSpeedMultiplier === 2.0 ? 'active' : ''} px-3 py-2 cursor-pointer transition-all duration-150 hover:bg-theme-primary/10 hover:text-white flex items-center gap-2 border-b border-white/5 last:border-0 [&.active]:bg-theme-primary/10 [&.active]:text-theme-primary [&.active]:font-bold" data-value="2.0">
-                <span class="option-check w-5 flex-shrink-0 text-center font-bold">${Config.timing.gameSpeedMultiplier === 2.0 ? '✔' : '&nbsp;'}</span>
-                <span class="option-text font-mono text-[0.85rem]">2.0x (Fast)</span>
+            <div class="custom-dropdown-option ${Config.timing.gameSpeedMultiplier === 2.0 ? 'active' : ''} px-3 py-2 cursor-pointer transition-all duration-150 hover:bg-theme-primary hover:text-black flex items-center gap-2 border-b border-white/5 [&.active]:bg-theme-primary/20 [&.active]:text-theme-primary" data-value="2.0">
+                <span class="option-check w-5 flex-shrink-0 text-center font-bold">${Config.timing.gameSpeedMultiplier === 2.0 ? '▶' : '&nbsp;'}</span>
+                <span class="option-text font-mono text-[0.85rem]">2.0X (TURBO)</span>
             </div>
-            <div class="custom-dropdown-option ${Config.timing.gameSpeedMultiplier === 4.0 ? 'active' : ''} px-3 py-2 cursor-pointer transition-all duration-150 hover:bg-theme-primary/10 hover:text-white flex items-center gap-2 [&.active]:bg-theme-primary/10 [&.active]:text-theme-primary [&.active]:font-bold" data-value="4.0">
-                <span class="option-check w-5 flex-shrink-0 text-center font-bold">${Config.timing.gameSpeedMultiplier === 4.0 ? '✔' : '&nbsp;'}</span>
-                <span class="option-text font-mono text-[0.85rem]">4.0x (Very Fast)</span>
+            <div class="custom-dropdown-option ${Config.timing.gameSpeedMultiplier === 4.0 ? 'active' : ''} px-3 py-2 cursor-pointer transition-all duration-150 hover:bg-theme-primary hover:text-black flex items-center gap-2 border-b border-white/5 [&.active]:bg-theme-primary/20 [&.active]:text-theme-primary" data-value="4.0">
+                <span class="option-check w-5 flex-shrink-0 text-center font-bold">${Config.timing.gameSpeedMultiplier === 4.0 ? '▶' : '&nbsp;'}</span>
+                <span class="option-text font-mono text-[0.85rem]">4.0X (OVERCLOCK)</span>
+            </div>
+            <div class="custom-dropdown-option ${Config.timing.gameSpeedMultiplier === 8.0 ? 'active' : ''} px-3 py-2 cursor-pointer transition-all duration-150 hover:bg-theme-primary hover:text-black flex items-center gap-2 border-b border-white/5 [&.active]:bg-theme-primary/20 [&.active]:text-theme-primary" data-value="8.0">
+                <span class="option-check w-5 flex-shrink-0 text-center font-bold">${Config.timing.gameSpeedMultiplier === 8.0 ? '▶' : '&nbsp;'}</span>
+                <span class="option-text font-mono text-[0.85rem]">8.0X (RELATIVISTIC)</span>
+            </div>
+            <div class="custom-dropdown-option ${Config.timing.gameSpeedMultiplier === 16.0 ? 'active' : ''} px-3 py-2 cursor-pointer transition-all duration-150 hover:bg-theme-primary hover:text-black flex items-center gap-2 border-b border-white/5 [&.active]:bg-theme-primary/20 [&.active]:text-theme-primary" data-value="16.0">
+                <span class="option-check w-5 flex-shrink-0 text-center font-bold">${Config.timing.gameSpeedMultiplier === 16.0 ? '▶' : '&nbsp;'}</span>
+                <span class="option-text font-mono text-[0.85rem]">16.0X (HYPERSPACE)</span>
+            </div>
+            <div class="custom-dropdown-option ${Config.timing.gameSpeedMultiplier === 32.0 ? 'active' : ''} px-3 py-2 cursor-pointer transition-all duration-150 hover:bg-theme-primary hover:text-black flex items-center gap-2 [&.active]:bg-theme-primary/20 [&.active]:text-theme-primary" data-value="32.0">
+                <span class="option-check w-5 flex-shrink-0 text-center font-bold">${Config.timing.gameSpeedMultiplier === 32.0 ? '▶' : '&nbsp;'}</span>
+                <span class="option-text font-mono text-[0.85rem]">32.0X (LUDICROUS)</span>
             </div>
         </div>
     </div>

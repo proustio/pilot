@@ -15,9 +15,53 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
-  background-size: 100% 2px, 3px 100%;
+  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.15) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.05), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.05));
+  background-size: 100% 3px, 4px 100%;
   pointer-events: none;
+  z-index: 100;
+  opacity: 0.6;
+}
+
+.retro-display {
+  box-shadow: 0 0 50px rgba(0, 0, 0, 0.9), inset 0 0 40px rgba(var(--player-primary-rgb), 0.1);
+  animation: crt-flicker 0.15s infinite;
+}
+
+@keyframes crt-flicker {
+  0% { opacity: 0.99; }
+  50% { opacity: 1.0; }
+  100% { opacity: 0.98; }
+}
+
+.terminal-text {
+  text-shadow: 0 0 8px currentColor, 0 0 15px currentColor;
+  letter-spacing: 2px;
+}
+
+.retro-glitch {
+  position: relative;
+}
+
+.retro-glitch::after {
+  content: attr(data-text);
+  position: absolute;
+  left: 2px;
+  text-shadow: -2px 0 #ff00c1;
+  top: 0;
+  color: white;
+  background: black;
+  overflow: hidden;
+  clip: rect(0, 900px, 0, 0);
+  animation: noise-anim 2s infinite linear alternate-reverse;
+}
+
+@keyframes noise-anim {
+  0% { clip: rect(10px, 9999px, 80px, 0); }
+  20% { clip: rect(30px, 9999px, 10px, 0); }
+  40% { clip: rect(60px, 9999px, 40px, 0); }
+  60% { clip: rect(10px, 9999px, 60px, 0); }
+  80% { clip: rect(80px, 9999px, 20px, 0); }
+  100% { clip: rect(40px, 9999px, 90px, 0); }
 }
 
 /* Custom Dropdown State Handling (Tailwind-centric) */

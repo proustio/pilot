@@ -111,6 +111,12 @@ export class TurnExecutor {
                                     const cost = ship.calculateMoveCost(move.x, move.z);
                                     ship.movesRemaining = Math.max(0, ship.movesRemaining - cost);
                                     ship.hasActedThisTurn = true;
+                                    eventBus.emit(GameEventType.ENEMY_ACTION, {
+                                        shipId: ship.id,
+                                        actionType: 'move',
+                                        targetX: move.x,
+                                        targetZ: move.z
+                                    });
                                     this.s.onShipMovedInvoke(ship, move.x, move.z, move.orientation);
                                     
                                     this.s.onAnimationsComplete = completeAction;
@@ -131,6 +137,12 @@ export class TurnExecutor {
                                 const result = targetBoard.receiveAttack(target.x, target.z);
                                 ship.hasActedThisTurn = true;
                                 ship.movesRemaining = 0;
+                                eventBus.emit(GameEventType.ENEMY_ACTION, {
+                                    shipId: ship.id,
+                                    actionType: 'attack',
+                                    targetX: target.x,
+                                    targetZ: target.z
+                                });
                                 this.s.aiEngine.reportResult(target.x, target.z, result.toString(), targetBoard);
                                 this.s.attackResultListeners.forEach(l => l(target.x, target.z, result.toString(), false, false));
                                 

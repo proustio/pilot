@@ -231,6 +231,23 @@ export class HUD extends BaseUIComponent {
             indicator.innerText = "ENEMY TURN";
             indicator.classList.add('text-theme-primary');
             indicator.classList.remove('text-theme-danger');
+
+            eventBus.on(GameEventType.ENEMY_ACTION, (payload) => {
+                if (this.gameLoop.currentState !== GameState.ENEMY_TURN) return;
+                
+                const enemyShip = this.gameLoop.match?.sharedBoard.ships.find(s => s.id === payload.shipId);
+                const healthPct = enemyShip ? (enemyShip.segments.filter(s => s).length / enemyShip.size) * 100 : 100;
+
+                indicator.innerHTML = `
+                    <div class="text-[0.7rem] text-[#888] mb-[2px] uppercase tracking-wider">ENEMY ACTION</div>
+                    <div class="text-[1.1rem] text-theme-danger font-bold uppercase tracking-widest">${payload.shipId}</div>
+                    <div class="text-[0.8rem] text-white mt-1 font-mono">${payload.actionType.toUpperCase()}</div>
+                    <div class="mt-2 w-full bg-black/40 h-1 rounded overflow-hidden border border-white/5">
+                        <div class="h-full bg-theme-danger transition-all duration-300" style="width: ${healthPct}%"></div>
+                    </div>
+                    <div class="text-[0.6rem] text-theme-danger/60 font-mono mt-0.5 uppercase tracking-tighter text-right">HULL_INTEGRITY: ${Math.round(healthPct)}%</div>
+                `;
+            });
         } else if (state === GameState.SETUP_BOARD) {
             indicator.innerHTML = `
                 <div class="text-[1.6rem] uppercase tracking-tighter">PLACE YOUR SHIPS</div>

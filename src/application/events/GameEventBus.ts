@@ -41,6 +41,7 @@ export enum GameEventType {
     ROGUE_USE_ABILITY = 'ROGUE_USE_ABILITY',
     ROGUE_USE_WEAPON = 'ROGUE_USE_WEAPON',
     ROGUE_ABILITY_QUEUED = 'ROGUE_ABILITY_QUEUED',
+    ENEMY_ACTION = 'ENEMY_ACTION',
     
     // Storage
     SAVE_GAME = 'SAVE_GAME',
@@ -121,6 +122,12 @@ export interface GameEventPayloads {
         directionZ?: number 
     };
     [GameEventType.ROGUE_ABILITY_QUEUED]: { type: string };
+    [GameEventType.ENEMY_ACTION]: { 
+        shipId: string, 
+        actionType: 'move' | 'attack' | 'sonar' | 'mine', 
+        targetX: number, 
+        targetZ: number 
+    };
     
     [GameEventType.SAVE_GAME]: { slotId: number | 'session', viewState?: any, activeRogueShipIndex?: number, activeEnemyRogueShipIndex?: number };
     [GameEventType.LOAD_GAME]: { slotId: number | 'session' };

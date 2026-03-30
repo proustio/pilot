@@ -8,6 +8,8 @@ export class InputFeedbackHandler {
     public hoverCursor: THREE.Group;
     public ghostGroup: THREE.Group;
     public moveHighlightGroup: THREE.Group;
+    public visionHighlightGroup: THREE.Group;
+    public attackHighlightGroup: THREE.Group;
     private currentGhostSize: number = 0;
     private hoverCursorVoxels!: THREE.InstancedMesh;
     private dummy: THREE.Object3D = new THREE.Object3D();
@@ -27,8 +29,17 @@ export class InputFeedbackHandler {
         const highlightParent = entityManager.playerBoardGroup;
         highlightParent.add(this.moveHighlightGroup);
 
-        // 3. Hover Cursor (Voxel Tornado)
-        this.hoverCursor = this.createHoverCursor();
+        // 3. Vision & Attack Range Groups
+        this.visionHighlightGroup = new THREE.Group();
+        this.visionHighlightGroup.renderOrder = 997;
+        highlightParent.add(this.visionHighlightGroup);
+
+        this.attackHighlightGroup = new THREE.Group();
+        this.attackHighlightGroup.renderOrder = 996;
+        highlightParent.add(this.attackHighlightGroup);
+
+        // 4. Hover Cursor (Voxel Tornado)
+        this.hoverCursor = this.createHoverCursor(false);
         this.hoverCursor.visible = false;
         scene.add(this.hoverCursor);
 
@@ -49,12 +60,14 @@ export class InputFeedbackHandler {
         if (this.hoverCursorVoxels.instanceColor) {
             this.hoverCursorVoxels.instanceColor.needsUpdate = true;
         }
+
+        // Enemy cursor is always red for now
     }
 
-    private createHoverCursor(): THREE.Group {
+    private createHoverCursor(isEnemy: boolean): THREE.Group {
         const voxelSize = 0.1;
         const geometry = new THREE.BoxGeometry(voxelSize, voxelSize, voxelSize);
-        const color = ThemeManager.getInstance().getPlayerShipColor();
+        const color = isEnemy ? new THREE.Color(0xFF0000) : ThemeManager.getInstance().getPlayerShipColor();
         
         const material = new THREE.MeshStandardMaterial({
             color: color,
@@ -66,20 +79,26 @@ export class InputFeedbackHandler {
             roughness: 0.2
         });
 
-        this.hoverCursorVoxels = new THREE.InstancedMesh(geometry, material, this.VOXEL_COUNT);
-        this.hoverCursorVoxels.renderOrder = 999;
-        this.hoverCursorVoxels.frustumCulled = false; // Always render while visible to avoid flicker
+        const instMesh = new THREE.InstancedMesh(geometry, material, this.VOXEL_COUNT);
+        instMesh.renderOrder = 999;
+        instMesh.frustumCulled = false;
+
+        this.hoverCursorVoxels = instMesh;
 
         const group = new THREE.Group();
-        group.add(this.hoverCursorVoxels);
+        group.add(instMesh);
         return group;
     }
 
     public update(time: number) {
-        if (!this.hoverCursorVoxels || !this.hoverCursor.visible) return;
+        this.updateTornado(this.hoverCursorVoxels, this.hoverCursor, time, false);
+    }
+
+    private updateTornado(mesh: THREE.InstancedMesh, group: THREE.Group, time: number, isEnemy: boolean) {
+        if (!mesh || !group.visible) return;
 
         const totalHeight = 2.5;
-        const speed = 0.005;
+        const speed = isEnemy ? -0.007 : 0.005; // Different spin for enemy
         const tightness = Math.PI * 4; 
         const baseRadius = 0.05;
         const topRadius = 0.7;
@@ -118,10 +137,10 @@ export class InputFeedbackHandler {
             this.dummy.rotation.set(angle, t * Math.PI, 0);
             
             this.dummy.updateMatrix();
-            this.hoverCursorVoxels.setMatrixAt(i, this.dummy.matrix);
+            mesh.setMatrixAt(i, this.dummy.matrix);
         }
 
-        this.hoverCursorVoxels.instanceMatrix.needsUpdate = true;
+        mesh.instanceMatrix.needsUpdate = true;
     }
 
     public updateGhost(ship: any, orientation: Orientation, pickedTile: THREE.Object3D, isValid: boolean, x?: number, z?: number) {
@@ -224,6 +243,66 @@ export class InputFeedbackHandler {
         }
     }
 
+    public rebuildRangeHighlights(ship: any, board: any) {
+        // Clear previous
+        [this.visionHighlightGroup, this.attackHighlightGroup].forEach(group => {
+            group.children.forEach((child: any) => {
+                if (child.geometry) child.geometry.dispose();
+                if (child.material) {
+                    if (Array.isArray(child.material)) child.material.forEach((m: any) => m.dispose());
+                    else child.material.dispose();
+                }
+            });
+            group.clear();
+        });
+
+        if (!ship || !ship.isPlaced) return;
+
+        const boardOffset = Config.board.width / 2;
+        const visionRadius = ship.visionRadius || 5;
+        const attackRadius = visionRadius * 2;
+
+        const visionMat = new THREE.MeshBasicMaterial({
+            color: 0x4169E1, // Royal Blue
+            transparent: true,
+            opacity: 0.2,
+            side: THREE.DoubleSide,
+            depthWrite: false
+        });
+
+        const attackMat = new THREE.MeshBasicMaterial({
+            color: 0xFFA500, // Orange
+            transparent: true,
+            opacity: 0.15,
+            side: THREE.DoubleSide,
+            depthWrite: false
+        });
+
+        const geo = new THREE.PlaneGeometry(0.95, 0.95);
+
+        for (let x = 0; x < board.width; x++) {
+            for (let z = 0; z < board.height; z++) {
+                const dist = Math.abs(x - ship.headX) + Math.abs(z - ship.headZ);
+                
+                if (dist > 0 && dist <= attackRadius) {
+                    const targetX = x - boardOffset + 0.5;
+                    const targetZ = z - boardOffset + 0.5;
+                    
+                    const isVision = dist <= visionRadius;
+                    const mesh = new THREE.Mesh(geo, isVision ? visionMat : attackMat);
+                    mesh.rotation.x = -Math.PI / 2;
+                    mesh.position.set(targetX, 0.15, targetZ);
+                    
+                    if (isVision) {
+                        this.visionHighlightGroup.add(mesh);
+                    } else {
+                        this.attackHighlightGroup.add(mesh);
+                    }
+                }
+            }
+        }
+    }
+
     private buildGhost(size: number) {
         while (this.ghostGroup.children.length > 0) {
             const child = this.ghostGroup.children[0] as THREE.Mesh;
@@ -250,5 +329,7 @@ export class InputFeedbackHandler {
         this.ghostGroup.visible = false;
         this.hoverCursor.visible = false;
         this.moveHighlightGroup.visible = false;
+        this.visionHighlightGroup.visible = false;
+        this.attackHighlightGroup.visible = false;
     }
 }
