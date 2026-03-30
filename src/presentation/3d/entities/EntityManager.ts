@@ -100,6 +100,7 @@ export class EntityManager {
         });
 
         eventBus.on(GameEventType.ROGUE_MOVE_SHIP, () => {
+            this.fogManager.markFogDirty();
             this.visibilityManager.forceUpdate();
         });
 

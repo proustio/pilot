@@ -46,11 +46,11 @@ export class ShipFactory {
         } else if (orientation === Orientation.Up) {
             shipGroup.rotation.y = Math.PI / 2;
         }
-        
+
         // In Rogue mode, all ships on the same board are visible initially? 
         // No, they should be hidden by fog. 
-        shipGroup.visible = isPlayer || !Config.rogueMode; 
-        
+        shipGroup.visible = isPlayer || !Config.rogueMode;
+
         if (Config.rogueMode) {
             ship.isEnemy = !isPlayer; // Sync domain object
         }
@@ -68,7 +68,7 @@ export class ShipFactory {
             bridgeColor = invert(bridgeColor);
             darkAccent = invert(darkAccent);
         }
-        
+
         const tm = ThemeManager.getInstance();
         const accentColor = isPlayer ? tm.getPlayerShipColor() : tm.getEnemyShipColor();
 
@@ -149,7 +149,7 @@ export class ShipFactory {
                     for (let ly = 1; ly <= maxLy; ly++) {
                         let color = hullColor;
                         let isAccent = false;
-                        
+
                         // Front (bow) distinction: Use accent color for the tip of the deck at the front
                         const isFront = xNorm > 0.8;
 
@@ -204,65 +204,27 @@ export class ShipFactory {
             instancedMesh.setColorAt(index, vd.color);
         });
 
-        // ───── Wireframe Neon Overlay ─────
-        const instancedLines = new THREE.InstancedMesh(
-            new THREE.BoxGeometry(voxelSize * 1.01, voxelSize * 1.01, voxelSize * 1.01),
-            new THREE.MeshBasicMaterial({
-                color: accentColor,
-                wireframe: true,
-                transparent: true,
-                opacity: 0.2
-            }),
-            voxelsData.length
-        );
-
-        voxelsData.forEach((vd, index) => {
-            dummy.scale.setScalar(1);
-            dummy.position.copy(vd.pos);
-            dummy.updateMatrix();
-            instancedLines.setMatrixAt(index, dummy.matrix);
-            if (vd.isAccent) {
-                instancedLines.setColorAt(index, accentColor);
-            } else {
-                instancedLines.setColorAt(index, new THREE.Color(0x000000));
-                dummy.scale.set(0, 0, 0);
-                dummy.updateMatrix();
-                instancedLines.setMatrixAt(index, dummy.matrix);
-            }
-        });
-
-        instancedLines.instanceMatrix.needsUpdate = true;
-        if (instancedLines.instanceColor) instancedLines.instanceColor.needsUpdate = true;
-
         const updateShipTheme = () => {
             const currentAccent = isPlayer ? ThemeManager.getInstance().getPlayerShipColor() : ThemeManager.getInstance().getEnemyShipColor();
-            (instancedLines.material as THREE.MeshBasicMaterial).color.copy(currentAccent);
 
             voxelsData.forEach((vd, index) => {
                 if (vd.isAccent) {
-                    instancedLines.setColorAt(index, currentAccent);
                     instancedMesh.setColorAt(index, currentAccent);
                 }
             });
 
-            if (instancedLines.instanceColor) instancedLines.instanceColor.needsUpdate = true;
             if (instancedMesh.instanceColor) instancedMesh.instanceColor.needsUpdate = true;
         };
-        
+
         const themeListener = () => updateShipTheme();
         eventBus.on(GameEventType.THEME_CHANGED, themeListener);
         shipGroup.userData.themeListener = themeListener;
         shipGroup.userData.dispose = () => {
             eventBus.off(GameEventType.THEME_CHANGED, themeListener);
             instancedMesh.dispose();
-            instancedLines.dispose();
             instancedMesh.geometry.dispose();
             (instancedMesh.material as THREE.Material).dispose();
-            instancedLines.geometry.dispose();
-            (instancedLines.material as THREE.Material).dispose();
         };
-
-        shipGroup.add(instancedLines);
 
         if (instancedMesh.instanceColor) {
             instancedMesh.instanceColor.needsUpdate = true;
@@ -310,7 +272,7 @@ export class ShipFactory {
             barrelMesh.rotation.z = Math.PI / 2;
             barrelMesh.position.x = 0.12;
             turretGroup.position.set(tPos, 0.2, 0);
-            
+
             barrelMesh.position.y = 0.02;
             turretGroup.add(barrelMesh);
 
@@ -330,8 +292,8 @@ export class ShipFactory {
 
         // Simple spiked ball voxel model
         const positions = [
-            [0,0,0], [1,0,0], [-1,0,0], [0,1,0], [0,-1,0], [0,0,1], [0,0,-1],
-            [2,0,0], [-2,0,0], [0,2,0], [0,-2,0], [0,0,2], [0,0,-2]
+            [0, 0, 0], [1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1],
+            [2, 0, 0], [-2, 0, 0], [0, 2, 0], [0, -2, 0], [0, 0, 2], [0, 0, -2]
         ];
 
         const instancedMesh = new THREE.InstancedMesh(geometry, material, positions.length);
@@ -341,7 +303,7 @@ export class ShipFactory {
             dummy.updateMatrix();
             instancedMesh.setMatrixAt(i, dummy.matrix);
         });
-        
+
         group.add(instancedMesh);
         return group;
     }
@@ -358,10 +320,10 @@ export class ShipFactory {
 
         // Simple buoy/tower voxel model
         const positions = [
-            [0,0,0], [0,1,0], [0,2,0], [0,3,0], [0,4,0],
-            [1,0,0], [-1,0,0], [0,0,1], [0,0,-1],
-            [1,1,0], [-1,1,0], [0,1,1], [0,1,-1],
-            [0,5,0] // Antena top
+            [0, 0, 0], [0, 1, 0], [0, 2, 0], [0, 3, 0], [0, 4, 0],
+            [1, 0, 0], [-1, 0, 0], [0, 0, 1], [0, 0, -1],
+            [1, 1, 0], [-1, 1, 0], [0, 1, 1], [0, 1, -1],
+            [0, 5, 0] // Antena top
         ];
 
         const instancedMesh = new THREE.InstancedMesh(geometry, material, positions.length);
@@ -371,9 +333,9 @@ export class ShipFactory {
             dummy.updateMatrix();
             instancedMesh.setMatrixAt(i, dummy.matrix);
         });
-        
+
         group.add(instancedMesh);
-        
+
         // Add a blinking light on top
         const lightGeom = new THREE.SphereGeometry(0.05, 8, 8);
         const lightMat = new THREE.MeshBasicMaterial({ color: 0x00ffff, transparent: true, opacity: 0.8 });

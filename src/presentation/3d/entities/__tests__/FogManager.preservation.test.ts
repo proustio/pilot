@@ -219,7 +219,8 @@ describe('FogManager Preservation: isCellRevealed Correctness', () => {
                 const qz = Math.floor(rand() * 20);
 
                 const ship = createShip(`s${i}`, 1, sx, sz);
-                // Single updateRogueFog sets lastShipsOnBoard for isCellRevealed
+                // Mark dirty so updateRogueFog recomputes with new ship position
+                fm.markFogDirty();
                 fm.updateRogueFog([ship]);
 
                 const dist = chebyshevDist(qx, qz, ship);
@@ -238,6 +239,7 @@ describe('FogManager Preservation: isCellRevealed Correctness', () => {
                 const sz = Math.floor(rand() * 20);
                 const ship = createShip(`s${i}`, 3, sx, sz, false, Orientation.Horizontal);
 
+                fm.markFogDirty();
                 fm.updateRogueFog([ship]);
 
                 const qx = Math.floor(rand() * 20);

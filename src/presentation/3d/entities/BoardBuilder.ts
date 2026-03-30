@@ -258,31 +258,58 @@ export class BoardBuilder {
         const aScale = new Float32Array(numVoxels);
         const aPhase = new Float32Array(numVoxels);
         const aSpeed = new Float32Array(numVoxels);
-        
+
         for (let i = 0; i < numVoxels; i++) {
             aBasePos[i * 3 + 0] = (Math.random() - 0.5) * 0.95;
             // Compress the Y-axis distribution by half (0.9 -> 0.45)
             aBasePos[i * 3 + 1] = (Math.random() - 0.5) * 0.45;
             aBasePos[i * 3 + 2] = (Math.random() - 0.5) * 0.95;
-            
+
             aScale[i] = 1.0 + Math.random() * 0.8;
             aPhase[i] = Math.random() * Math.PI * 2;
             aSpeed[i] = 0.5 + Math.random() * 1.5;
         }
-        
+
         fogVoxelGeo.setAttribute('aBasePos', new THREE.InstancedBufferAttribute(aBasePos, 3));
         fogVoxelGeo.setAttribute('aScale', new THREE.InstancedBufferAttribute(aScale, 1));
         fogVoxelGeo.setAttribute('aPhase', new THREE.InstancedBufferAttribute(aPhase, 1));
         fogVoxelGeo.setAttribute('aSpeed', new THREE.InstancedBufferAttribute(aSpeed, 1));
 
-        fogManager.initializeDynamicAssets(fogVoxelGeo, fogMat);
+        // For Rogue mode, create a reduced-voxel geometry (60 instead of 250)
+        // The consolidated mesh in FogManager will use this as the base geometry
+        if (fogManager.rogueMode) {
+            const rogueNumVoxels = 60;
+            const rogueGeo = new THREE.BoxGeometry(0.15, 0.15, 0.15);
+            const rBasePos = new Float32Array(rogueNumVoxels * 3);
+            const rScale = new Float32Array(rogueNumVoxels);
+            const rPhase = new Float32Array(rogueNumVoxels);
+            const rSpeed = new Float32Array(rogueNumVoxels);
+
+            for (let i = 0; i < rogueNumVoxels; i++) {
+                rBasePos[i * 3 + 0] = (Math.random() - 0.5) * 0.95;
+                rBasePos[i * 3 + 1] = (Math.random() - 0.5) * 0.45;
+                rBasePos[i * 3 + 2] = (Math.random() - 0.5) * 0.95;
+                rScale[i] = 1.0 + Math.random() * 0.8;
+                rPhase[i] = Math.random() * Math.PI * 2;
+                rSpeed[i] = 0.5 + Math.random() * 1.5;
+            }
+
+            rogueGeo.setAttribute('aBasePos', new THREE.InstancedBufferAttribute(rBasePos, 3));
+            rogueGeo.setAttribute('aScale', new THREE.InstancedBufferAttribute(rScale, 1));
+            rogueGeo.setAttribute('aPhase', new THREE.InstancedBufferAttribute(rPhase, 1));
+            rogueGeo.setAttribute('aSpeed', new THREE.InstancedBufferAttribute(rSpeed, 1));
+
+            fogManager.initializeDynamicAssets(rogueGeo, fogMat);
+        } else {
+            fogManager.initializeDynamicAssets(fogVoxelGeo, fogMat);
+        }
 
         const numTiles = boardSize * boardSize;
         const pGridInstanced = new THREE.InstancedMesh(tileGeometry, tilePlayerMat, numTiles);
         pGridInstanced.userData = { isInstancedGrid: true, isPlayerSide: true };
         playerBoardGroup.add(pGridInstanced);
         playerGridTiles.push(pGridInstanced);
-        
+
         const eGridInstanced = new THREE.InstancedMesh(tileGeometry, tileEnemyMat, numTiles);
         eGridInstanced.userData = { isInstancedGrid: true, isPlayerSide: false };
         enemyBoardGroup.add(eGridInstanced);
@@ -311,13 +338,18 @@ export class BoardBuilder {
                     for (let j = 0; j < numVoxels; j++) {
                         fogCloud.setMatrixAt(j, identity);
                     }
-                    
+
                     fogCloud.userData = { isFog: true };
 
                     enemyBoardGroup.add(fogCloud);
                     fogManager.setFogMesh(z * boardSize + x, fogCloud);
                 }
             }
+        }
+
+        // Initialize consolidated fog mesh for Rogue mode (single InstancedMesh for all fog)
+        if (fogManager.rogueMode) {
+            fogManager.initConsolidatedFog(playerBoardGroup);
         }
 
         const pGrid = new THREE.GridHelper(boardSize, boardSize);
@@ -338,13 +370,13 @@ export class BoardBuilder {
         const raycastGeo = new THREE.PlaneGeometry(boardSize, boardSize);
         raycastGeo.rotateX(-Math.PI / 2);
         const raycastMat = new THREE.MeshBasicMaterial({ depthWrite: false, colorWrite: false, transparent: true, opacity: 0 });
-        
+
         const pRaycast = new THREE.Mesh(raycastGeo, raycastMat);
         pRaycast.position.y = 0.05;
         pRaycast.userData = { isRaycastPlane: true, isPlayerSide: true };
         playerBoardGroup.add(pRaycast);
         playerRaycastPlanes.push(pRaycast);
-        
+
         const eRaycast = new THREE.Mesh(raycastGeo, raycastMat);
         eRaycast.position.y = 0.05;
         eRaycast.userData = { isRaycastPlane: true, isPlayerSide: false };
@@ -366,7 +398,7 @@ export class BoardBuilder {
 
             tilePlayerMat.color.copy(pColor);
             tilePlayerMat.emissive.copy(pColor);
-            
+
             tileEnemyMat.color.copy(eColor);
             tileEnemyMat.emissive.copy(eColor);
 
@@ -374,10 +406,10 @@ export class BoardBuilder {
             (pGrid.material as any).needsUpdate = true;
             (eGrid.material as any).color.copy(bLinesColor);
             (eGrid.material as any).needsUpdate = true;
-            
+
             rivetMat.color.copy(tm.getRivetColor());
             screwMat.color.copy(tm.getScrewColor());
-            
+
             // Update frame material map if theme changed significantly (optional, or just update emissive)
             frameMat.map = tm.getIndustrialTexture();
         };
