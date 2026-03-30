@@ -31,3 +31,42 @@ Here is some stuff we need to do around our codebase in no particular order or p
 1. ~~see weapon and movement systems and active ship displayed as enemies move or attack~~
 1. fix sonar and mines deployment and visibility (currently invisible or don't deploy)
 1. broadly support all available weapon and movement systems across entities
+
+
+
+
+Consider large files for decomposition:
+
+src/
+├── main.ts (278 lines)
+├── styles/
+│   └── hud.css (296 lines)
+├── infrastructure/
+│   ├── storage/
+│   │   └── Storage.ts (238 lines)
+├── domain/
+│   ├── board/
+│   │   └── Board.ts (305 lines)
+├── application/
+│   ├── game-loop/
+│   │   ├── GameLoop.ts (320 lines)
+│   │   └── TurnExecutor.ts (416 lines)
+│   ├── ai/
+│   │   └── AIEngine.ts (363 lines)
+├── presentation/
+│   ├── ui/
+│   │   ├── hud/
+│   │   │   └── UnifiedBoardUI.ts (258 lines)
+│   ├── 3d/
+│   │   ├── Engine3D.ts (262 lines)
+│   │   ├── interaction/
+│   │   │   ├── InputFeedbackHandler.ts (335 lines)
+│   │   │   └── InteractionManager.ts (397 lines)
+│   │   ├── entities/
+│   │   │   ├── ProjectileManager.ts (327 lines)
+│   │   │   ├── ImpactEffects.ts (328 lines)
+│   │   │   ├── ParticleSystem.ts (348 lines)
+│   │   │   ├── ShipFactory.ts (349 lines)
+│   │   │   ├── FogManager.ts (423 lines)
+│   │   │   ├── BoardBuilder.ts (429 lines)
+│   │   │   └── EntityManager.ts (470 lines)
