@@ -1,6 +1,6 @@
 # Implementation Plan
 
-- [ ] 1. Write bug condition exploration test
+- [x] 1. Write bug condition exploration test
   - **Property 1: Bug Condition** - Per-Frame Unconditional Fog Recalculation
   - **CRITICAL**: This test MUST FAIL on unfixed code — failure confirms the bug exists
   - **DO NOT attempt to fix the test or the code when it fails**
@@ -17,7 +17,7 @@
   - Document counterexamples: "updateRogueFog iterates all 400 cells on every call regardless of state changes"
   - _Requirements: 1.1, 1.2, 1.3_
 
-- [ ] 2. Write preservation property tests (BEFORE implementing fix)
+- [x] 2. Write preservation property tests (BEFORE implementing fix)
   - **Property 2: Preservation** - isCellRevealed Correctness and Classic Mode Unchanged
   - **IMPORTANT**: Follow observation-first methodology
   - Create test file at `src/presentation/3d/entities/__tests__/FogManager.preservation.test.ts`
