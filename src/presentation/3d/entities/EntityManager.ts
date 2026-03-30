@@ -74,7 +74,7 @@ export class EntityManager {
 
         this.playerRaycastPlanes = buildResult.playerRaycastPlanes;
         this.enemyRaycastPlanes = buildResult.enemyRaycastPlanes;
-        
+
         this.waterManager = new WaterShaderManager(buildResult.playerWaterUniforms, buildResult.enemyWaterUniforms);
         this.visibilityManager = new VesselVisibilityManager(this.fogManager);
 
@@ -125,7 +125,7 @@ export class EntityManager {
                 const boardOffset = Config.board.width / 2;
                 const worldX = targetX - boardOffset + 0.5;
                 const worldZ = targetZ - boardOffset + 0.5;
-                
+
                 this.activeSonarEffects.push(new SonarEffect(worldX, worldZ, 3, this.playerBoardGroup));
             }
         });
@@ -161,7 +161,7 @@ export class EntityManager {
     public addShip(ship: Ship, x: number, z: number, orientation: Orientation, isPlayer: boolean) {
         const isRogue = Config.rogueMode;
         const targetGroup = isRogue ? this.playerBoardGroup : (isPlayer ? this.playerBoardGroup : this.enemyBoardGroup);
-        
+
         let shipGroup: THREE.Group;
         if (ship.specialType === 'sonar') {
             shipGroup = ShipFactory.createSonarBuoy(isPlayer);
@@ -180,13 +180,13 @@ export class EntityManager {
         }
 
         if (!isPlayer) shipGroup.visible = false;
-        
+
         // Prevent ghosting: remove old group if it exists
         const oldGroup = this.visibilityManager.getGroupForShip(ship);
         if (oldGroup && oldGroup.parent) {
             oldGroup.parent.remove(oldGroup);
         }
-        
+
         this.visibilityManager.trackShip(ship, shipGroup);
 
         const boardOffset = Config.board.width / 2;
@@ -215,7 +215,7 @@ export class EntityManager {
         const clearFromGroup = (group: THREE.Group) => {
             for (let i = group.children.length - 1; i >= 0; i--) {
                 const child = group.children[i];
-                if (child.userData.isAttackMarker && child.userData.result !== 'sunk') {
+                if (child.userData.isAttackMarker && child.userData.result !== 'sunk' && child.userData.result !== 'hit') {
                     if (child.userData.dispose) child.userData.dispose();
                     group.remove(child);
                 }
@@ -229,7 +229,7 @@ export class EntityManager {
     private revealSunkShip(x: number, z: number) {
         const sunkShip = this.visibilityManager.allShips.find(s => s.isEnemy && s.getOccupiedCoordinates().some(c => c.x === x && c.z === z));
         if (sunkShip) {
-            sunkShip.getOccupiedCoordinates().forEach((c: {x: number, z: number}) => {
+            sunkShip.getOccupiedCoordinates().forEach((c: { x: number, z: number }) => {
                 this.fogManager.revealCellPermanently(c.x, c.z);
                 for (let dx = -1; dx <= 1; dx++) {
                     for (let dz = -1; dz <= 1; dz++) {
@@ -246,7 +246,7 @@ export class EntityManager {
     public moveShip3D(ship: Ship, x: number, z: number, orientation: Orientation) {
         let targetGroup: THREE.Group | undefined;
         let parentGroup: THREE.Group | undefined;
-        
+
         [this.playerBoardGroup, this.enemyBoardGroup].forEach(boardGroup => {
             boardGroup.children.forEach((child: THREE.Object3D) => {
                 if (child.userData.isShip && child.userData.ship?.id === ship.id) {
@@ -262,7 +262,7 @@ export class EntityManager {
             const isPlayer = !ship.isEnemy;
             parentGroup.remove(targetGroup);
             const newShipGroup = ShipFactory.createShip(ship, ship.headX, ship.headZ, orientation, isPlayer, parentGroup);
-            newShipGroup.position.copy(targetGroup.position); 
+            newShipGroup.position.copy(targetGroup.position);
             targetGroup = newShipGroup;
             this.visibilityManager.trackShip(ship, targetGroup);
         }
@@ -280,7 +280,7 @@ export class EntityManager {
         const sinkFloor = Config.visual.sinkingFloor;
         [this.playerBoardGroup, this.enemyBoardGroup].forEach(group => {
             group.children.forEach((child: THREE.Object3D) => {
-                if (child.userData.isShip && ((child.userData.isSinking && child.position.y > sinkFloor) || 
+                if (child.userData.isShip && ((child.userData.isSinking && child.position.y > sinkFloor) ||
                     (child.userData.targetPosition && child.position.distanceToSquared(child.userData.targetPosition) > 0.001))) {
                     isAnimating = true;
                 }
@@ -291,20 +291,20 @@ export class EntityManager {
 
     public update(camera: THREE.Camera) {
         const gameSpeed = Config.timing.gameSpeedMultiplier;
-        
+
         this.masterBoardGroup.rotation.x += (this.targetRotationX - this.masterBoardGroup.rotation.x) * Config.timing.boardFlipSpeed * gameSpeed;
         this.time += 0.016 * gameSpeed;
 
         this.fogManager.updateAnimation(this.time, camera);
         this.waterManager.update(this.time, gameSpeed);
         this.visibilityManager.update(this.time);
-        
+
         this.updateStaticAnimations();
         this.particleSystem.update();
-        
-        this.projectileManager.updateProjectiles(this.addRipple.bind(this), this.waterManager.getUniformsForBoard(true), this.waterManager.getUniformsForBoard(false)); 
 
-        const dt = 1 / 60; 
+        this.projectileManager.updateProjectiles(this.addRipple.bind(this), this.waterManager.getUniformsForBoard(true), this.waterManager.getUniformsForBoard(false));
+
+        const dt = 1 / 60;
         for (let i = this.activeSonarEffects.length - 1; i >= 0; i--) {
             if (!this.activeSonarEffects[i].update(dt)) {
                 this.activeSonarEffects.splice(i, 1);
