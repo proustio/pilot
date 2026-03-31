@@ -45,6 +45,10 @@ export class EntityManager {
     private activeRogueShipId: string | null = null;
     private isPlayerTurn: boolean = false;
 
+    // LED animation via instanced mesh
+    private ledMesh: THREE.InstancedMesh | null = null;
+    private ledPhases: number[] = [];
+
     constructor(scene: THREE.Scene) {
         this.scene = scene;
 
@@ -54,6 +58,7 @@ export class EntityManager {
         this.enemyBoardGroup = new THREE.Group();
 
         this.particleSystem = new ParticleSystem();
+        this.particleSystem.initPools(this.playerBoardGroup);
         this.fogManager = new FogManager(this.enemyBoardGroup, Config.rogueMode);
 
         this.playerBoardGroup.position.y = 1.2;
@@ -76,6 +81,9 @@ export class EntityManager {
 
         this.playerRaycastPlanes = buildResult.playerRaycastPlanes;
         this.enemyRaycastPlanes = buildResult.enemyRaycastPlanes;
+
+        this.ledMesh = buildResult.ledMesh;
+        this.ledPhases = buildResult.ledPhases;
 
         this.waterManager = new WaterShaderManager(buildResult.playerWaterUniforms, buildResult.enemyWaterUniforms);
         this.visibilityManager = new VesselVisibilityManager(this.fogManager);
@@ -324,13 +332,17 @@ export class EntityManager {
     }
 
     private updateStaticAnimations() {
-        this.staticGroup.children.forEach(child => {
-            if (child.userData.isStatusLED) {
-                const mat = (child as THREE.Mesh).material as THREE.MeshBasicMaterial;
-                child.userData.phase += 0.05;
-                mat.opacity = 0.3 + (0.5 + Math.sin(child.userData.phase) * 0.5) * 0.7;
-            }
-        });
+        if (!this.ledMesh || this.ledPhases.length === 0) return;
+        const ledColor = new THREE.Color(0x4169E1);
+        for (let i = 0; i < this.ledPhases.length; i++) {
+            this.ledPhases[i] += 0.05;
+            const opacity = 0.3 + (0.5 + Math.sin(this.ledPhases[i]) * 0.5) * 0.7;
+            // Modulate color brightness to simulate opacity on MeshBasicMaterial
+            ledColor.setHex(0x4169E1);
+            ledColor.multiplyScalar(opacity);
+            this.ledMesh.setColorAt(i, ledColor);
+        }
+        this.ledMesh.instanceColor!.needsUpdate = true;
     }
 
     private isSetupPhase: boolean = false;

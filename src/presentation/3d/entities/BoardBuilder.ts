@@ -14,6 +14,8 @@ export interface BoardBuildResult {
     enemyRaycastPlanes: THREE.Object3D[];
     playerWaterUniforms: any;
     enemyWaterUniforms: any;
+    ledMesh: THREE.InstancedMesh;
+    ledPhases: number[];
 }
 
 export class BoardBuilder {
@@ -38,7 +40,7 @@ export class BoardBuilder {
         const offset = boardSize / 2;
 
         // ───── Structural Meshes (frame, base, brackets, rivets, screws, bottom) ─────
-        const { frameMat, rivetMat, screwMat } = BoardMeshFactory.build(
+        const { frameMat, rivetMat, screwMat, ledMesh, ledPhases } = BoardMeshFactory.build(
             masterBoardGroup, staticGroup, boardSize, offset
         );
 
@@ -211,7 +213,9 @@ export class BoardBuilder {
             playerRaycastPlanes,
             enemyRaycastPlanes,
             playerWaterUniforms,
-            enemyWaterUniforms
+            enemyWaterUniforms,
+            ledMesh,
+            ledPhases
         };
     }
 }

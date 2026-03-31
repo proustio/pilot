@@ -75,8 +75,8 @@ Replace individual `THREE.Mesh` objects with pre-allocated `THREE.InstancedMesh`
 - [x] 2. Manual verification — Particle instancing
   - Stop and let the user verify particle rendering in a live game before proceeding. Fire, smoke, explosions, and splash effects should look identical to before. Fog particles should render correctly in Rogue mode.
 
-- [-] 3. Implement instanced board decoration rendering (BoardMeshFactory)
-  - [ ] 3.1 Refactor BoardMeshFactory.build() to use InstancedMesh for decorations
+- [x] 3. Implement instanced board decoration rendering (BoardMeshFactory)
+  - [x] 3.1 Refactor BoardMeshFactory.build() to use InstancedMesh for decorations
     - Replace 32 individual rivet meshes with 1 `InstancedMesh(rivetGeo, rivetMat, 32)`
     - Replace 4 individual screw head meshes with 1 `InstancedMesh(screwGeo, screwMat, 4)`
     - Replace 4 individual screw slot meshes with 1 `InstancedMesh(screwSlotGeo, screwSlotMat, 4)`
@@ -86,12 +86,12 @@ Replace individual `THREE.Mesh` objects with pre-allocated `THREE.InstancedMesh`
     - Keep base mesh and bottom plane as individual meshes (1 each)
     - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.8_
 
-  - [ ] 3.2 Extend BoardMeshFactory return type for LED animation
+  - [x] 3.2 Extend BoardMeshFactory return type for LED animation
     - Add `ledMesh: THREE.InstancedMesh` and `ledPhases: number[]` to the return interface (`BoardMeshBuildResult`)
     - Store per-LED phase offsets for animation in `ledPhases` array
     - _Requirements: 3.5, 6.5_
 
-  - [ ] 3.3 Update theme reactivity for instanced board decorations
+  - [x] 3.3 Update theme reactivity for instanced board decorations
     - Update theme change handler to modify shared materials on InstancedMesh objects (rivet, screw, frame materials)
     - Verify LED color updates work via the shared LED material
     - _Requirements: 3.7_
