@@ -103,7 +103,8 @@ export class InputFeedbackHandler {
             const stepInSpiral = Math.floor(i / spiralCount);
             const t = stepInSpiral / voxelsPerSpiral;
 
-            const y = (t * totalHeight) - (totalHeight / 2);
+            // Tornado extends upward from y=0 (group origin sits at water level)
+            const y = t * totalHeight;
 
             const angleOffset = (spiralIndex / spiralCount) * Math.PI * 2;
             const angle = (time * speed) + (t * tightness) + angleOffset;
@@ -170,14 +171,14 @@ export class InputFeedbackHandler {
         const worldPos = new THREE.Vector3();
         pickedTile.getWorldPosition(worldPos);
         this.hoverCursor.position.copy(worldPos);
-        this.hoverCursor.position.y += 1.25;
+        this.hoverCursor.position.y -= 0.25;
         this.hoverCursor.visible = true;
         this.hoverCursor.quaternion.identity();
         this.hoverCursor.scale.set(scaleX, 1, scaleZ);
     }
 
     public updateHoverCursorFromUI(tile: THREE.Object3D, scaleX: number = 1, scaleZ: number = 1) {
-        const localOffset = new THREE.Vector3(0, 1.25, 0);
+        const localOffset = new THREE.Vector3(0, -0.25, 0);
         const worldPos = tile.localToWorld(localOffset);
         this.hoverCursor.position.copy(worldPos);
 

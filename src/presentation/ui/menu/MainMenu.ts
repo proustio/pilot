@@ -83,7 +83,7 @@ export class MainMenu extends BaseUIComponent {
                 const value = opt.dataset.value as 'classic' | 'russian' | 'rogue';
                 selectedMode = value;
                 selectedTextEl.textContent = optionDisplay[value];
-                
+
                 Config.preferredMode = value as any;
                 Config.saveConfig();
 
@@ -143,8 +143,8 @@ export class MainMenu extends BaseUIComponent {
                 matchMode = MatchMode.Russian;
             } else if (selectedMode === 'rogue') {
                 matchMode = MatchMode.Rogue;
-                width = 20;
-                height = 20;
+                width = Config.board.width;
+                height = Config.board.width;
                 rogueMode = true;
             }
 
@@ -155,7 +155,7 @@ export class MainMenu extends BaseUIComponent {
                 Config.board.height = height;
                 Config.rogueMode = rogueMode;
                 Config.saveConfig();
-                
+
                 Storage.clearSession(); // Ensure no auto-load on refresh
                 sessionStorage.setItem('battleships_new_match_mode', matchMode);
                 window.location.reload();

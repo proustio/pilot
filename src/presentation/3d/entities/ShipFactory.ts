@@ -4,6 +4,7 @@ import { Config } from '../../../infrastructure/config/Config';
 import { ThemeManager } from '../../theme/ThemeManager';
 import { eventBus, GameEventType } from '../../../application/events/GameEventBus';
 import { ShipVoxelBuilder } from './ShipVoxelBuilder';
+import { TurretInstanceManager, TurretTransform } from './TurretInstanceManager';
 
 /**
  * Constructs voxel ship models (hull, deck, bridge, turrets, wireframe overlay)
@@ -21,7 +22,8 @@ export class ShipFactory {
         z: number,
         orientation: Orientation,
         isPlayer: boolean,
-        targetGroup: THREE.Group
+        targetGroup: THREE.Group,
+        turretManager?: TurretInstanceManager
     ): THREE.Group {
         const shipGroup = new THREE.Group();
         shipGroup.userData = {
@@ -108,48 +110,65 @@ export class ShipFactory {
         shipGroup.add(instancedMesh);
 
         // ───── Turrets ─────
-        ShipFactory.addTurrets(shipGroup, ship, isPlayer);
+        ShipFactory.addTurrets(shipGroup, ship, isPlayer, turretManager);
 
         targetGroup.add(shipGroup);
         return shipGroup;
     }
 
-    private static addTurrets(shipGroup: THREE.Group, ship: Ship, isPlayer: boolean) {
+    private static addTurrets(shipGroup: THREE.Group, ship: Ship, isPlayer: boolean, turretManager?: TurretInstanceManager) {
         const turretCount = ship.size <= 2 ? 1 : ship.size <= 4 ? 2 : 3;
-        let turretBaseColor = new THREE.Color(0x2a2a2a);
-        let barrelColor = new THREE.Color(0x555555);
-
-        if (!isPlayer) {
-            turretBaseColor = new THREE.Color(1 - turretBaseColor.r, 1 - turretBaseColor.g, 1 - turretBaseColor.b);
-            barrelColor = new THREE.Color(1 - barrelColor.r, 1 - barrelColor.g, 1 - barrelColor.b);
-        }
-
-        const turretBaseMat = new THREE.MeshStandardMaterial({ color: turretBaseColor, roughness: 0.6 });
-        const barrelMat = new THREE.MeshStandardMaterial({ color: barrelColor, roughness: 0.5 });
-
         const shipLen = ship.size;
 
-        for (let i = 0; i < turretCount; i++) {
-            const turretGroup = new THREE.Group();
-            const tPos = ((i + 1) / (turretCount + 1)) * shipLen - 0.5;
+        if (turretManager) {
+            // Instanced path: compute TurretTransform[] and delegate to the manager
+            const transforms: TurretTransform[] = [];
+            for (let i = 0; i < turretCount; i++) {
+                const tPos = ((i + 1) / (turretCount + 1)) * shipLen - 0.5;
+                transforms.push({
+                    localPosition: new THREE.Vector3(tPos, 0.2, 0),
+                    barrelOffset: new THREE.Vector3(0.12, 0.02, 0),
+                    barrelRotation: new THREE.Euler(0, 0, Math.PI / 2),
+                });
+            }
+            // Use the ship group's local matrix (relative to board group, same parent as the InstancedMesh)
+            shipGroup.updateMatrix();
+            turretManager.addTurrets(ship.id, transforms, shipGroup.matrix);
+        } else {
+            // Legacy path: create individual meshes (used when no manager is available)
+            let turretBaseColor = new THREE.Color(0x2a2a2a);
+            let barrelColor = new THREE.Color(0x555555);
 
-            const baseGeo = new THREE.BoxGeometry(0.15, 0.08, 0.15);
-            const baseMesh = new THREE.Mesh(baseGeo, turretBaseMat);
-            baseMesh.castShadow = true;
-            turretGroup.add(baseMesh);
+            if (!isPlayer) {
+                turretBaseColor = new THREE.Color(1 - turretBaseColor.r, 1 - turretBaseColor.g, 1 - turretBaseColor.b);
+                barrelColor = new THREE.Color(1 - barrelColor.r, 1 - barrelColor.g, 1 - barrelColor.b);
+            }
 
-            const barrelGeo = new THREE.CylinderGeometry(0.025, 0.025, 0.2, 6);
-            const barrelMesh = new THREE.Mesh(barrelGeo, barrelMat);
-            barrelMesh.castShadow = true;
+            const turretBaseMat = new THREE.MeshStandardMaterial({ color: turretBaseColor, roughness: 0.6 });
+            const barrelMat = new THREE.MeshStandardMaterial({ color: barrelColor, roughness: 0.5 });
 
-            barrelMesh.rotation.z = Math.PI / 2;
-            barrelMesh.position.x = 0.12;
-            turretGroup.position.set(tPos, 0.2, 0);
+            for (let i = 0; i < turretCount; i++) {
+                const turretGroup = new THREE.Group();
+                const tPos = ((i + 1) / (turretCount + 1)) * shipLen - 0.5;
 
-            barrelMesh.position.y = 0.02;
-            turretGroup.add(barrelMesh);
+                const baseGeo = new THREE.BoxGeometry(0.15, 0.08, 0.15);
+                const baseMesh = new THREE.Mesh(baseGeo, turretBaseMat);
+                baseMesh.castShadow = true;
+                turretGroup.add(baseMesh);
 
-            shipGroup.add(turretGroup);
+                const barrelGeo = new THREE.CylinderGeometry(0.025, 0.025, 0.2, 6);
+                const barrelMesh = new THREE.Mesh(barrelGeo, barrelMat);
+                barrelMesh.castShadow = true;
+
+                barrelMesh.rotation.z = Math.PI / 2;
+                barrelMesh.position.x = 0.12;
+                turretGroup.position.set(tPos, 0.2, 0);
+
+                barrelMesh.position.y = 0.02;
+                turretGroup.add(barrelMesh);
+
+                shipGroup.add(turretGroup);
+            }
         }
     }
 

@@ -15,6 +15,7 @@ export class FogManager {
 
     // Phase 2: Consolidated fog mesh fields
     private consolidatedFogMesh: THREE.InstancedMesh | null = null;
+    private consolidatedFogParent: THREE.Group | null = null;
     private rogueVoxelsPerCell: number = 60;
     private maxFogCapacity: number = 0;
 
@@ -36,6 +37,8 @@ export class FogManager {
      */
     public initConsolidatedFog(parentGroup: THREE.Group): void {
         if (!this.fogGeo || !this.fogMatProto) return;
+
+        this.consolidatedFogParent = parentGroup;
 
         const boardWidth = Config.board.width;
         const boardHeight = Config.board.height;
@@ -295,6 +298,11 @@ export class FogManager {
                     }
                 }
             }
+        }
+
+        // For Rogue mode, re-instantiate the consolidated fog mesh
+        if (this.rogueMode && this.consolidatedFogParent) {
+            this.initConsolidatedFog(this.consolidatedFogParent);
         }
     }
 }

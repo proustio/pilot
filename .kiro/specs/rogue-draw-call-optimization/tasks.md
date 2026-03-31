@@ -137,11 +137,11 @@ Replace individual `THREE.Mesh` objects with pre-allocated `THREE.InstancedMesh`
     - **Property 12: Highlight hide preserves meshes** — rebuild then hideAll(), verify meshes exist with visible=false, then rebuild again successfully
     - **Validates: Requirements 4.5**
 
-- [ ] 5. Manual verification — Board decorations and range highlights
+- [x] 5. Manual verification — Board decorations and range highlights
   - Stop and let the user verify board decorations (rivets, screws, brackets, LEDs, borders) and range highlights (move, vision, attack) look identical in a live game before proceeding.
 
-- [ ] 6. Implement TurretInstanceManager and instanced turret rendering
-  - [ ] 6.1 Create TurretInstanceManager class
+- [x] 6. Implement TurretInstanceManager and instanced turret rendering
+  - [x] 6.1 Create TurretInstanceManager class
     - Create new file `src/presentation/3d/entities/TurretInstanceManager.ts`
     - Define `TurretTransform` interface with `localPosition`, `barrelOffset`, `barrelRotation`
     - Implement constructor that creates 2 `InstancedMesh` objects (bases: `BoxGeometry(0.15, 0.08, 0.15)`, barrels: `CylinderGeometry(0.025, 0.025, 0.2, 6)`) with capacity 64
@@ -152,7 +152,7 @@ Replace individual `THREE.Mesh` objects with pre-allocated `THREE.InstancedMesh`
     - Use player/enemy color inversion logic from existing `ShipFactory.addTurrets()`
     - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 2.6_
 
-  - [ ] 6.2 Refactor ShipFactory.addTurrets() to use TurretInstanceManager
+  - [x] 6.2 Refactor ShipFactory.addTurrets() to use TurretInstanceManager
     - Change `addTurrets()` to compute `TurretTransform[]` from ship size and turret count
     - Call `turretInstanceManager.addTurrets(shipId, transforms)` instead of creating individual meshes
     - Accept `TurretInstanceManager` as a parameter (passed from EntityManager)

@@ -11,6 +11,7 @@ import { VesselVisibilityManager } from './VesselVisibilityManager';
 import { eventBus, GameEventType } from '../../../application/events/GameEventBus';
 import { SonarEffect } from './SonarEffect';
 import { ShipAnimator } from './ShipAnimator';
+import { TurretInstanceManager } from './TurretInstanceManager';
 
 export class EntityManager {
     private scene: THREE.Scene;
@@ -45,6 +46,10 @@ export class EntityManager {
     private activeRogueShipId: string | null = null;
     private isPlayerTurn: boolean = false;
 
+    // Turret instancing managers (one per board side)
+    private playerTurretManager: TurretInstanceManager;
+    private enemyTurretManager: TurretInstanceManager;
+
     // LED animation via instanced mesh
     private ledMesh: THREE.InstancedMesh | null = null;
     private ledPhases: number[] = [];
@@ -58,7 +63,7 @@ export class EntityManager {
         this.enemyBoardGroup = new THREE.Group();
 
         this.particleSystem = new ParticleSystem();
-        this.particleSystem.initPools(this.playerBoardGroup);
+        this.particleSystem.initPools(this.masterBoardGroup);
         this.fogManager = new FogManager(this.enemyBoardGroup, Config.rogueMode);
 
         this.playerBoardGroup.position.y = 1.2;
@@ -96,6 +101,9 @@ export class EntityManager {
         );
 
         this.shipAnimator = new ShipAnimator(this.playerBoardGroup, this.enemyBoardGroup);
+
+        this.playerTurretManager = new TurretInstanceManager(this.playerBoardGroup, true);
+        this.enemyTurretManager = new TurretInstanceManager(this.enemyBoardGroup, false);
 
         eventBus.on(GameEventType.ACTIVE_SHIP_CHANGED, (payload) => {
             this.activeRogueShipId = payload.ship?.id || null;
@@ -189,7 +197,8 @@ export class EntityManager {
             shipGroup.userData = { isShip: true, ship, shipOrientation: orientation };
             targetGroup.add(shipGroup);
         } else {
-            shipGroup = ShipFactory.createShip(ship, x, z, orientation, isPlayer, targetGroup);
+            const turretManager = isRogue ? this.playerTurretManager : (isPlayer ? this.playerTurretManager : this.enemyTurretManager);
+            shipGroup = ShipFactory.createShip(ship, x, z, orientation, isPlayer, targetGroup, turretManager);
         }
 
         if (!isPlayer) shipGroup.visible = false;
@@ -273,8 +282,11 @@ export class EntityManager {
 
         if (targetGroup.userData.shipOrientation !== orientation) {
             const isPlayer = !ship.isEnemy;
+            const turretManager = isPlayer ? this.playerTurretManager : this.enemyTurretManager;
+            // Remove old turret instances before recreating
+            turretManager.removeTurrets(ship.id);
             parentGroup.remove(targetGroup);
-            const newShipGroup = ShipFactory.createShip(ship, ship.headX, ship.headZ, orientation, isPlayer, parentGroup);
+            const newShipGroup = ShipFactory.createShip(ship, ship.headX, ship.headZ, orientation, isPlayer, parentGroup, turretManager);
             newShipGroup.position.copy(targetGroup.position);
             targetGroup = newShipGroup;
             this.visibilityManager.trackShip(ship, targetGroup);
@@ -381,5 +393,11 @@ export class EntityManager {
         this.particleSystem.clear();
         this.projectileManager.clear();
         this.fogManager.reset();
+
+        // Dispose and recreate turret managers for the new match
+        this.playerTurretManager.dispose();
+        this.enemyTurretManager.dispose();
+        this.playerTurretManager = new TurretInstanceManager(this.playerBoardGroup, true);
+        this.enemyTurretManager = new TurretInstanceManager(this.enemyBoardGroup, false);
     }
 }

@@ -146,15 +146,10 @@ export class ImpactEffects {
                 this.addPersistentFireToShipCell(shipFound as THREE.Group, cellX, cellZ, boardOffset, intensity, smokeColor);
             } else {
                 // Classic hit on hidden ship: attach fire to the board group so it's visible.
-                // Particle pool meshes live in playerBoardGroup, so when the target is
-                // enemyBoardGroup we must convert from enemy-local to player-local space.
-                const emitterPos = new THREE.Vector3(worldX, 0.4, worldZ);
-                if (targetGroup !== this.playerBoardGroup) {
-                    targetGroup.localToWorld(emitterPos);
-                    this.playerBoardGroup.worldToLocal(emitterPos);
-                }
+                // Emitter coordinates are in targetGroup-local space; the particle system's
+                // update loop handles the group→poolParent conversion automatically.
                 this.particleSystem.addEmitter(
-                    emitterPos.x, emitterPos.y, emitterPos.z,
+                    worldX, 0.4, worldZ,
                     true, targetGroup,
                     result === 'sunk' ? this.particleSystem.blackSmokeMat.color.getStyle() : this.particleSystem.greySmokeMat.color.getStyle(),
                     intensity,

@@ -1,5 +1,6 @@
 import { Orientation } from '../../domain/fleet/Ship';
 import { MatchMode } from '../../domain/match/Match';
+import { Config } from '../../infrastructure/config/Config';
 import { GameState } from './GameLoop';
 import { TurnExecutorState } from './TurnExecutor';
 
@@ -54,8 +55,8 @@ export class SetupBoardHandler {
             let attempts = 0;
             while (!placed && attempts < 1000) {
                 const orient = Math.random() > 0.5 ? Orientation.Horizontal : Orientation.Vertical;
-                const maxX = 20 - (orient === Orientation.Horizontal ? ship.size : 1);
-                const maxZ = 20 - (orient === Orientation.Vertical ? ship.size : 1);
+                const maxX = Config.board.width - (orient === Orientation.Horizontal ? ship.size : 1);
+                const maxZ = Config.board.width - (orient === Orientation.Vertical ? ship.size : 1);
 
                 const rx = 13 + Math.floor(Math.random() * (maxX - 13 + 1));
                 const rz = 13 + Math.floor(Math.random() * (maxZ - 13 + 1));

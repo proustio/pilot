@@ -53,6 +53,7 @@ const _tempQuaternion = new THREE.Quaternion();
 const _tempScale = new THREE.Vector3();
 const _tempColor = new THREE.Color();
 const _white = new THREE.Color(0xffffff);
+const _tempPos = new THREE.Vector3();
 
 // ── ParticleSystem ──────────────────────────────────────────────────────────
 
@@ -62,6 +63,8 @@ export class ParticleSystem {
     private pools = new Map<ParticlePoolType, InstancePool>();
     private spawnCounter = 0;
     private poolsInitialized = false;
+    /** The parent group that all pool meshes are attached to (playerBoardGroup) */
+    private poolParent: THREE.Object3D | null = null;
 
     /** Cached zero-scale matrix for hiding instances */
     private readonly zeroMatrix = new THREE.Matrix4().makeScale(0, 0, 0);
@@ -100,6 +103,7 @@ export class ParticleSystem {
 
     public initPools(parentGroup: THREE.Object3D): void {
         if (this.poolsInitialized) return;
+        this.poolParent = parentGroup;
 
         const poolDefs: { type: ParticlePoolType; geo: THREE.BufferGeometry; mat: THREE.Material }[] = [
             { type: 'fire', geo: this.fireGeo, mat: this.fireMat },
@@ -500,7 +504,15 @@ export class ParticleSystem {
             }
 
             // Check expiry
-            if (p.life <= 0 || p.position.y < -3) {
+            // For particles on non-poolParent groups, check Y in pool-parent space
+            let checkY = p.position.y;
+            if (p.group !== this.poolParent && this.poolParent) {
+                _tempPos.copy(p.position);
+                p.group.localToWorld(_tempPos);
+                this.poolParent.worldToLocal(_tempPos);
+                checkY = _tempPos.y;
+            }
+            if (p.life <= 0 || checkY < -3) {
                 const pool = this.pools.get(p.poolType)!;
                 this.releaseSlot(pool, p.slotIndex);
 
@@ -518,10 +530,18 @@ export class ParticleSystem {
             }
 
             // Write instance matrix
+            // p.position is in the particle's group local space.
+            // Pool meshes live under poolParent (playerBoardGroup), so we must
+            // transform from group-local → world → poolParent-local.
             const pool = this.pools.get(p.poolType)!;
+            _tempPos.copy(p.position);
+            if (p.group !== this.poolParent && this.poolParent) {
+                p.group.localToWorld(_tempPos);
+                this.poolParent.worldToLocal(_tempPos);
+            }
             _tempQuaternion.setFromEuler(p.rotation);
             _tempScale.setScalar(p.scale);
-            _tempMatrix.compose(p.position, _tempQuaternion, _tempScale);
+            _tempMatrix.compose(_tempPos, _tempQuaternion, _tempScale);
             pool.mesh.setMatrixAt(p.slotIndex, _tempMatrix);
 
             // Write per-instance color for types that need it

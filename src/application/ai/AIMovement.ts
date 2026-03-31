@@ -3,6 +3,7 @@ import { Ship, Orientation } from '../../domain/fleet/Ship';
 import { Match } from '../../domain/match/Match';
 import { getIndex } from '../../domain/board/BoardUtils';
 import type { AIDifficulty } from './AIEngine';
+import { Config } from '../../infrastructure/config/Config';
 
 /**
  * Handles Rogue-mode movement decisions and pathfinding for AI ships.
@@ -65,7 +66,7 @@ export class AIMovement {
                                 score = dist + (isEasy ? Math.random() * 2 : 0);
                             } else {
                                 if (dist < 8) {
-                                    score = 20 - dist;
+                                    score = Config.board.width - dist;
                                 } else if (dist > 10) {
                                     score = dist;
                                 } else {

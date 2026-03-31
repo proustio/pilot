@@ -1,8 +1,8 @@
 export const Config = {
     version: '0.1.0',
     board: {
-        width: 20,
-        height: 20
+        width: 15,
+        height: 15
     },
     storage: {
         maxSlots: 3,
@@ -14,7 +14,7 @@ export const Config = {
         turnDelayMs: 1000,
         boardFlipSpeed: 0.05,
         projectileSpeed: 0.04,
-        cameraLerpSpeed: 0.05,
+        cameraLerpSpeed: 0.07,
         boardFlipWaitMs: 100
     },
     visual: {
@@ -31,7 +31,7 @@ export const Config = {
             screw: '#444444'
         },
         showGeekStats: true,
-        fpsCap: 30,
+        fpsCap: 120,
         sinkingFloor: -0.08,
         sinkingMaxAngle: 0.25,
         shadowsEnabled: true,
