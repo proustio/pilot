@@ -72,10 +72,10 @@ Replace individual `THREE.Mesh` objects with pre-allocated `THREE.InstancedMesh`
     - **Property 16: Dispose releases all GPU resources** — spawn random particles, call dispose(), verify all geometries/materials disposed
     - **Validates: Requirements 8.3**
 
-- [ ] 2. Manual verification — Particle instancing
+- [x] 2. Manual verification — Particle instancing
   - Stop and let the user verify particle rendering in a live game before proceeding. Fire, smoke, explosions, and splash effects should look identical to before. Fog particles should render correctly in Rogue mode.
 
-- [ ] 3. Implement instanced board decoration rendering (BoardMeshFactory)
+- [-] 3. Implement instanced board decoration rendering (BoardMeshFactory)
   - [ ] 3.1 Refactor BoardMeshFactory.build() to use InstancedMesh for decorations
     - Replace 32 individual rivet meshes with 1 `InstancedMesh(rivetGeo, rivetMat, 32)`
     - Replace 4 individual screw head meshes with 1 `InstancedMesh(screwGeo, screwMat, 4)`
