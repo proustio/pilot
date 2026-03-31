@@ -38,6 +38,16 @@ export const Config = {
         antialias: typeof navigator !== 'undefined' ? !/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) : true
     },
 
+    particles: {
+        firePoolCapacity: 256,
+        smokePoolCapacity: 384,
+        explosionPoolCapacity: 128,
+        splashPoolCapacity: 128,
+        fogPoolCapacity: 512,
+        drawCallBudget: 100,
+        minSpawnRateScale: 0.1,
+    },
+
     rogue: {
         fogRadius: 7,  // cells of personal fog halo around each ship
     },

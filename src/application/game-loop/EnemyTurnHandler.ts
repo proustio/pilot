@@ -41,7 +41,7 @@ export class EnemyTurnHandler {
                     const targetBoard = this.s.match.mode === MatchMode.Rogue ? this.s.match.sharedBoard : this.s.match.playerBoard;
 
                     if (this.s.match.mode === MatchMode.Rogue) {
-                        this.executeRogueTurn(targetBoard, executeTurn);
+                        this.executeRogueTurn(targetBoard);
                     } else {
                         this.executeClassicTurn(targetBoard);
                     }
@@ -53,7 +53,7 @@ export class EnemyTurnHandler {
         executeTurn();
     }
 
-    private executeRogueTurn(targetBoard: import('../../domain/board/Board').Board, retryFn: () => void): void {
+    private executeRogueTurn(targetBoard: import('../../domain/board/Board').Board): void {
         const activeIndex = this.s.activeEnemyRogueShipIndex;
         const ship = this.s.enemyRogueShipOrder[activeIndex];
 

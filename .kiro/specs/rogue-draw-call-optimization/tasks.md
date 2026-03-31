@@ -6,8 +6,8 @@ Replace individual `THREE.Mesh` objects with pre-allocated `THREE.InstancedMesh`
 
 ## Tasks
 
-- [-] 1. Implement instanced particle rendering (ParticleSystem)
-  - [ ] 1.1 Add InstancePool data structure and pool initialization
+- [x] 1. Implement instanced particle rendering (ParticleSystem)
+  - [x] 1.1 Add InstancePool data structure and pool initialization
     - Define `InstancedParticle` and `InstancePool` interfaces in `ParticleSystem.ts`
     - Add `PARTICLE_POOL_CONFIG` constants (fire: 256, smoke: 384, explosion: 128, splash: 128, fog: 512)
     - Implement `initPools(parentGroup)` to create 5 `InstancedMesh` objects with shared geometries and materials
@@ -15,13 +15,13 @@ Replace individual `THREE.Mesh` objects with pre-allocated `THREE.InstancedMesh`
     - Initialize all instance matrices to zero-scale
     - _Requirements: 1.1, 1.2, 1.3, 1.6, 1.11_
 
-  - [ ] 1.2 Implement free-list slot allocator
+  - [x] 1.2 Implement free-list slot allocator
     - Implement `allocateSlot(pool)` — pops from `freeSlots` stack, or recycles oldest active particle if full
     - Implement `releaseSlot(pool, slot)` — zeros instance matrix at slot, pushes slot index back to `freeSlots`
     - Cache a `zeroMatrix` (zero-scale `Matrix4`) as a class field for reuse
     - _Requirements: 1.4, 1.5, 1.7_
 
-  - [ ] 1.3 Refactor spawn methods to use instance slots
+  - [x] 1.3 Refactor spawn methods to use instance slots
     - Refactor `spawnFire()` to allocate a slot from the fire pool and store an `InstancedParticle` instead of creating a `THREE.Mesh`
     - Refactor `spawnSmoke()` to allocate from the smoke pool; remove `material.clone()` call, use shared smoke material
     - Refactor `spawnExplosion()` to allocate slots from the explosion pool
@@ -29,7 +29,7 @@ Replace individual `THREE.Mesh` objects with pre-allocated `THREE.InstancedMesh`
     - Add `spawnFog()` method to allocate from the fog pool (replaces per-cell fog InstancedMesh creation in FogManager)
     - _Requirements: 1.4, 1.10_
 
-  - [ ] 1.4 Refactor update loop to write instance matrices and colors per frame
+  - [x] 1.4 Refactor update loop to write instance matrices and colors per frame
     - Replace per-mesh position/rotation/scale updates with per-instance matrix writes using `setMatrixAt()`
     - Write per-instance colors using `setColorAt()` for smoke opacity fade and splash color variation
     - Set `instanceMatrix.needsUpdate = true` and `instanceColor.needsUpdate = true` on pools with active instances
@@ -37,7 +37,7 @@ Replace individual `THREE.Mesh` objects with pre-allocated `THREE.InstancedMesh`
     - Preserve fire flicker (emissive pulsation via color), smoke expansion/wobble, explosion/splash gravity
     - _Requirements: 1.5, 1.8, 1.9, 6.1, 6.2, 6.3, 6.7_
 
-  - [ ] 1.5 Refactor clear() and dispose() for instanced pools
+  - [x] 1.5 Refactor clear() and dispose() for instanced pools
     - `clear()`: zero all instance matrices in all pools, reset `activeCount` to 0, refill `freeSlots` to capacity
     - `dispose()`: dispose all 5 `InstancedMesh` geometries and materials
     - _Requirements: 8.1, 8.3, 8.4_
