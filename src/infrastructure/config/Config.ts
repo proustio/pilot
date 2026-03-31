@@ -43,7 +43,7 @@ export const Config = {
         smokePoolCapacity: 384,
         explosionPoolCapacity: 128,
         splashPoolCapacity: 128,
-        fogPoolCapacity: 512,
+        get fogPoolCapacity() { return Math.ceil(Config.board.width * Config.board.height * 1.3); },
         drawCallBudget: 100,
         minSpawnRateScale: 0.1,
     },

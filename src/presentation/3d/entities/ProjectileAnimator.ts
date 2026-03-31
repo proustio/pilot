@@ -111,7 +111,15 @@ export class ProjectileAnimator {
             : (m.isPlayer ? this.enemyBoardGroup : this.playerBoardGroup);
 
         // Water splash + ripple
-        this.particleSystem.spawnSplash(m.worldX, 0.2, m.worldZ, targetGroup);
+        // Particle pool meshes live in playerBoardGroup, so convert coords when targeting enemy board
+        let splashX = m.worldX, splashY = 0.2, splashZ = m.worldZ;
+        if (targetGroup !== this.playerBoardGroup) {
+            const sp = new THREE.Vector3(m.worldX, 0.2, m.worldZ);
+            targetGroup.localToWorld(sp);
+            this.playerBoardGroup.worldToLocal(sp);
+            splashX = sp.x; splashY = sp.y; splashZ = sp.z;
+        }
+        this.particleSystem.spawnSplash(splashX, splashY, splashZ, targetGroup);
         const rippleOnPlayerBoard = Config.rogueMode ? false : !m.isPlayer;
         addRipple(m.worldX, m.worldZ, rippleOnPlayerBoard);
 
@@ -192,7 +200,15 @@ export class ProjectileAnimator {
 
         if (destroyedCount > 0) {
             const tg = m.isPlayer ? this.enemyBoardGroup : this.playerBoardGroup;
-            this.particleSystem.spawnVoxelExplosion(m.worldX, 0.4, m.worldZ, destroyedCount, tg);
+            // Particle pool meshes live in playerBoardGroup — convert coords when targeting enemy board
+            let vx = m.worldX, vy = 0.4, vz = m.worldZ;
+            if (tg !== this.playerBoardGroup) {
+                const vp = new THREE.Vector3(m.worldX, 0.4, m.worldZ);
+                tg.localToWorld(vp);
+                this.playerBoardGroup.worldToLocal(vp);
+                vx = vp.x; vy = vp.y; vz = vp.z;
+            }
+            this.particleSystem.spawnVoxelExplosion(vx, vy, vz, destroyedCount, tg);
         }
     }
 }

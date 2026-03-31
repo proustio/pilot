@@ -105,22 +105,22 @@ Replace individual `THREE.Mesh` objects with pre-allocated `THREE.InstancedMesh`
     - Verify total draw calls = 8 for all board decorations
     - _Requirements: 3.1–3.6, 3.8_
 
-- [ ] 4. Implement instanced range highlight rendering (RangeHighlighter)
-  - [ ] 4.1 Replace per-cell meshes with pre-allocated InstancedMesh pools
+- [x] 4. Implement instanced range highlight rendering (RangeHighlighter)
+  - [x] 4.1 Replace per-cell meshes with pre-allocated InstancedMesh pools
     - Create 3 `InstancedMesh` objects (move, vision, attack) with capacity 400 each (20×20 board max)
     - Use shared `PlaneGeometry(0.9, 0.9)` for move and `PlaneGeometry(0.95, 0.95)` for vision/attack
     - Use shared `MeshBasicMaterial` per type with existing colors (move=0x00ffff, vision=0x4169E1, attack=0xFFA500)
     - Cache a zero-scale `Matrix4` for hiding unused instances
     - _Requirements: 4.1, 4.2, 4.3, 4.6, 4.7_
 
-  - [ ] 4.2 Refactor rebuildMoveHighlight() and rebuildRangeHighlights()
+  - [x] 4.2 Refactor rebuildMoveHighlight() and rebuildRangeHighlights()
     - Write valid cell transforms to instance matrices using `setMatrixAt()`
     - Zero remaining slots beyond the active cell count
     - Set `instanceMatrix.needsUpdate = true` after each rebuild
     - Remove `disposeGroupChildren()` method entirely (no longer needed)
     - _Requirements: 4.4_
 
-  - [ ] 4.3 Refactor hideAll() and add dispose()
+  - [x] 4.3 Refactor hideAll() and add dispose()
     - `hideAll()`: set `visible = false` on each InstancedMesh (no disposal)
     - Add `dispose()` method to dispose the 3 InstancedMesh geometries and materials on full cleanup
     - _Requirements: 4.5_

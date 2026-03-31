@@ -53,8 +53,22 @@ export class ImpactEffects {
         const impactPos = new THREE.Vector3(worldX, 0.4, worldZ);
         targetGroup.localToWorld(impactPos);
 
+        // Particle pool meshes live in playerBoardGroup, so when the target is
+        // enemyBoardGroup we must convert from enemy-local to player-local space.
+        let particleX = worldX;
+        let particleY = 0.4;
+        let particleZ = worldZ;
+        if (targetGroup !== this.playerBoardGroup) {
+            const pPos = new THREE.Vector3(worldX, 0.4, worldZ);
+            targetGroup.localToWorld(pPos);
+            this.playerBoardGroup.worldToLocal(pPos);
+            particleX = pPos.x;
+            particleY = pPos.y;
+            particleZ = pPos.z;
+        }
+
         if (!isReplay) {
-            this.particleSystem.spawnExplosion(worldX, 0.4, worldZ, targetGroup);
+            this.particleSystem.spawnExplosion(particleX, particleY, particleZ, targetGroup);
         }
 
         let voxelsRemoved = 0;
@@ -131,9 +145,16 @@ export class ImpactEffects {
                     : this.particleSystem.greySmokeMat.color.getStyle();
                 this.addPersistentFireToShipCell(shipFound as THREE.Group, cellX, cellZ, boardOffset, intensity, smokeColor);
             } else {
-                // Classic hit on hidden ship: attach fire to the board group so it's visible
+                // Classic hit on hidden ship: attach fire to the board group so it's visible.
+                // Particle pool meshes live in playerBoardGroup, so when the target is
+                // enemyBoardGroup we must convert from enemy-local to player-local space.
+                const emitterPos = new THREE.Vector3(worldX, 0.4, worldZ);
+                if (targetGroup !== this.playerBoardGroup) {
+                    targetGroup.localToWorld(emitterPos);
+                    this.playerBoardGroup.worldToLocal(emitterPos);
+                }
                 this.particleSystem.addEmitter(
-                    worldX, 0.4, worldZ,
+                    emitterPos.x, emitterPos.y, emitterPos.z,
                     true, targetGroup,
                     result === 'sunk' ? this.particleSystem.blackSmokeMat.color.getStyle() : this.particleSystem.greySmokeMat.color.getStyle(),
                     intensity,
@@ -143,7 +164,7 @@ export class ImpactEffects {
         }
 
         if (voxelsRemoved > 0 && !isReplay) {
-            this.particleSystem.spawnVoxelExplosion(worldX, 0.4, worldZ, voxelsRemoved, targetGroup);
+            this.particleSystem.spawnVoxelExplosion(particleX, particleY, particleZ, voxelsRemoved, targetGroup);
         }
     }
 
