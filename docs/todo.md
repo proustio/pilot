@@ -36,37 +36,41 @@ Here is some stuff we need to do around our codebase in no particular order or p
 
 
 Consider large files for decomposition:
-
-src/
-├── main.ts (278 lines)
-├── styles/
-│   └── hud.css (296 lines)
-├── infrastructure/
-│   ├── storage/
-│   │   └── Storage.ts (238 lines)
-├── domain/
-│   ├── board/
-│   │   └── Board.ts (305 lines)
-├── application/
-│   ├── game-loop/
-│   │   ├── GameLoop.ts (320 lines)
-│   │   └── TurnExecutor.ts (416 lines)
-│   ├── ai/
-│   │   └── AIEngine.ts (363 lines)
-├── presentation/
-│   ├── ui/
-│   │   ├── hud/
-│   │   │   └── UnifiedBoardUI.ts (258 lines)
-│   ├── 3d/
-│   │   ├── Engine3D.ts (262 lines)
-│   │   ├── interaction/
-│   │   │   ├── InputFeedbackHandler.ts (335 lines)
-│   │   │   └── InteractionManager.ts (397 lines)
-│   │   ├── entities/
-│   │   │   ├── ProjectileManager.ts (327 lines)
-│   │   │   ├── ImpactEffects.ts (328 lines)
-│   │   │   ├── ParticleSystem.ts (348 lines)
-│   │   │   ├── ShipFactory.ts (349 lines)
-│   │   │   ├── FogManager.ts (423 lines)
-│   │   │   ├── BoardBuilder.ts (429 lines)
-│   │   │   └── EntityManager.ts (470 lines)
+`./linetree.sh src 200`
+src/ (6468)
+├── presentation/ (4549)
+│   ├── 3d/ (3299)
+│   │   ├── entities/ (2302)
+│   │   │   ├── ParticleSystem.ts (653)
+│   │   │   ├── EntityManager.ts (444)
+│   │   │   ├── FogManager.ts (308)
+│   │   │   ├── ShipFactory.ts (238)
+│   │   │   ├── BoardMeshFactory.ts (222)
+│   │   │   ├── BoardBuilder.ts (221)
+│   │   │   └── ProjectileManager.ts (216)
+│   │   ├── interaction/ (735)
+│   │   │   ├── InteractionManager.ts (298)
+│   │   │   ├── InputFeedbackHandler.ts (228)
+│   │   │   └── RangeHighlighter.ts (209)
+│   │   └── Engine3D.ts (262)
+│   └── ui/ (1250)
+│       ├── hud/ (841)
+│       │   ├── HUDControls.ts (303)
+│       │   ├── HUD.ts (280)
+│       │   └── UnifiedBoardUI.ts (258)
+│       ├── settings/ (203)
+│       │   └── Settings.ts (203)
+│       └── UIManager.ts (206)
+├── application/ (979)
+│   ├── game-loop/ (763)
+│   │   ├── GameLoop.ts (320)
+│   │   ├── TurnExecutor.ts (224)
+│   │   └── MatchSetup.ts (219)
+│   └── ai/ (216)
+│       └── AITargeting.ts (216)
+├── styles/ (421)
+│   └── hud.css (421)
+├── infrastructure/ (241)
+│   └── storage/ (241)
+│       └── Storage.ts (241)
+└── main.ts (278)
