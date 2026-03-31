@@ -3,8 +3,8 @@ export const Config = {
     board: {
         width: 10,
         height: 10,
-        rogueWidth: 15,
-        rogueHeight: 15
+        rogueWidth: 20,
+        rogueHeight: 20
     },
     storage: {
         maxSlots: 3,
