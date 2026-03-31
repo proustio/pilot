@@ -82,7 +82,7 @@ export class GameRunner {
         // 1. Logic Updates
         if (!this.gameLoop.isPaused) {
             this.interactionManager.update();
-            this.entityManager.update(this.engine.camera);
+            this.entityManager.update(this.engine.camera, this.engine.renderer);
         }
 
         // 2. UI Updates

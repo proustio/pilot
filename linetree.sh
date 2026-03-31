@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# linetree - Display files in a tree structure ordered by line count (shortest → longest)
-# Usage: linetree.sh <directory> [min_lines]
+# linetree - Display files in a nested tree, ordered largest → smallest
+# Folders first (by total size), then files (by size). Skips test files.
+# Usage: linetree.sh [directory] [min_lines]
 # Compatible with macOS Bash 3.2+
 
 set -euo pipefail
@@ -13,88 +14,90 @@ if [[ ! -d "$dir" ]]; then
   exit 1
 fi
 
-clean_dir="${dir%/}/"
+clean_dir="${dir%/}"
 
-# Collect sorted entries into arrays using a while-read loop (bash 3.2 safe)
-counts=()
-paths=()
-while IFS=$'\t' read -r count filepath; do
-  rel="${filepath#"$clean_dir"}"
-  rel="${rel#./}"
-  counts+=("$count")
-  paths+=("$rel")
-done < <(
-  find "$dir" -type f \
-    ! -path '*/.git/*' \
-    ! -path '*/node_modules/*' \
-    ! -path '*/dist/*' \
-    ! -path '*/public/*' \
-    ! -path '*/.DS_Store' \
-    -print0 \
-  | xargs -0 wc -l 2>/dev/null \
-  | grep -v ' total$' \
-  | awk -v min="$min_lines" '{
-      count = $1; $1 = ""; sub(/^ /, "", $0)
-      if (count >= min) print count "\t" $0
-    }' \
-  | sort -n
-)
+# Use Python for the heavy lifting (sorting nested tree by size).
+# macOS ships with python3 since Catalina.
+python3 - "$clean_dir" "$min_lines" << 'PYEOF'
+import sys, os, subprocess
 
-total=${#paths[@]}
-if [[ $total -eq 0 ]]; then
-  echo "(no files with >= $min_lines lines)"
-  exit 0
-fi
+root = sys.argv[1]
+min_lines = int(sys.argv[2])
 
-echo "$clean_dir"
+SKIP_DIRS = {'.git', 'node_modules', 'dist', 'public', '.DS_Store', '.kiro', '.vscode', '.github', '__pycache__'}
 
-prev_parts=()
+def is_test_file(name):
+    lower = name.lower()
+    return ('.test.' in lower or '.spec.' in lower
+            or lower.startswith('test_') or lower.startswith('spec_')
+            or lower.endswith('.test.ts') or lower.endswith('.spec.ts'))
 
-for (( i=0; i<total; i++ )); do
-  IFS='/' read -ra parts <<< "${paths[$i]}"
-  depth=${#parts[@]}
+def count_lines(filepath):
+    try:
+        with open(filepath, 'r', errors='replace') as f:
+            return sum(1 for _ in f)
+    except:
+        return 0
 
-  # Find common prefix length with previous entry
-  common=0
-  prev_len=${#prev_parts[@]}
-  while (( common < prev_len - 1 && common < depth - 1 )); do
-    if [[ "${parts[$common]}" == "${prev_parts[$common]}" ]]; then
-      (( common++ ))
-    else
-      break
-    fi
-  done
+def scan(dirpath):
+    """Returns (subdirs, files) where each is a list of (name, lines, children_or_None)."""
+    try:
+        entries = sorted(os.listdir(dirpath))
+    except PermissionError:
+        return [], []
 
-  # Print new directory levels
-  for (( d=common; d<depth-1; d++ )); do
-    indent=""
-    for (( p=0; p<d; p++ )); do
-      indent+="│   "
-    done
-    echo "${indent}├── ${parts[$d]}/"
-  done
+    subdirs = []  # (name, total_lines, sub_subdirs, sub_files)
+    files = []    # (name, lines)
 
-  # Build file indent
-  indent=""
-  for (( p=0; p<depth-1; p++ )); do
-    indent+="│   "
-  done
+    for entry in entries:
+        fullpath = os.path.join(dirpath, entry)
+        if entry in SKIP_DIRS:
+            continue
+        if os.path.isdir(fullpath):
+            # Skip __tests__ directories entirely
+            if entry == '__tests__':
+                continue
+            child_dirs, child_files = scan(fullpath)
+            total = sum(x[1] for x in child_dirs) + sum(x[1] for x in child_files)
+            if child_dirs or child_files:
+                subdirs.append((entry, total, child_dirs, child_files))
+        elif os.path.isfile(fullpath):
+            if is_test_file(entry):
+                continue
+            if entry == '.DS_Store':
+                continue
+            lines = count_lines(fullpath)
+            if lines >= min_lines:
+                files.append((entry, lines))
 
-  # Check if next entry shares the same parent → pick ├── or └──
-  connector="└──"
-  if (( i + 1 < total )); then
-    IFS='/' read -ra next_parts <<< "${paths[$((i+1))]}"
-    if (( ${#next_parts[@]} == depth )); then
-      same=true
-      for (( k=0; k<depth-1; k++ )); do
-        if [[ "${next_parts[$k]}" != "${parts[$k]}" ]]; then
-          same=false; break
-        fi
-      done
-      if $same; then connector="├──"; fi
-    fi
-  fi
+    # Sort: largest first
+    subdirs.sort(key=lambda x: x[1], reverse=True)
+    files.sort(key=lambda x: x[1], reverse=True)
+    return subdirs, files
 
-  printf "%s%s %s (%d lines)\n" "$indent" "$connector" "${parts[$((depth-1))]}" "${counts[$i]}"
-  prev_parts=("${parts[@]}")
-done
+def render(subdirs, files, prefix="", is_root=False):
+    items = []
+    # Folders first, then files
+    for d in subdirs:
+        items.append(('dir', d))
+    for f in files:
+        items.append(('file', f))
+
+    for idx, (kind, data) in enumerate(items):
+        is_last = (idx == len(items) - 1)
+        connector = "\u2514\u2500\u2500" if is_last else "\u251c\u2500\u2500"
+        extension = "    " if is_last else "\u2502   "
+
+        if kind == 'dir':
+            name, total, child_dirs, child_files = data
+            print(f"{prefix}{connector} {name}/ ({total})")
+            render(child_dirs, child_files, prefix + extension)
+        else:
+            name, lines = data
+            print(f"{prefix}{connector} {name} ({lines})")
+
+subdirs, files = scan(root)
+total_lines = sum(x[1] for x in subdirs) + sum(x[1] for x in files)
+print(f"{os.path.basename(root) or root}/ ({total_lines})")
+render(subdirs, files)
+PYEOF

@@ -69,12 +69,10 @@ export class EmitterManager {
         for (const emitter of this.emitters) {
             if (now > emitter.nextSpawn) {
                 if (emitter.hasFire) {
-                    console.log('emitter spawned');
                     spawner.spawnFire(emitter.x, emitter.y, emitter.z, emitter.group, emitter.intensity);
                     spawner.spawnSmoke(emitter.x, emitter.y + 0.2, emitter.z, emitter.color, emitter.group, emitter.intensity);
                     emitter.nextSpawn = now + (150 * intervalScale / (emitter.intensity * speed));
                 } else {
-                    console.log('emitter skipped');
                     spawner.spawnSmoke(emitter.x, emitter.y, emitter.z, emitter.color, emitter.group, emitter.intensity);
                     emitter.nextSpawn = now + (200 * intervalScale / (emitter.intensity * speed));
                 }

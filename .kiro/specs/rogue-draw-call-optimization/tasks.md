@@ -186,21 +186,21 @@ Replace individual `THREE.Mesh` objects with pre-allocated `THREE.InstancedMesh`
 - [x] 8. Manual verification — Turrets and emitter throttling
   - Stop and let the user verify turret rendering on ships and emitter throttling behavior in a live game before proceeding.
 
-- [ ] 9. Integration and wiring (EntityManager)
-  - [ ] 9.1 Integrate TurretInstanceManager into EntityManager
+- [x] 9. Integration and wiring (EntityManager)
+  - [x] 9.1 Integrate TurretInstanceManager into EntityManager
     - Create `TurretInstanceManager` instance in EntityManager constructor, attached to `playerBoardGroup`
     - Pass `TurretInstanceManager` reference to `ShipFactory.createShip()` calls in `addShip()`
     - In `update()`, iterate sinking ships and call `turretManager.updateTransform(shipId, shipWorldMatrix)`
     - In `resetMatch()`, call `turretManager.dispose()` and recreate for the new match
     - _Requirements: 2.6, 8.2_
 
-  - [ ] 9.2 Update LED animation to use instanced colors
+  - [x] 9.2 Update LED animation to use instanced colors
     - Refactor `updateStaticAnimations()` to use the `ledMesh` InstancedMesh reference from `BoardMeshBuildResult`
     - Animate LED opacity via `setColorAt()` with alpha-modulated color values instead of per-mesh material mutation
     - Set `instanceColor.needsUpdate = true` after LED color writes
     - _Requirements: 3.5, 6.5_
 
-  - [ ] 9.3 Add draw call budget enforcement
+  - [x] 9.3 Add draw call budget enforcement
     - Read `renderer.info.render.calls` each frame in `update()`
     - Compute `particleSpawnScale` (0.0–1.0) when draw calls exceed target of 100
     - Pass `particleSpawnScale` to `ParticleSystem` to throttle spawn counts proportionally
@@ -208,7 +208,7 @@ Replace individual `THREE.Mesh` objects with pre-allocated `THREE.InstancedMesh`
     - Add floor of 0.1× to ensure some visual feedback always present
     - _Requirements: 5.1, 5.2, 5.3, 5.4_
 
-  - [ ] 9.4 Wire ParticleSystem pool initialization with parent group
+  - [x] 9.4 Wire ParticleSystem pool initialization with parent group
     - Ensure `ParticleSystem.initPools()` is called with the correct parent group during EntityManager construction
     - Verify particle InstancedMesh objects (including fog pool) are added to the scene graph
     - Wire FogManager to use ParticleSystem's fog pool instead of creating per-cell fog InstancedMesh objects

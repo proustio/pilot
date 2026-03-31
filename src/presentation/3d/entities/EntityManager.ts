@@ -318,7 +318,7 @@ export class EntityManager {
         return isAnimating;
     }
 
-    public update(camera: THREE.Camera) {
+    public update(camera: THREE.Camera, renderer?: THREE.WebGLRenderer) {
         const gameSpeed = Config.timing.gameSpeedMultiplier;
 
         this.masterBoardGroup.rotation.x += (this.targetRotationX - this.masterBoardGroup.rotation.x) * Config.timing.boardFlipSpeed * gameSpeed;
@@ -330,6 +330,19 @@ export class EntityManager {
 
         this.updateStaticAnimations();
         this.particleSystem.update();
+
+        // Draw call budget enforcement (Req 5.1–5.4)
+        if (renderer) {
+            const drawCalls = renderer.info.render.calls;
+            const budget = Config.particles.drawCallBudget;
+            if (drawCalls > budget) {
+                // Scale down proportionally: e.g. 150 calls / 100 budget → scale = 100/150 = 0.67
+                const scale = Math.max(Config.particles.minSpawnRateScale, budget / drawCalls);
+                this.particleSystem.spawnRateScale = scale;
+            } else {
+                this.particleSystem.spawnRateScale = 1.0;
+            }
+        }
 
         this.projectileManager.updateProjectiles(this.addRipple.bind(this), this.waterManager.getUniformsForBoard(true), this.waterManager.getUniformsForBoard(false));
 
@@ -345,6 +358,30 @@ export class EntityManager {
         this.wasBusy = currentBusy;
 
         this.shipAnimator.update(this.time, this.activeRogueShipId, this.isPlayerTurn, this.isSetupPhase);
+
+        // Update turret instance transforms for sinking/moving ships
+        this.updateTurretTransforms(this.playerBoardGroup, this.playerTurretManager);
+        this.updateTurretTransforms(this.enemyBoardGroup, this.enemyTurretManager);
+    }
+
+    /**
+     * Iterates ships in a board group and updates turret instance matrices
+     * for any ship that is sinking or moving (position/rotation changed).
+     */
+    private updateTurretTransforms(boardGroup: THREE.Group, turretManager: TurretInstanceManager): void {
+        for (const child of boardGroup.children) {
+            if (!child.userData.isShip) continue;
+            const ship = child.userData.ship;
+            if (!ship) continue;
+
+            const isSinking = child.userData.isSinking && child.position.y > Config.visual.sinkingFloor;
+            const isMoving = !!child.userData.targetPosition;
+
+            if (isSinking || isMoving) {
+                child.updateMatrix();
+                turretManager.updateTransform(ship.id, child.matrix);
+            }
+        }
     }
 
     private updateStaticAnimations() {

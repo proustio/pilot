@@ -208,6 +208,9 @@ export class ParticleSystem {
     }
 
     public spawnFire(x: number, y: number, z: number, group: THREE.Object3D, intensity: number = 1.0): void {
+        // Draw call budget throttle: probabilistically skip spawns
+        if (this.spawnRateScale < 1.0 && Math.random() > this.spawnRateScale) return;
+
         const pool = this.pools.get('fire');
         if (!pool) return;
 
@@ -251,6 +254,9 @@ export class ParticleSystem {
     }
 
     public spawnSmoke(x: number, y: number, z: number, color: string, group: THREE.Object3D, intensity: number = 1.0): void {
+        // Draw call budget throttle: probabilistically skip spawns
+        if (this.spawnRateScale < 1.0 && Math.random() > this.spawnRateScale) return;
+
         const pool = this.pools.get('smoke');
         if (!pool) return;
 
@@ -293,6 +299,9 @@ export class ParticleSystem {
     }
 
     public spawnExplosion(x: number, y: number, z: number, group: THREE.Object3D): void {
+        // Draw call budget throttle: probabilistically skip spawns
+        if (this.spawnRateScale < 1.0 && Math.random() > this.spawnRateScale) return;
+
         const pool = this.pools.get('explosion');
         if (!pool) return;
 
@@ -338,6 +347,9 @@ export class ParticleSystem {
     }
 
     public spawnSplash(x: number, y: number, z: number, group: THREE.Object3D): void {
+        // Draw call budget throttle: probabilistically skip spawns
+        if (this.spawnRateScale < 1.0 && Math.random() > this.spawnRateScale) return;
+
         const pool = this.pools.get('splash');
         if (!pool) return;
 
@@ -382,6 +394,9 @@ export class ParticleSystem {
     }
 
     public spawnVoxelExplosion(x: number, y: number, z: number, count: number, group: THREE.Object3D): void {
+        // Draw call budget throttle: probabilistically skip spawns
+        if (this.spawnRateScale < 1.0 && Math.random() > this.spawnRateScale) return;
+
         const pool = this.pools.get('explosion');
         if (!pool) return;
 
