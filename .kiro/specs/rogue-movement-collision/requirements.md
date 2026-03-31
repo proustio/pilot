@@ -2,7 +2,7 @@
 
 ## Introduction
 
-This feature sprint overhauls Rogue mode's movement and collision systems. Ships need to travel farther, evaluate board state at every cell along their path, respect physical blocking by other entities, and support ramming as a combat mechanic. The movement animation layer also needs polish: water ripples, smooth turning, and normalized animation timing regardless of distance traveled.
+This feature sprint overhauls Rogue mode's movement and collision systems. Ships need to travel farther, evaluate board state at every cell along their path, respect physical blocking by other entities, and support ramming as a combat mechanic. The movement animation layer also needs polish: water ripples, smooth turning, and normalized animation timing regardless of distance traveled. Additionally, range highlights (vision, attack, movement) must project from all ship segments rather than just the head, fog must be suppressed where range highlights are visible, and a new magenta movement-range highlight must be added.
 
 ## Glossary
 
@@ -18,6 +18,12 @@ This feature sprint overhauls Rogue mode's movement and collision systems. Ships
 - **Water_Ripple**: A shader-driven visual effect (`WaterShaderManager`) triggered at water cells as a ship passes through them.
 - **Move_Cost**: The movement point expenditure to reach a target cell, calculated by `Ship.calculateMoveCost` based on direction relative to the Ship's orientation (forward = 0.5/cell, lateral = 1/cell, backward = 2/cell).
 - **Animation_Duration**: A fixed, constant time interval used for all movement and turning animations regardless of distance.
+- **Range_Highlight**: A colored translucent plane rendered on the Rogue_Board grid to indicate cells within a Ship's vision, attack, or movement range. Managed by `RangeHighlighter.ts` using InstancedMesh pools.
+- **Vision_Range**: The set of cells within a Ship's `visionRadius` (Chebyshev distance from any occupied segment). Displayed as a blue Range_Highlight (color `0x4169E1`).
+- **Attack_Range**: The set of cells within twice a Ship's `visionRadius` but outside the Vision_Range. Displayed as an orange Range_Highlight (color `0xFFA500`).
+- **Movement_Range**: The set of cells reachable by the active Ship based on `movesRemaining` and Move_Cost. Displayed as a magenta Range_Highlight (color `0xFF00FF`).
+- **Occupied_Segments**: The full set of grid cells a Ship occupies, returned by `Ship.getOccupiedCoordinates()`. Includes the head cell and all body segments based on orientation.
+- **Minimum_Segment_Distance**: For a given target cell and Ship, the smallest distance from any of the Ship's Occupied_Segments to that target cell. Used to determine whether a cell falls within a range radius.
 
 ## Requirements
 
@@ -120,3 +126,38 @@ This feature sprint overhauls Rogue mode's movement and collision systems. Ships
 1. WHEN Ramming occurs, THE Movement_Animation SHALL play a collision impact effect at the point of contact between the two ships.
 2. WHEN Ramming occurs, THE Movement_Animation SHALL animate the ramming Ship's 90-degree rotation smoothly over the Animation_Duration.
 3. WHEN Ramming occurs, THE Movement_Animation SHALL trigger a camera shake or screen impact effect to communicate the collision force.
+
+### Requirement 10: Multi-Segment Range Projection
+
+**User Story:** As a player, I want vision, attack, and movement range highlights to project from all segments of my ship, so that larger ships correctly show their full area of influence rather than only from the head segment.
+
+#### Acceptance Criteria
+
+1. WHEN computing Vision_Range for a Ship, THE Range_Highlight system SHALL calculate the Minimum_Segment_Distance from the Ship's Occupied_Segments to each board cell, and include the cell if that distance is within the Ship's `visionRadius`.
+2. WHEN computing Attack_Range for a Ship, THE Range_Highlight system SHALL calculate the Minimum_Segment_Distance from the Ship's Occupied_Segments to each board cell, and include the cell if that distance is within twice the Ship's `visionRadius` but outside the Vision_Range.
+3. WHEN computing Movement_Range for a Ship, THE Range_Highlight system SHALL calculate the Minimum_Segment_Distance from the Ship's Occupied_Segments to each board cell, and include the cell if the Manhattan distance is within the Ship's `movesRemaining`.
+4. THE Range_Highlight system SHALL use `Ship.getOccupiedCoordinates()` to obtain the full set of Occupied_Segments for the active Ship.
+5. THE Range_Highlight system SHALL exclude cells occupied by the active Ship itself from all range highlight displays.
+
+### Requirement 11: Fog Transparency for Range Highlights
+
+**User Story:** As a player, I want fog to be transparent where range highlights are visible, so that I can see the colored highlights through the fog and make informed tactical decisions.
+
+#### Acceptance Criteria
+
+1. WHILE a Ship is the active selection, THE Fog_of_War system SHALL suppress fog rendering in cells that fall within the active Ship's Vision_Range, Attack_Range, or Movement_Range.
+2. WHEN the active Ship changes or is deselected, THE Fog_of_War system SHALL restore fog rendering to cells that are no longer within any active range.
+3. THE Fog_of_War system SHALL only suppress fog for the currently active (selected) Ship's ranges — fog around non-active friendly ships SHALL remain governed by the standard `visionRadius` fog rules.
+4. THE Fog_of_War system SHALL re-evaluate fog suppression whenever the active Ship's position or `movesRemaining` changes.
+
+### Requirement 12: Movement Range Highlight
+
+**User Story:** As a player, I want a distinct magenta-colored highlight showing which cells my active ship can reach based on remaining movement points, so that I can plan movement separately from vision and attack ranges.
+
+#### Acceptance Criteria
+
+1. THE Range_Highlight system SHALL maintain a fourth InstancedMesh pool for Movement_Range highlights, using magenta color (`0xFF00FF`), opacity 0.35, with `depthWrite: false` and `depthTest: false`.
+2. WHEN a Ship is selected as the active Ship, THE Range_Highlight system SHALL display Movement_Range highlights on all cells reachable based on the Ship's `movesRemaining` and Move_Cost, using Minimum_Segment_Distance from the Ship's Occupied_Segments.
+3. WHEN the active Ship has `movesRemaining` equal to 0, THE Range_Highlight system SHALL display zero Movement_Range highlight cells.
+4. THE Range_Highlight system SHALL render Movement_Range highlights at a Y-offset of 0.2 (same as the existing move highlight) and with `renderOrder` higher than vision and attack highlights to ensure visibility.
+5. WHEN the active Ship moves or expends movement points, THE Range_Highlight system SHALL rebuild the Movement_Range highlight to reflect the updated `movesRemaining`.
