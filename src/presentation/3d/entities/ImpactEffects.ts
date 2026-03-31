@@ -53,22 +53,8 @@ export class ImpactEffects {
         const impactPos = new THREE.Vector3(worldX, 0.4, worldZ);
         targetGroup.localToWorld(impactPos);
 
-        // Particle pool meshes live in playerBoardGroup, so when the target is
-        // enemyBoardGroup we must convert from enemy-local to player-local space.
-        let particleX = worldX;
-        let particleY = 0.4;
-        let particleZ = worldZ;
-        if (targetGroup !== this.playerBoardGroup) {
-            const pPos = new THREE.Vector3(worldX, 0.4, worldZ);
-            targetGroup.localToWorld(pPos);
-            this.playerBoardGroup.worldToLocal(pPos);
-            particleX = pPos.x;
-            particleY = pPos.y;
-            particleZ = pPos.z;
-        }
-
         if (!isReplay) {
-            this.particleSystem.spawnExplosion(particleX, particleY, particleZ, targetGroup);
+            this.particleSystem.spawnExplosion(worldX, 0.4, worldZ, targetGroup);
         }
 
         let voxelsRemoved = 0;
@@ -159,7 +145,7 @@ export class ImpactEffects {
         }
 
         if (voxelsRemoved > 0 && !isReplay) {
-            this.particleSystem.spawnVoxelExplosion(particleX, particleY, particleZ, voxelsRemoved, targetGroup);
+            this.particleSystem.spawnVoxelExplosion(worldX, 0.4, worldZ, voxelsRemoved, targetGroup);
         }
     }
 

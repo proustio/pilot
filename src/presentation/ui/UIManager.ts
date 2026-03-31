@@ -80,8 +80,8 @@ export class UIManager {
         if (newMatchMode) {
             sessionStorage.removeItem('battleships_new_match_mode');
             const matchMode = newMatchMode as any;
-            const width = matchMode === 'rogue' ? Config.board.width : 10;
-            const height = matchMode === 'rogue' ? Config.board.width : 10;
+            const width = matchMode === 'rogue' ? Config.board.rogueWidth : 10;
+            const height = matchMode === 'rogue' ? Config.board.rogueHeight : 10;
             const match = new Match(matchMode, width, height);
             this.gameLoop.startNewMatch(match);
             return;

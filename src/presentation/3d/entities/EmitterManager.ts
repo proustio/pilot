@@ -39,6 +39,7 @@ export class EmitterManager {
         color: string, intensity: number = 1.0, id?: string
     ): void {
         if (id && this.emitters.some(e => e.id === id)) return;
+        if (this.emitters.length >= Config.particles.maxActiveEmitters) return;
         this.emitters.push({ x, y, z, color, hasFire, nextSpawn: 0, group, intensity, id });
     }
 
@@ -56,21 +57,39 @@ export class EmitterManager {
      * requests particle spawns via the provided callback.
      */
     public updateEmitters(spawner: EmitterSpawnCallback): void {
+        // console.log('updating emitters');
         const now = Date.now();
         const speed = Config.timing.gameSpeedMultiplier;
+        const activeCount = this.emitters.length;
+        const threshold = Config.particles.emitterThrottleThreshold;
+        const intervalScale = activeCount > threshold
+            ? activeCount / threshold
+            : 1.0;
 
         for (const emitter of this.emitters) {
             if (now > emitter.nextSpawn) {
                 if (emitter.hasFire) {
+                    console.log('emitter spawned');
                     spawner.spawnFire(emitter.x, emitter.y, emitter.z, emitter.group, emitter.intensity);
                     spawner.spawnSmoke(emitter.x, emitter.y + 0.2, emitter.z, emitter.color, emitter.group, emitter.intensity);
-                    emitter.nextSpawn = now + (150 / (emitter.intensity * speed));
+                    emitter.nextSpawn = now + (150 * intervalScale / (emitter.intensity * speed));
                 } else {
+                    console.log('emitter skipped');
                     spawner.spawnSmoke(emitter.x, emitter.y, emitter.z, emitter.color, emitter.group, emitter.intensity);
-                    emitter.nextSpawn = now + (200 / (emitter.intensity * speed));
+                    emitter.nextSpawn = now + (200 * intervalScale / (emitter.intensity * speed));
                 }
             }
         }
+    }
+
+    /** Returns the current emitter count and throttle factor for diagnostics. */
+    public getStats(): { emitterCount: number; throttleFactor: number } {
+        const count = this.emitters.length;
+        const threshold = Config.particles.emitterThrottleThreshold;
+        const factor = count > threshold
+            ? threshold / count
+            : 1.0;
+        return { emitterCount: count, throttleFactor: factor };
     }
 
     /** Removes all registered emitters. */

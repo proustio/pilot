@@ -143,8 +143,8 @@ export class MainMenu extends BaseUIComponent {
                 matchMode = MatchMode.Russian;
             } else if (selectedMode === 'rogue') {
                 matchMode = MatchMode.Rogue;
-                width = Config.board.width;
-                height = Config.board.width;
+                width = Config.board.rogueWidth;
+                height = Config.board.rogueHeight;
                 rogueMode = true;
             }
 

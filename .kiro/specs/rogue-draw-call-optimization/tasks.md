@@ -171,8 +171,8 @@ Replace individual `THREE.Mesh` objects with pre-allocated `THREE.InstancedMesh`
     - **Property 9: Sinking turrets follow ship transform** — set random sinking transforms, verify turret instance matrices incorporate ship's world-space position and rotation
     - **Validates: Requirements 2.6**
 
-- [ ] 7. Implement emitter throttling (EmitterManager)
-  - [ ] 7.1 Add throttle logic to EmitterManager.updateEmitters()
+- [x] 7. Implement emitter throttling (EmitterManager)
+  - [x] 7.1 Add throttle logic to EmitterManager.updateEmitters()
     - Add `EMITTER_THROTTLE_THRESHOLD = 8` and `MAX_ACTIVE_EMITTERS = 24` constants
     - In `updateEmitters()`, compute `throttleFactor = threshold / activeCount` when `activeCount > threshold`
     - Multiply spawn intervals by `1 / throttleFactor` to reduce spawn rate proportionally
@@ -183,7 +183,7 @@ Replace individual `THREE.Mesh` objects with pre-allocated `THREE.InstancedMesh`
     - **Property 13: Emitter throttling scales spawn interval** — create random emitter counts (1–30), verify spawn interval scaling and max emitter cap
     - **Validates: Requirements 7.1, 7.2, 7.4**
 
-- [ ] 8. Manual verification — Turrets and emitter throttling
+- [x] 8. Manual verification — Turrets and emitter throttling
   - Stop and let the user verify turret rendering on ships and emitter throttling behavior in a live game before proceeding.
 
 - [ ] 9. Integration and wiring (EntityManager)

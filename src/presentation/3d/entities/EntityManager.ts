@@ -296,6 +296,10 @@ export class EntityManager {
         targetGroup.userData.targetPosition = new THREE.Vector3(x - boardOffset + 0.5, 0, z - boardOffset + 0.5);
     }
 
+    public getEmitterStats(): { emitterCount: number; throttleFactor: number } {
+        return this.particleSystem.getEmitterStats();
+    }
+
     public isBusy(): boolean {
         if (this.projectileManager.hasFallingMarkers()) return true;
         if (this.particleSystem.hasActiveParticles()) return true;

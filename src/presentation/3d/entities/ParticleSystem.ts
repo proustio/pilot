@@ -203,6 +203,10 @@ export class ParticleSystem {
         return this.particles.some(p => !p.isSmoke && !p.isFire);
     }
 
+    public getEmitterStats(): { emitterCount: number; throttleFactor: number } {
+        return this.emitterManager.getStats();
+    }
+
     public spawnFire(x: number, y: number, z: number, group: THREE.Object3D, intensity: number = 1.0): void {
         const pool = this.pools.get('fire');
         if (!pool) return;

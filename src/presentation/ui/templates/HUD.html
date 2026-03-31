@@ -1,81 +1,157 @@
-            <div class="absolute top-[15px] left-[15px] pointer-events-none hud-top-bar">
-                <div class="flex flex-col gap-[15px] hud-top-left">
-                    <div id="unified-board-anchor" class="bg-[rgba(20,20,20,0.55)] backdrop-blur-[8px] border-4 border-[#333] rounded shadow-voxel-panel text-[#eee] p-6 pointer-events-auto relative text-shadow-voxel">
-                        <div class="sw-screw tl"></div><div class="sw-screw tr"></div>
-                        <div class="sw-screw bl"></div><div class="sw-screw br"></div>
-                    </div>
-                    <div id="game-stats" class="hud-game-stats bg-[rgba(20,20,20,0.55)] backdrop-blur-[8px] border-4 border-[#333] rounded shadow-voxel-panel text-[#eee] p-6 pointer-events-auto relative text-shadow-voxel ${Config.rogueMode ? 'hidden' : ''}">
-                        <div class="sw-screw tl"></div><div class="sw-screw tr"></div>
-                        <div class="sw-screw bl"></div><div class="sw-screw br"></div>
-                        <div class="font-mono font-black text-[0.8rem] text-[#0f0]">SHOTS: <span id="stat-shots">0</span></div>
-                        <div class="font-mono font-black text-[0.8rem] text-[#0f0]">RATIO: <span id="stat-ratio">0%</span></div>
-                        <div class="font-mono font-black text-[0.8rem] text-[#ffde00] ml-auto">PROB: <span id="stat-prob">50%</span></div>
-                    </div>
+<div class="absolute top-[15px] left-[15px] pointer-events-none hud-top-bar">
+    <div class="flex flex-col gap-[15px] hud-top-left">
+        <div id="unified-board-anchor"
+            class="bg-[rgba(20,20,20,0.55)] backdrop-blur-[8px] border-4 border-[#333] rounded shadow-voxel-panel text-[#eee] p-6 pointer-events-auto relative text-shadow-voxel">
+            <div class="sw-screw tl"></div>
+            <div class="sw-screw tr"></div>
+            <div class="sw-screw bl"></div>
+            <div class="sw-screw br"></div>
+        </div>
+        <div id="game-stats"
+            class="hud-game-stats bg-[rgba(20,20,20,0.55)] backdrop-blur-[8px] border-4 border-[#333] rounded shadow-voxel-panel text-[#eee] p-6 pointer-events-auto relative text-shadow-voxel ${Config.rogueMode ? 'hidden' : ''}">
+            <div class="sw-screw tl"></div>
+            <div class="sw-screw tr"></div>
+            <div class="sw-screw bl"></div>
+            <div class="sw-screw br"></div>
+            <div class="font-mono font-black text-[0.8rem] text-[#0f0]">SHOTS: <span id="stat-shots">0</span></div>
+            <div class="font-mono font-black text-[0.8rem] text-[#0f0]">RATIO: <span id="stat-ratio">0%</span></div>
+            <div class="font-mono font-black text-[0.8rem] text-[#ffde00] ml-auto">PROB: <span id="stat-prob">50%</span>
+            </div>
+        </div>
 
-                    <div id="rogue-action-bar" class="flex gap-2.5 rogue-action-bar ${Config.rogueMode ? '' : 'hidden'}">
-                        <button id="btn-rogue-move" class="action-btn move-btn">MOVE</button>
-                        <button id="btn-rogue-attack" class="action-btn attack-btn">ATTACK</button>
-                        <button id="btn-rogue-skip" class="action-btn skip-btn">SKIP</button>
-                    </div>
+        <div id="rogue-action-bar" class="flex gap-2.5 rogue-action-bar ${Config.rogueMode ? '' : 'hidden'}">
+            <button id="btn-rogue-move" class="action-btn move-btn">MOVE</button>
+            <button id="btn-rogue-attack" class="action-btn attack-btn">ATTACK</button>
+            <button id="btn-rogue-skip" class="action-btn skip-btn">SKIP</button>
+        </div>
 
-                    <div id="arsenal-panel" class="hud-arsenal-panel bg-[rgba(20,20,20,0.55)] backdrop-blur-[8px] border-4 border-[#333] rounded shadow-voxel-panel text-[#eee] p-6 pointer-events-auto relative text-shadow-voxel transition-all duration-300 ${Config.rogueMode ? '' : 'hidden'}">
-                        <div class="sw-screw tl"></div><div class="sw-screw tr"></div>
-                        <div class="sw-screw bl"></div><div class="sw-screw br"></div>
-                        <div class="font-mono font-black text-[0.8rem] text-[#ffd700] mb-2.5 uppercase tracking-widest arsenal-title">MOVE SYSTEMS</div>
-                        <div class="flex gap-2.5 arsenal-items">
-                            <button class="arsenal-btn" data-weapon="sonar" title="Sonar Ping (2 Remaining)">📡</button>
-                            <button class="arsenal-btn" data-weapon="mine" title="Place Mine (5 Remaining)">💣</button>
-                        </div>
-                    </div>
-                </div>
+        <div id="arsenal-panel"
+            class="hud-arsenal-panel bg-[rgba(20,20,20,0.55)] backdrop-blur-[8px] border-4 border-[#333] rounded shadow-voxel-panel text-[#eee] p-6 pointer-events-auto relative text-shadow-voxel transition-all duration-300 ${Config.rogueMode ? '' : 'hidden'}">
+            <div class="sw-screw tl"></div>
+            <div class="sw-screw tr"></div>
+            <div class="sw-screw bl"></div>
+            <div class="sw-screw br"></div>
+            <div
+                class="font-mono font-black text-[0.8rem] text-[#ffd700] mb-2.5 uppercase tracking-widest arsenal-title">
+                MOVE SYSTEMS</div>
+            <div class="flex gap-2.5 arsenal-items">
+                <button class="arsenal-btn" data-weapon="sonar" title="Sonar Ping (2 Remaining)">📡</button>
+                <button class="arsenal-btn" data-weapon="mine" title="Place Mine (5 Remaining)">💣</button>
             </div>
-            
-            <div id="turn-indicator" class="absolute top-[15px] left-1/2 -translate-x-1/2 bg-[rgba(0,0,10,0.85)] border-4 border-[#4169E1] px-[40px] py-4 text-white font-black text-[2rem] text-shadow-[0_0_15px_rgba(65,105,225,1)] pointer-events-none rounded min-w-[300px] text-center uppercase tracking-tighter hud-turn-indicator z-[100] backdrop-blur-[4px] shadow-[0_0_30px_rgba(0,0,0,0.8)]">
-                <div class="sw-screw tl scale-[0.7] !top-1.5 !left-1.5"></div>
-                <div class="sw-screw tr scale-[0.7] !top-1.5 !right-1.5"></div>
-                <div class="sw-screw bl scale-[0.7] !bottom-1.5 !left-1.5"></div>
-                <div class="sw-screw br scale-[0.7] !bottom-1.5 !right-1.5"></div>
-                WAITING...
-            </div>
-            
-            <div class="absolute bottom-5 left-1/2 -translate-x-1/2 flex justify-center items-center pointer-events-none hud-bottom-bar">
-                <div class="grid p-[15px_25px] bg-[#1a1a1b] border-[6px] border-[#333] border-r-[#111] border-b-[#111] rounded shadow-[inset_0_0_15px_rgba(0,0,0,0.8),0_5px_15px_rgba(0,0,0,0.5)] gap-5 items-center relative min-w-[600px] pointer-events-auto hud-controls-panel ui-interactive" style="grid-template-columns: repeat(9, 1fr);">
-                    <div class="sw-screw tl"></div><div class="sw-screw tr"></div>
-                    <div class="sw-screw bl"></div><div class="sw-screw br"></div>
-                    <div class="sw-mount"><div class="sw-label">STATS</div><div id="led-geek-stats" class="sw-led ${Config.visual.showGeekStats ? 'on-gold' : ''}"></div><div id="hud-btn-geek-stats" class="sw-toggle ${Config.visual.showGeekStats ? 'active' : ''}" title="Toggle Geek Stats"></div></div>
-                    <div class="sw-mount"><div class="sw-label">AUTO</div><div id="led-auto-battler" class="sw-led ${Config.autoBattler ? 'on-red' : ''}"></div><div id="hud-btn-auto-battler" class="sw-rocker ${Config.autoBattler ? 'active' : ''}" title="Toggle Auto-Battler"></div></div>
-                    <div class="sw-mount ${Config.rogueMode ? 'hidden' : ''}"><div class="sw-label">PEEK</div><div id="led-peek" class="sw-led"></div><div id="hud-btn-peek" class="sw-toggle" title="Peek at other side"></div></div>
-                    <div class="sw-mount"><div class="sw-label">MODE</div><div id="led-day-night" class="sw-led ${Config.visual.isDayMode ? 'on-gold' : 'on-blue'}"></div><button id="hud-btn-day-night" class="sw-push text-xl" title="Toggle Day/Night">${Config.visual.isDayMode ? '🌘' : '🌖'}</button></div>
-                    <div class="sw-mount"><div class="sw-label">CAM</div><div id="led-cam-reset" class="sw-led"></div><button id="hud-btn-cam-reset" class="sw-push text-[0.8rem]" title="Reset Camera">👁️</button></div>
-                    <div class="sw-mount"><div class="sw-label">FPS</div><div class="sw-led on-green"></div><button id="hud-btn-fps" class="sw-push text-[0.7rem]" title="Cycle FPS Cap">${Config.visual.fpsCap || 60}<br></button></div>
-                    <div class="sw-mount"><div class="sw-label">SPEED</div><div class="sw-led on-green"></div><button id="hud-btn-speed" class="sw-push text-[0.7rem]" title="Cycle Speed">${Config.timing.gameSpeedMultiplier}X</button></div>
-                    <div class="sw-mount col-span-2"><div class="sw-label">SYSTEM PAUSE</div><div class="sw-led on-red"></div><button id="hud-btn-settings" class="sw-push red w-[100px] !rounded" title="Pause Menu">PAUSE</button></div>
-                </div>
-            </div>
-            
-            <div id="geek-stats" class="absolute top-[15px] right-[15px] p-4 bg-[rgba(0,0,10,0.7)] border-4 border-[#4169E1] rounded shadow-voxel-panel text-white min-w-[200px] pointer-events-auto z-50 geek-stats-panel ${Config.visual.showGeekStats ? '' : 'hidden'}">
-                <div class="sw-screw tl scale-[0.6] !top-1.5 !left-1.5"></div><div class="sw-screw tr scale-[0.6] !top-1.5 !right-1.5"></div>
-                <div class="sw-screw bl scale-[0.6] !bottom-1.5 !left-1.5"></div><div class="sw-screw br scale-[0.6] !bottom-1.5 !right-1.5"></div>
-                <div class="text-geek-title text-[0.75rem] mb-2 tracking-widest uppercase">⚙ GEEK STATS</div>
-                <div class="bg-[#050505] border-2 border-[#222] shadow-[inset_0_0_10px_rgba(0,255,0,0.1)] p-2.5 rounded-[2px] relative overflow-hidden after:content-[''] after:absolute after:inset-0 after:bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.1)_50%),linear-gradient(90deg,rgba(255,0,0,0.03),rgba(0,255,0,0.01),rgba(0,0,255,0.03))] after:bg-[length:100%_2px,3px_100%] after:pointer-events-none">
-                    <div class="flex justify-between leading-normal"><span class="text-geek-label mr-3">FPS</span><span class="text-geek-value text-right" id="gs-fps">--</span></div>
-                    <div class="flex justify-between leading-normal"><span class="text-geek-label mr-3">FRAME</span><span class="text-geek-value text-right" id="gs-frame">-- ms</span></div>
-                    <div class="flex justify-between leading-normal"><span class="text-geek-label mr-3">RAM</span><span class="text-geek-value text-right" id="gs-ram">-- MB</span></div>
-                    <div class="flex justify-between leading-normal"><span class="text-geek-label mr-3">CPU</span><span class="text-geek-value text-right" id="gs-cpu">-- %</span></div>
-                    <div class="flex justify-between leading-normal" title="Three.js Render Info: Draw Calls / Triangles">
-                        <span class="text-geek-label mr-3">GPU</span>
-                        <span class="text-geek-value text-right"><span id="gs-gpu-calls">--</span> 🎨🔔 / <span id="gs-gpu-tris">--</span> △s</span>
-                    </div>
-                    <div class="flex justify-between leading-normal">
-                        <span><span class="text-geek-label mr-3">NET ⬇️</span><span class="text-geek-value text-right" id="gs-net-down">--</span></span>
-                        <span><span class="text-geek-label mr-3">⬆️</span><span class="text-geek-value text-right" id="gs-net-up">--</span></span>
-                    </div>
-                    <div class="flex justify-between leading-normal" title="Distance from camera target"><span class="text-geek-label mr-3">DIST</span><span class="text-geek-value text-right" id="gs-zoom">--</span></div>
-                    <div class="flex justify-between leading-normal" title="Camera World Position"><span class="text-geek-label mr-3">POS</span><span class="text-geek-value text-right" id="gs-pos">--</span></div>
-                    <div class="flex justify-between leading-normal" title="Camera Target Position"><span class="text-geek-label mr-3">TGT</span><span class="text-geek-value text-right" id="gs-tgt">--</span></div>
-                    <div class="flex justify-between leading-normal"><span class="text-geek-label mr-3">STATUS</span><span class="text-geek-online text-right" id="gs-status">● LOCAL</span></div>
-                    <div class="flex justify-between leading-normal"><span class="text-geek-label mr-3">ENGINE</span><span class="text-geek-value text-right" id="gs-engine">--</span></div>
-                    <div class="flex justify-between leading-normal"><span class="text-geek-label mr-3">TIME</span><span class="text-geek-value text-right" id="gs-time">00:00</span></div>
-                </div>
-            </div>
-            <div id="mouse-coords" class="mouse-coords hidden">(0,0)</div>
+        </div>
+    </div>
+</div>
+
+<div id="turn-indicator"
+    class="absolute top-[15px] left-1/2 -translate-x-1/2 bg-[rgba(0,0,10,0.85)] border-4 border-[#4169E1] px-[40px] py-4 text-white font-black text-[2rem] text-shadow-[0_0_15px_rgba(65,105,225,1)] pointer-events-none rounded min-w-[300px] text-center uppercase tracking-tighter hud-turn-indicator z-[100] backdrop-blur-[4px] shadow-[0_0_30px_rgba(0,0,0,0.8)]">
+    <div class="sw-screw tl scale-[0.7] !top-1.5 !left-1.5"></div>
+    <div class="sw-screw tr scale-[0.7] !top-1.5 !right-1.5"></div>
+    <div class="sw-screw bl scale-[0.7] !bottom-1.5 !left-1.5"></div>
+    <div class="sw-screw br scale-[0.7] !bottom-1.5 !right-1.5"></div>
+    WAITING...
+</div>
+
+<div
+    class="absolute bottom-5 left-1/2 -translate-x-1/2 flex justify-center items-center pointer-events-none hud-bottom-bar">
+    <div class="grid p-[15px_25px] bg-[#1a1a1b] border-[6px] border-[#333] border-r-[#111] border-b-[#111] rounded shadow-[inset_0_0_15px_rgba(0,0,0,0.8),0_5px_15px_rgba(0,0,0,0.5)] gap-5 items-center relative min-w-[600px] pointer-events-auto hud-controls-panel ui-interactive"
+        style="grid-template-columns: repeat(9, 1fr);">
+        <div class="sw-screw tl"></div>
+        <div class="sw-screw tr"></div>
+        <div class="sw-screw bl"></div>
+        <div class="sw-screw br"></div>
+        <div class="sw-mount">
+            <div class="sw-label">STATS</div>
+            <div id="led-geek-stats" class="sw-led ${Config.visual.showGeekStats ? 'on-gold' : ''}"></div>
+            <div id="hud-btn-geek-stats" class="sw-toggle ${Config.visual.showGeekStats ? 'active' : ''}"
+                title="Toggle Geek Stats"></div>
+        </div>
+        <div class="sw-mount">
+            <div class="sw-label">AUTO</div>
+            <div id="led-auto-battler" class="sw-led ${Config.autoBattler ? 'on-red' : ''}"></div>
+            <div id="hud-btn-auto-battler" class="sw-rocker ${Config.autoBattler ? 'active' : ''}"
+                title="Toggle Auto-Battler"></div>
+        </div>
+        <div class="sw-mount ${Config.rogueMode ? 'hidden' : ''}">
+            <div class="sw-label">PEEK</div>
+            <div id="led-peek" class="sw-led"></div>
+            <div id="hud-btn-peek" class="sw-toggle" title="Peek at other side"></div>
+        </div>
+        <div class="sw-mount">
+            <div class="sw-label">MODE</div>
+            <div id="led-day-night" class="sw-led ${Config.visual.isDayMode ? 'on-gold' : 'on-blue'}"></div><button
+                id="hud-btn-day-night" class="sw-push text-xl" title="Toggle Day/Night">${Config.visual.isDayMode ? '🌘'
+                : '🌖'}</button>
+        </div>
+        <div class="sw-mount">
+            <div class="sw-label">CAM</div>
+            <div id="led-cam-reset" class="sw-led"></div><button id="hud-btn-cam-reset" class="sw-push text-[0.8rem]"
+                title="Reset Camera">👁️</button>
+        </div>
+        <div class="sw-mount">
+            <div class="sw-label">FPS</div>
+            <div class="sw-led on-green"></div><button id="hud-btn-fps" class="sw-push text-[0.7rem]"
+                title="Cycle FPS Cap">${Config.visual.fpsCap || 60}<br></button>
+        </div>
+        <div class="sw-mount">
+            <div class="sw-label">SPEED</div>
+            <div class="sw-led on-green"></div><button id="hud-btn-speed" class="sw-push text-[0.7rem]"
+                title="Cycle Speed">${Config.timing.gameSpeedMultiplier}X</button>
+        </div>
+        <div class="sw-mount col-span-2">
+            <div class="sw-label">SYSTEM PAUSE</div>
+            <div class="sw-led on-red"></div><button id="hud-btn-settings" class="sw-push red w-[100px] !rounded"
+                title="Pause Menu">PAUSE</button>
+        </div>
+    </div>
+</div>
+
+<div id="geek-stats"
+    class="absolute top-[15px] right-[15px] p-4 bg-[rgba(0,0,10,0.7)] border-4 border-[#4169E1] rounded shadow-voxel-panel text-white min-w-[200px] pointer-events-auto z-50 geek-stats-panel ${Config.visual.showGeekStats ? '' : 'hidden'}">
+    <div class="sw-screw tl scale-[0.6] !top-1.5 !left-1.5"></div>
+    <div class="sw-screw tr scale-[0.6] !top-1.5 !right-1.5"></div>
+    <div class="sw-screw bl scale-[0.6] !bottom-1.5 !left-1.5"></div>
+    <div class="sw-screw br scale-[0.6] !bottom-1.5 !right-1.5"></div>
+    <div class="text-geek-title text-[0.75rem] mb-2 tracking-widest uppercase">⚙ GEEK STATS</div>
+    <div
+        class="bg-[#050505] border-2 border-[#222] shadow-[inset_0_0_10px_rgba(0,255,0,0.1)] p-2.5 rounded-[2px] relative overflow-hidden after:content-[''] after:absolute after:inset-0 after:bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.1)_50%),linear-gradient(90deg,rgba(255,0,0,0.03),rgba(0,255,0,0.01),rgba(0,0,255,0.03))] after:bg-[length:100%_2px,3px_100%] after:pointer-events-none">
+        <div class="flex justify-between leading-normal"><span class="text-geek-label mr-3">FPS</span><span
+                class="text-geek-value text-right" id="gs-fps">--</span></div>
+        <div class="flex justify-between leading-normal"><span class="text-geek-label mr-3">FRAME</span><span
+                class="text-geek-value text-right" id="gs-frame">-- ms</span></div>
+        <div class="flex justify-between leading-normal"><span class="text-geek-label mr-3">RAM</span><span
+                class="text-geek-value text-right" id="gs-ram">-- MB</span></div>
+        <div class="flex justify-between leading-normal"><span class="text-geek-label mr-3">CPU</span><span
+                class="text-geek-value text-right" id="gs-cpu">-- %</span></div>
+        <div class="flex justify-between leading-normal" title="Three.js Render Info: Draw Calls / Triangles">
+            <span class="text-geek-label mr-3">GPU</span>
+            <span class="text-geek-value text-right"><span id="gs-gpu-calls">--</span> 🎨🔔 / <span
+                    id="gs-gpu-tris">--</span> △s</span>
+        </div>
+        <div class="flex justify-between leading-normal" title="Active Emitters / Throttle Factor">
+            <span class="text-geek-label mr-3">EMIT</span>
+            <span class="text-geek-value text-right" id="gs-emitters">--</span>
+        </div>
+        <div class="flex justify-between leading-normal">
+            <span><span class="text-geek-label mr-3">NET ⬇️</span><span class="text-geek-value text-right"
+                    id="gs-net-down">--</span></span>
+            <span><span class="text-geek-label mr-3">⬆️</span><span class="text-geek-value text-right"
+                    id="gs-net-up">--</span></span>
+        </div>
+        <div class="flex justify-between leading-normal" title="Distance from camera target"><span
+                class="text-geek-label mr-3">DIST</span><span class="text-geek-value text-right" id="gs-zoom">--</span>
+        </div>
+        <div class="flex justify-between leading-normal" title="Camera World Position"><span
+                class="text-geek-label mr-3">POS</span><span class="text-geek-value text-right" id="gs-pos">--</span>
+        </div>
+        <div class="flex justify-between leading-normal" title="Camera Target Position"><span
+                class="text-geek-label mr-3">TGT</span><span class="text-geek-value text-right" id="gs-tgt">--</span>
+        </div>
+        <div class="flex justify-between leading-normal"><span class="text-geek-label mr-3">STATUS</span><span
+                class="text-geek-online text-right" id="gs-status">● LOCAL</span></div>
+        <div class="flex justify-between leading-normal"><span class="text-geek-label mr-3">ENGINE</span><span
+                class="text-geek-value text-right" id="gs-engine">--</span></div>
+        <div class="flex justify-between leading-normal"><span class="text-geek-label mr-3">TIME</span><span
+                class="text-geek-value text-right" id="gs-time">00:00</span></div>
+    </div>
+</div>
+<div id="mouse-coords" class="mouse-coords hidden">(0,0)</div>

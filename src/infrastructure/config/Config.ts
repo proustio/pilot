@@ -1,8 +1,10 @@
 export const Config = {
     version: '0.1.0',
     board: {
-        width: 15,
-        height: 15
+        width: 10,
+        height: 10,
+        rogueWidth: 15,
+        rogueHeight: 15
     },
     storage: {
         maxSlots: 3,
@@ -46,6 +48,8 @@ export const Config = {
         get fogPoolCapacity() { return Math.ceil(Config.board.width * Config.board.height * 1.3); },
         drawCallBudget: 100,
         minSpawnRateScale: 0.1,
+        emitterThrottleThreshold: 64,
+        maxActiveEmitters: 128,
     },
 
     rogue: {
