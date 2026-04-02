@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { InstancedParticle, _tempColor } from './ParticleTypes';
+import { InstancedParticle, _tempColor, _tempPos, _tempQuaternion, _tempScale, _tempMatrix } from './ParticleTypes';
 import { ParticlePoolManager } from './ParticlePoolManager';
 
 export class ParticleSpawner {
@@ -19,14 +19,21 @@ export class ParticleSpawner {
         const scale = 0.6 + intensity * 0.6;
         const life = 0.5 + Math.random() * 0.25;
 
+        const localPos = new THREE.Vector3(
+            x + (Math.random() - 0.5) * 0.2,
+            y,
+            z + (Math.random() - 0.5) * 0.2
+        );
+        if (group !== this.poolManager.poolParent && this.poolManager.poolParent) {
+            group.localToWorld(localPos);
+            this.poolManager.poolParent.worldToLocal(localPos);
+        }
+
         const particle: InstancedParticle = {
             poolType: 'fire',
+            poolRef: pool,
             slotIndex: slot,
-            position: new THREE.Vector3(
-                x + (Math.random() - 0.5) * 0.2,
-                y,
-                z + (Math.random() - 0.5) * 0.2
-            ),
+            position: localPos,
             velocity: new THREE.Vector3(
                 (Math.random() - 0.5) * 0.02,
                 0.04 + Math.random() * 0.04,
@@ -34,13 +41,13 @@ export class ParticleSpawner {
             ),
             rotation: new THREE.Euler(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI),
             scale,
+            scaleDelta: -0.015, // Approx replaces *= 0.96
+            rotationDelta: 0.05,
+            gravityModifier: 0,
+            colorFadeRate: 0, // We drop the complex flicker per frame for performance, or handle via shader if needed
             opacity: 1.0,
             life,
             maxLife: life,
-            isSmoke: false,
-            isFire: true,
-            isVoxelExplosion: false,
-            group,
             spawnOrder: this.spawnCounter++,
         };
 
@@ -51,6 +58,8 @@ export class ParticleSpawner {
         // Write initial color (fire or secondary fire color)
         const color = isSecondary ? this.poolManager.secondaryFireMat.color : this.poolManager.fireMat.color;
         pool.mesh.setColorAt(slot, color);
+
+        this.injectInitialTransform(particle);
     }
 
     public spawnSmoke(x: number, y: number, z: number, color: string, group: THREE.Object3D, intensity: number = 1.0, spawnRateScale: number = 1.0): void {
@@ -64,14 +73,21 @@ export class ParticleSpawner {
         const scale = 0.8 + intensity * 0.4;
         const life = 1.0 + Math.random() * 0.5;
 
+        const localPos = new THREE.Vector3(
+            x + (Math.random() - 0.5) * 0.7,
+            y,
+            z + (Math.random() - 0.5) * 0.7
+        );
+        if (group !== this.poolManager.poolParent && this.poolManager.poolParent) {
+            group.localToWorld(localPos);
+            this.poolManager.poolParent.worldToLocal(localPos);
+        }
+
         const particle: InstancedParticle = {
             poolType: 'smoke',
+            poolRef: pool,
             slotIndex: slot,
-            position: new THREE.Vector3(
-                x + (Math.random() - 0.5) * 0.7,
-                y,
-                z + (Math.random() - 0.5) * 0.7
-            ),
+            position: localPos,
             velocity: new THREE.Vector3(
                 (Math.random() - 0.5) * 0.005,
                 0.02 + Math.random() * 0.02,
@@ -79,13 +95,13 @@ export class ParticleSpawner {
             ),
             rotation: new THREE.Euler(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI),
             scale,
+            scaleDelta: 0.005, // Smoke expands
+            rotationDelta: 0.05,
+            gravityModifier: 0,
+            colorFadeRate: 0.8 / life, // Fade to black
             opacity: 0.8,
             life,
             maxLife: life,
-            isSmoke: true,
-            isFire: false,
-            isVoxelExplosion: false,
-            group,
             spawnOrder: this.spawnCounter++,
         };
 
@@ -96,6 +112,8 @@ export class ParticleSpawner {
         // Write smoke color (no material.clone() — shared material, per-instance color)
         _tempColor.set(color);
         pool.mesh.setColorAt(slot, _tempColor);
+
+        this.injectInitialTransform(particle);
     }
 
     public spawnExplosion(x: number, y: number, z: number, group: THREE.Object3D, spawnRateScale: number = 1.0): void {
@@ -111,14 +129,21 @@ export class ParticleSpawner {
             const isFire = Math.random() > 0.5;
             const life = 1.0;
 
+            const localPos = new THREE.Vector3(
+                x + (Math.random() - 0.5) * 0.5,
+                y + Math.random() * 0.5,
+                z + (Math.random() - 0.5) * 0.5
+            );
+            if (group !== this.poolManager.poolParent && this.poolManager.poolParent) {
+                group.localToWorld(localPos);
+                this.poolManager.poolParent.worldToLocal(localPos);
+            }
+
             const particle: InstancedParticle = {
                 poolType: 'explosion',
+                poolRef: pool,
                 slotIndex: slot,
-                position: new THREE.Vector3(
-                    x + (Math.random() - 0.5) * 0.5,
-                    y + Math.random() * 0.5,
-                    z + (Math.random() - 0.5) * 0.5
-                ),
+                position: localPos,
                 velocity: new THREE.Vector3(
                     (Math.random() - 0.5) * 0.05,
                     Math.random() * 0.1 + 0.05,
@@ -126,13 +151,13 @@ export class ParticleSpawner {
                 ),
                 rotation: new THREE.Euler(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI),
                 scale: 1.0,
+                scaleDelta: -0.015,
+                rotationDelta: 0.05,
+                gravityModifier: 0.005,
+                colorFadeRate: 0,
                 opacity: 1.0,
                 life,
                 maxLife: life,
-                isSmoke: false,
-                isFire: false,
-                isVoxelExplosion: false,
-                group,
                 spawnOrder: this.spawnCounter++,
             };
 
@@ -143,6 +168,8 @@ export class ParticleSpawner {
             // Color: fire orange or grey smoke
             const color = isFire ? this.poolManager.fireMat.color : this.poolManager.greySmokeMat.color;
             pool.mesh.setColorAt(slot, color);
+
+            this.injectInitialTransform(particle);
         }
     }
 
@@ -159,14 +186,21 @@ export class ParticleSpawner {
             const isWhite = Math.random() > 0.6;
             const life = 0.6 + Math.random() * 0.4;
 
+            const localPos = new THREE.Vector3(
+                x + (Math.random() - 0.5) * 0.4,
+                y,
+                z + (Math.random() - 0.5) * 0.4
+            );
+            if (group !== this.poolManager.poolParent && this.poolManager.poolParent) {
+                group.localToWorld(localPos);
+                this.poolManager.poolParent.worldToLocal(localPos);
+            }
+
             const particle: InstancedParticle = {
                 poolType: 'splash',
+                poolRef: pool,
                 slotIndex: slot,
-                position: new THREE.Vector3(
-                    x + (Math.random() - 0.5) * 0.4,
-                    y,
-                    z + (Math.random() - 0.5) * 0.4
-                ),
+                position: localPos,
                 velocity: new THREE.Vector3(
                     (Math.random() - 0.5) * 0.04,
                     Math.random() * 0.15 + 0.05,
@@ -174,13 +208,13 @@ export class ParticleSpawner {
                 ),
                 rotation: new THREE.Euler(0, 0, 0),
                 scale: 1.0,
+                scaleDelta: 0,
+                rotationDelta: 0,
+                gravityModifier: 0.005,
+                colorFadeRate: 0,
                 opacity: isWhite ? 0.7 : 0.8,
                 life,
                 maxLife: 1.0,
-                isSmoke: false,
-                isFire: false,
-                isVoxelExplosion: false,
-                group,
                 spawnOrder: this.spawnCounter++,
             };
 
@@ -190,6 +224,8 @@ export class ParticleSpawner {
 
             const color = isWhite ? this.poolManager.splashMatWhite.color : this.poolManager.splashMatBlue.color;
             pool.mesh.setColorAt(slot, color);
+
+            this.injectInitialTransform(particle);
         }
     }
 
@@ -204,14 +240,21 @@ export class ParticleSpawner {
             const slot = this.poolManager.allocateSlot(pool, this.particles);
             const life = 1.5 + Math.random() * 0.5;
 
+            const localPos = new THREE.Vector3(
+                x + (Math.random() - 0.5) * 0.5,
+                y + Math.random() * 0.5,
+                z + (Math.random() - 0.5) * 0.5
+            );
+            if (group !== this.poolManager.poolParent && this.poolManager.poolParent) {
+                group.localToWorld(localPos);
+                this.poolManager.poolParent.worldToLocal(localPos);
+            }
+
             const particle: InstancedParticle = {
                 poolType: 'explosion',
+                poolRef: pool,
                 slotIndex: slot,
-                position: new THREE.Vector3(
-                    x + (Math.random() - 0.5) * 0.5,
-                    y + Math.random() * 0.5,
-                    z + (Math.random() - 0.5) * 0.5
-                ),
+                position: localPos,
                 velocity: new THREE.Vector3(
                     (Math.random() - 0.5) * 0.15,
                     Math.random() * 0.15 + 0.05,
@@ -219,13 +262,13 @@ export class ParticleSpawner {
                 ),
                 rotation: new THREE.Euler(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI),
                 scale: 0.67, // 0.1/0.15 ratio to match original voxel size vs explosion geo
+                scaleDelta: -0.01,
+                rotationDelta: 0.05,
+                gravityModifier: 0.005,
+                colorFadeRate: 0,
                 opacity: 1.0,
                 life,
                 maxLife: 2.0,
-                isSmoke: false,
-                isFire: false,
-                isVoxelExplosion: true,
-                group,
                 spawnOrder: this.spawnCounter++,
             };
 
@@ -234,6 +277,8 @@ export class ParticleSpawner {
             pool.slotToParticleIndex.set(slot, idx);
 
             pool.mesh.setColorAt(slot, this.poolManager.shipVoxelMat.color);
+
+            this.injectInitialTransform(particle);
         }
     }
 
@@ -244,20 +289,27 @@ export class ParticleSpawner {
         const slot = this.poolManager.allocateSlot(pool, this.particles);
         const life = 999; // Fog particles are long-lived, managed externally
 
+        const localPos = new THREE.Vector3(x, y, z);
+        if (group !== this.poolManager.poolParent && this.poolManager.poolParent) {
+            group.localToWorld(localPos);
+            this.poolManager.poolParent.worldToLocal(localPos);
+        }
+
         const particle: InstancedParticle = {
             poolType: 'fog',
+            poolRef: pool,
             slotIndex: slot,
-            position: new THREE.Vector3(x, y, z),
+            position: localPos,
             velocity: new THREE.Vector3(0, 0, 0),
             rotation: new THREE.Euler(0, 0, 0),
             scale: 1.0,
+            scaleDelta: 0,
+            rotationDelta: 0,
+            gravityModifier: 0,
+            colorFadeRate: 0,
             opacity: 0.6,
             life,
             maxLife: life,
-            isSmoke: false,
-            isFire: false,
-            isVoxelExplosion: false,
-            group,
             spawnOrder: this.spawnCounter++,
         };
 
@@ -266,5 +318,16 @@ export class ParticleSpawner {
         pool.slotToParticleIndex.set(slot, idx);
 
         pool.mesh.setColorAt(slot, this.poolManager.fogMat.color);
+
+        this.injectInitialTransform(particle);
+    }
+
+    private injectInitialTransform(p: InstancedParticle): void {
+        _tempPos.copy(p.position);
+        _tempQuaternion.setFromEuler(p.rotation);
+        _tempScale.setScalar(p.scale);
+        _tempMatrix.compose(_tempPos, _tempQuaternion, _tempScale);
+        p.poolRef.mesh.setMatrixAt(p.slotIndex, _tempMatrix);
+        p.poolRef.mesh.instanceMatrix.needsUpdate = true;
     }
 }

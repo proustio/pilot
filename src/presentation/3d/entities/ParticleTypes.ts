@@ -7,18 +7,19 @@ export type ParticlePoolType = 'fire' | 'smoke' | 'explosion' | 'splash' | 'fog'
 
 export interface InstancedParticle {
     poolType: ParticlePoolType;
+    poolRef: InstancePool;
     slotIndex: number;
     position: THREE.Vector3;
     velocity: THREE.Vector3;
     rotation: THREE.Euler;
     scale: number;
+    scaleDelta: number;
+    rotationDelta: number;
+    gravityModifier: number;
+    colorFadeRate: number;
     opacity: number;
     life: number;
     maxLife: number;
-    isSmoke: boolean;
-    isFire: boolean;
-    isVoxelExplosion: boolean;
-    group: THREE.Object3D;
     /** Timestamp-like ordering for oldest-eviction */
     spawnOrder: number;
 }
