@@ -1,150 +1,11 @@
-#pause-menu {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 300px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
+/* 
+   Dialogs (Pruned)
+   Structural positioning and static styles migrated to Tailwind.
+*/
 
-#settings-modal {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 400px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.settings-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 15px;
-  width: 100%;
-}
-
-/* Save/Load Dialog */
-#save-load-dialog,
-#game-over {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 380px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.save-slots-container {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  width: 100%;
-  align-items: center;
-}
-
-.save-slot {
-  text-align: left;
-  display: flex;
-  flex-direction: column;
-  padding: 12px 16px;
-  border: 1px solid rgba(255, 215, 0, 0.3);
-  background: rgba(0, 0, 20, 0.4);
-  margin-bottom: 4px;
-  border-radius: 4px;
-  transition: all 0.2s;
-}
-
-.save-slot:hover:not(.slot-disabled) {
-  border-color: var(--color-primary);
-  box-shadow: inset 0 0 10px rgba(255, 215, 0, 0.3);
-}
-
-.save-slot .slot-header {
-  font-size: 1rem;
-  font-weight: bold;
-  margin-bottom: 4px;
-  color: var(--color-text);
-  text-shadow: 0 0 5px var(--color-primary);
-}
-
-.save-slot .slot-info {
-  display: flex;
-  flex-direction: column;
-  font-size: 0.8rem;
-  gap: 2px;
-}
-
-.save-slot .slot-empty {
-  color: var(--slot-empty);
-  font-style: italic;
-}
-
-.save-slot .slot-mode {
-  color: var(--color-secondary);
-}
-
-.save-slot .slot-date {
-  color: var(--slot-date);
-}
-
-.save-slot .slot-turns {
-  color: var(--slot-turns);
-}
-
-.save-slot.slot-disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-.slot-wrapper {
-  display: flex;
-  gap: 8px;
-  align-items: stretch;
-}
-
-.slot-delete-btn {
-  width: 50px;
-  padding: 0;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  flex-shrink: 0;
-}
-
-/* Confirmation Overlay */
-.confirm-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: var(--overlay-bg);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 300;
-}
-
-.confirm-dialog {
-  text-align: center;
-  max-width: 320px;
-}
-
-.confirm-dialog p {
-  margin-bottom: 15px;
-  font-size: 1.1rem;
-}
-
-/* Mouse Coordinate Indicator */
+/* 
+   Mouse Coordinate Tooltip - Global state 
+*/
 .mouse-coords {
   position: fixed;
   pointer-events: none;
@@ -161,9 +22,12 @@
   white-space: nowrap;
 }
 
-/* Custom Slider for Volume */
+/* 
+   Custom Slider (pseudo-elements — kept in CSS as per request) 
+*/
 .voxel-slider {
   -webkit-appearance: none;
+  appearance: none;
   width: 100%;
   height: 8px;
   background: #111;
@@ -201,6 +65,6 @@
 }
 
 .night-mode .voxel-slider::-webkit-slider-thumb {
-  background: #0f0; /* Monochrome Green thumb for night */
+  background: #0f0;
   box-shadow: 0 0 10px #0f0;
 }

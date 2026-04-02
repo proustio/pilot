@@ -3,12 +3,13 @@ import { InteractivityGuard } from '../InteractivityGuard';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { Config } from '../../infrastructure/config/Config';
 import { ThemeManager } from '../theme/ThemeManager';
+import { eventBus, GameEventType } from '../../application/events/GameEventBus';
 export class Engine3D {
   public scene: THREE.Scene;
   public camera: THREE.PerspectiveCamera;
   public renderer: THREE.WebGLRenderer;
 
-  public targetCameraPos = new THREE.Vector3(5, 10, 14);
+  public targetCameraPos = new THREE.Vector3(5.0233, 10.0466, 14.0652); // Exact dist 18 from origin
   public targetLookAt = new THREE.Vector3(0, 0, 0);
   private currentLookAt = new THREE.Vector3(0, 0, 0);
 
@@ -33,10 +34,15 @@ export class Engine3D {
 
     const aspect = window.innerWidth / window.innerHeight;
     this.camera = new THREE.PerspectiveCamera(50, aspect, 0.1, 1000);
-    this.camera.position.set(5, 10, 14);
+    this.camera.position.set(5.0233, 10.0466, 14.0652);
     this.camera.lookAt(0, 0, 0);
 
-    this.renderer = new THREE.WebGLRenderer({ antialias: Config.visual.antialias, alpha: true });
+    this.renderer = new THREE.WebGLRenderer({
+      antialias: Config.visual.antialias,
+      alpha: true,
+      powerPreference: 'high-performance',
+      precision: 'highp'
+    });
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
     this.renderer.shadowMap.enabled = Config.visual.shadowsEnabled;
@@ -58,6 +64,11 @@ export class Engine3D {
     this.orbitControls.addEventListener('change', () => {
       if (!this.isTransitioning) {
         this.hasManualMovement = true;
+
+        // Debounced camera save
+        if (!InteractivityGuard.isCameraMoving()) {
+          this.triggerDebouncedSave();
+        }
       }
     });
 
@@ -67,6 +78,7 @@ export class Engine3D {
     });
     this.orbitControls.addEventListener('end', () => {
       InteractivityGuard.setCameraInteracting(false);
+      this.triggerDebouncedSave();
     });
 
     this.renderer.domElement.addEventListener('pointerdown', (event: PointerEvent) => {
@@ -95,31 +107,32 @@ export class Engine3D {
       }
     }, { capture: true });
 
-    document.addEventListener('TOGGLE_DAY_NIGHT', () => {
-      this.updateTheme();
+    eventBus.on(GameEventType.TOGGLE_DAY_NIGHT, () => {
+      this.setDayMode(!Config.visual.isDayMode);
     });
 
-    document.addEventListener('THEME_CHANGED', () => {
-      this.updateTheme();
-    });
-
-    document.addEventListener('SET_CAMERA_TARGET', (e: Event) => {
-      const ce = e as CustomEvent;
-      if (ce.detail && !this.isTransitioning) {
-        this.targetCameraPos.set(ce.detail.x, ce.detail.y, ce.detail.z);
+    eventBus.on(GameEventType.SET_CAMERA_TARGET, (payload: any) => {
+      if (payload && !this.isTransitioning) {
+        this.targetCameraPos.set(payload.x, payload.y, payload.z);
         this.isTransitioning = true;
         InteractivityGuard.setCameraTransitioning(true);
       }
     });
 
-    document.addEventListener('RESET_CAMERA', () => {
-      this.targetCameraPos.set(5, 10, 14);
+    eventBus.on(GameEventType.THEME_CHANGED, () => {
+      this.updateTheme();
+    });
+
+    eventBus.on(GameEventType.RESET_CAMERA, () => {
+      this.targetCameraPos.set(5.0233, 10.0466, 14.0652);
       this.targetLookAt.set(0, 0, 0);
       this.isTransitioning = true;
       InteractivityGuard.setCameraTransitioning(true);
     });
 
-    window.addEventListener('resize', this.onWindowResize.bind(this));
+    eventBus.on(GameEventType.WINDOW_RESIZE, () => {
+      this.onWindowResize();
+    });
   }
 
   private setupLighting() {
@@ -158,11 +171,11 @@ export class Engine3D {
 
   public updateTheme() {
     const tm = ThemeManager.getInstance();
-    
+
     this.scene.background = tm.getBackgroundColor();
-    
+
     if (this.scene.fog) {
-        this.scene.fog.color = tm.getFogColor();
+      this.scene.fog.color = tm.getFogColor();
     }
 
     this.ambientLight.color.copy(tm.getAmbientLightColor());
@@ -183,12 +196,40 @@ export class Engine3D {
 
   public restoreViewState(
     camX: number, camY: number, camZ: number,
-    tgtX: number, tgtY: number, tgtZ: number
+    tgtX: number, tgtY: number, tgtZ: number,
+    camDist?: number
   ) {
     this.targetCameraPos.set(camX, camY, camZ);
     this.targetLookAt.set(tgtX, tgtY, tgtZ);
+
+    if (camDist !== undefined) {
+      // If distance is provided, we might want to adjust the targetCameraPos 
+      // to maintain that distance along the vector.
+      // For simplicity, we'll just set the min/max distance or trust the position.
+      this.orbitControls.minDistance = Math.min(this.orbitControls.minDistance, camDist);
+      this.orbitControls.maxDistance = Math.max(this.orbitControls.maxDistance, camDist);
+    }
+
     this.isTransitioning = true;
     InteractivityGuard.setCameraTransitioning(true);
+  }
+
+  public getCameraState() {
+    return {
+      pos: this.camera.position.clone(),
+      tgt: this.orbitControls.target.clone(),
+      dist: this.orbitControls.getDistance()
+    };
+  }
+
+  private saveTimeout: any = null;
+  private triggerDebouncedSave() {
+    if (this.saveTimeout) clearTimeout(this.saveTimeout);
+    this.saveTimeout = setTimeout(() => {
+      if (!InteractivityGuard.isCameraMoving() && !this.isTransitioning) {
+        eventBus.emit(GameEventType.TRIGGER_AUTO_SAVE, undefined as any);
+      }
+    }, 1000);
   }
 
 

@@ -6,74 +6,153 @@ inclusion: always
 
 Domain-Driven Design with strict layer separation. Domain and application layers have zero knowledge of Three.js or the DOM.
 
+## Layer Dependency Rules
+
+- `domain/` → no imports from `application/`, `presentation/`, or `infrastructure/`
+- `application/` → may import `domain/`; never imports `presentation/`; `Config` and `Storage` are injected via constructor from `main.ts`
+- `presentation/` → may import `domain/`, `application/`, and `infrastructure/`
+- `infrastructure/` → may import `domain/`
+- Cross-layer communication uses `GameEventBus` (typed pub/sub singleton). Direct `document.dispatchEvent` is prohibited.
+
+## Source Tree
+
 ```
 src/
-├── domain/                    # Pure game logic, no framework dependencies
-│   ├── board/Board.ts         # Grid, cells (CellState enum), attack resolution
-│   ├── board/BoardUtils.ts    # Grid index ↔ coordinate helper functions
-│   ├── fleet/Ship.ts          # Ship model, orientation, hit segments, occupied coords
-│   └── match/Match.ts         # Match rules per mode (Classic/Russian), fleet config, placement validation
+├── domain/                        # Pure game logic — no framework deps
+│   ├── board/
+│   │   ├── Board.ts               # Grid, CellState enum, attack resolution
+│   │   ├── BoardUtils.ts          # Grid index ↔ coordinate helpers
+│   │   ├── ShipPlacement.ts       # Ship placement logic and validation
+│   │   └── WeaponSystem.ts        # Weapon profiles and AoE resolution
+│   ├── fleet/
+│   │   └── Ship.ts                # Ship model, orientation, hit segments, occupied coords
+│   └── match/
+│       └── Match.ts               # Match rules per mode, fleet config, placement validation
 │
-├── application/               # Orchestration and use cases
-│   ├── ai/AIEngine.ts         # AI opponent (Easy=random, Normal=hunt/target, Hard=heatmap)
+├── application/                   # Orchestration and use cases
+│   ├── ai/
+│   │   ├── AIEngine.ts            # AI coordinator (Easy/Normal/Hard)
+│   │   ├── AIMovement.ts          # Rogue-mode AI ship movement logic
+│   │   └── AITargeting.ts         # AI target selection and heatmap generation
+│   ├── events/
+│   │   └── GameEventBus.ts        # Typed singleton for cross-layer pub/sub
 │   └── game-loop/
-│       ├── GameLoop.ts        # State machine (MAIN_MENU → SETUP_BOARD → PLAYER_TURN ↔ ENEMY_TURN → GAME_OVER)
-│       ├── MatchSetup.ts      # Match initialization, loading, and replay logic
-│       └── TurnExecutor.ts    # Turn handling for AI, auto-player, and player interaction
+│       ├── GameLoop.ts            # State machine orchestrator — thin coordinator
+│       ├── GameRunner.ts          # Top-level game lifecycle (start, stop, reset)
+│       ├── GameEventManager.ts    # Event registration and routing via GameEventBus
+│       ├── MatchSetup.ts          # Match initialization, loading, and replay
+│       ├── TurnExecutor.ts        # Turn handling for AI, auto-player, and player
+│       ├── EnemyTurnHandler.ts    # Enemy turn sequencing and resolution
+│       ├── SetupBoardHandler.ts   # Ship placement phase coordination
+│       └── RogueActionHandler.ts  # Rogue-mode movement and ability logic
 │
-├── infrastructure/            # External concerns
-│   ├── audio/AudioEngine.ts   # Web Audio API sound engine (singleton, layered synthesis)
-│   ├── config/Config.ts       # Runtime config (visual settings, timing, game speed)
-│   └── storage/Storage.ts     # Save/load interfaces and localStorage adapter
+├── infrastructure/                # External concerns
+│   ├── audio/AudioEngine.ts       # Web Audio API engine (singleton, layered synthesis)
+│   ├── config/Config.ts           # Runtime config (visuals, timing, game speed)
+│   ├── network/
+│   │   ├── INetworkAdapter.ts     # Network adapter interface
+│   │   ├── NetworkManager.ts      # Connection lifecycle management
+│   │   └── WebSocketAdapter.ts    # WebSocket implementation
+│   └── storage/Storage.ts         # Save/load via localStorage (3 slots)
 │
-├── presentation/              # All rendering and UI
-│   ├── InteractivityGuard.ts  # Centralized input-blocking guard (camera, animations, menus)
-│   ├── theme/                 # Dynamic color management
-│   │   └── ThemeManager.ts    # Single source-of-truth for DOM CSS variables and 3D WebGL material hexes
+├── presentation/                  # All rendering and UI
+│   ├── InteractivityGuard.ts      # Static guard: blocks input during transitions/overlays
+│   ├── theme/
+│   │   └── ThemeManager.ts        # CSS variables + 3D material hex source-of-truth
 │   ├── 3d/
-│   │   ├── Engine3D.ts        # Three.js scene, camera, renderer, orbit controls, lighting
+│   │   ├── Engine3D.ts            # Three.js scene, camera, renderer, orbit, lighting
 │   │   ├── entities/
-│   │   │   ├── EntityManager.ts   # Scene orchestration, water, and sinking updates
-│   │   │   ├── BoardBuilder.ts    # Procedural generation of board meshes and materials
-│   │   │   ├── ShipFactory.ts     # Voxel ship creation and instancing
-│   │   │   ├── ProjectileManager.ts # Projectile creation and arc animation
-│   │   │   ├── ImpactEffects.ts   # Visual effects for hits, explosions, and breaking/sinking
-│   │   │   ├── FogManager.ts      # Enemy board fog-of-war logic
-│   │   │   └── ParticleSystem.ts  # Voxel-based particle effects
+│   │   │   ├── EntityManager.ts          # Scene orchestrator, disposal, delegation
+│   │   │   ├── BoardBuilder.ts           # Procedural board mesh generation
+│   │   │   ├── BoardMeshFactory.ts       # Board mesh/material creation
+│   │   │   ├── ShipFactory.ts            # Voxel ship creation and instancing
+│   │   │   ├── ShipVoxelBuilder.ts       # Low-level voxel geometry for ships
+│   │   │   ├── ShipAnimator.ts           # Ship movement and idle animations
+│   │   │   ├── TurretInstanceManager.ts  # Instanced turret mesh management
+│   │   │   ├── WaterShaderManager.ts     # Water ripple and shader animation
+│   │   │   ├── VesselVisibilityManager.ts # Ship visibility, sinking, fog reveal
+│   │   │   ├── FogManager.ts             # Fog-of-war (Classic: board-level; Rogue: 5-cell radius)
+│   │   │   ├── FogMeshFactory.ts         # Fog cloud mesh generation
+│   │   │   ├── FogVisibility.ts          # Fog visibility state calculations
+│   │   │   ├── ProjectileManager.ts      # Projectile creation and lifecycle
+│   │   │   ├── ProjectileAnimator.ts     # Projectile arc and flight animation
+│   │   │   ├── ImpactEffects.ts          # Hit/explosion/breaking visual effects
+│   │   │   ├── SinkingEffects.ts         # Underwater wreckage and smoke effects
+│   │   │   ├── ParticleSystem.ts         # Voxel-based particle effects
+│   │   │   ├── EmitterManager.ts         # Particle emitter lifecycle management
+│   │   │   └── SonarEffect.ts            # Sonar ping visual effect
 │   │   ├── interaction/
-│   │   │   └── InteractionManager.ts  # Raycasting, hover highlights, click dispatch
-│   │   └── materials/
-│   │       └── WaterShader.ts     # Custom vertex/fragment shader for animated voxel water
+│   │   │   ├── InteractionManager.ts     # Coordinator for 3D/UI hover and clicks
+│   │   │   ├── RaycastService.ts         # Three.js raycasting abstraction
+│   │   │   ├── InputFeedbackHandler.ts   # Hover cursors, ghosts, highlights
+│   │   │   ├── ClickHandler.ts           # Click event processing
+│   │   │   └── RangeHighlighter.ts       # Weapon range visualization
+│   │   ├── materials/
+│   │   │   └── WaterShader.ts            # Custom vertex/fragment shader for water
+│   │   └── shaders/                      # Raw GLSL shader files
+│   │       ├── Water.vert / Water.frag   # Water surface shaders
+│   │       └── Fog*.vert                 # Fog volume vertex shaders
 │   └── ui/
-│       ├── UIManager.ts           # Mounts/unmounts UI components based on game state
+│       ├── UIManager.ts                  # Mounts/unmounts components by game state
 │       ├── components/
-│       │   ├── BaseUIComponent.ts # Abstract base: mount/unmount/show/hide lifecycle
-│       │   └── SaveLoadDialog.ts  # Save/load slot picker
+│       │   ├── BaseUIComponent.ts        # Abstract base: mount/unmount/show/hide lifecycle
+│       │   └── SaveLoadDialog.ts         # Save/load slot picker
 │       ├── hud/
-│       │   ├── HUD.ts             # Main HUD coordinator (template & lifecycle)
-│       │   ├── HUDControls.ts     # Switchboard event bindings and button logic
-│       │   ├── HUDStats.ts        # Fleet icons and game statistics display
-│       │   └── UnifiedBoardUI.ts  # Mini-map board grids
+│       │   ├── HUD.ts                    # HUD coordinator (template + lifecycle)
+│       │   ├── HUDControls.ts            # Switchboard event bindings and buttons
+│       │   ├── HUDStats.ts               # Fleet icons and statistics
+│       │   └── UnifiedBoardUI.ts         # Mini-map board grids
 │       ├── menu/
-│       │   ├── MainMenu.ts        # New game / load game entry
-│       │   └── GameOver.ts        # Win/loss screen
-│       ├── pause/PauseMenu.ts     # Pause overlay with resume/save/quit
-│       └── settings/Settings.ts   # Toggle HUD elements, difficulty, day/night
+│       │   ├── MainMenu.ts               # New game / load game entry
+│       │   └── GameOver.ts               # Win/loss screen
+│       ├── pause/
+│       │   └── PauseMenu.ts              # Pause overlay (resume/save/quit)
+│       ├── settings/
+│       │   ├── Settings.ts               # Modal container and coordinator
+│       │   ├── GeneralSettings.ts        # AI, Auto-Battler, Speed
+│       │   ├── VideoSettings.ts          # FPS, HUD, Color Themes
+│       │   ├── AudioSettings.ts          # Master volume
+│       │   └── KeybindingEditor.ts       # Visual keyboard and action binder
+│       └── templates/                    # HTML templates for UI components
+│           └── TemplateEngine.ts         # Template loading and rendering utility
 │
-├── main.ts                    # Application entry point: initializes Engine3D, GameLoop, UIManager
-├── style.css                  # Main CSS barrel (imports thematic styles)
-├── styles/                    # Modular CSS files
-│   ├── theme.css              # Theme variables (Day/Night) and base HTML/Body styles
+├── main.ts                    # Composition root — wires all dependencies
+├── style.css                  # CSS barrel (Tailwind directives + thematic imports)
+├── styles/
+│   ├── theme.css              # Theme variables (Day/Night), base HTML/body
 │   ├── components.css         # Shared UI components (panels, buttons, selects)
-│   ├── main-menu.css          # Main menu layout and card components
-│   ├── hud.css                # HUD layout, indicators, and switchboard
-│   └── dialogs.css            # Dialogs, overlays, and coordination indicators
+│   ├── main-menu.css          # Main menu layout and cards
+│   ├── hud.css                # HUD layout, indicators, switchboard
+│   └── dialogs.css            # Dialogs, overlays, coordination indicators
+└── vite-env.d.ts              # Vite client type declarations
 ```
 
-## Architecture Rules
-- `domain/` must never import from `presentation/` or `infrastructure/`
-- `application/` must never import from `presentation/`; `Config` and `Storage` are injected via constructor from `main.ts` (no direct `infrastructure/` imports)
-- Cross-layer communication uses CustomEvents on `document` (e.g., `SAVE_GAME`, `TOGGLE_PEEK`, `RESTORE_VIEW_STATE`, `INTERACTION_GUARD_STATE`)
-- UI components follow a lifecycle pattern: extend `BaseUIComponent`, implement `render()`, use `mount()`/`unmount()`/`show()`/`hide()`
-- `main.ts` is the composition root — it wires dependencies and registers event listeners
-- One class per file, file named after the primary export
+## Root Config Files
+
+| File | Purpose |
+|------|---------|
+| `vite.config.ts` | Vite build and dev server configuration |
+| `tsconfig.json` | TypeScript compiler options (strict, ES2020, noEmit) |
+| `tailwind.config.js` | Tailwind CSS theme and plugin configuration |
+| `postcss.config.js` | PostCSS pipeline (tailwindcss + autoprefixer) |
+| `index.html` | SPA entry point — mounts Three.js canvas + `#ui-layer` overlay |
+| `package.json` | Dependencies and npm scripts (`dev`, `build`, `preview`) |
+
+## Conventions
+
+- One class per file, filename matches the primary export
+- `main.ts` is the sole composition root — it wires dependencies and registers `GameEventManager`
+- UI components extend `BaseUIComponent` and implement `render()`, using `mount()`/`unmount()`/`show()`/`hide()` lifecycle
+- UI is injected into the `#ui-layer` div overlay above the Three.js canvas
+- HTML templates live in `presentation/ui/templates/` and are loaded via `TemplateEngine.ts`
+- Test files are co-located with source: `*.test.ts` alongside the module, or in `__tests__/` subdirectories
+- GLSL shaders are standalone `.vert`/`.frag` files in `presentation/3d/shaders/`
+
+## Delegation Pattern
+
+Large classes are decomposed when they exceed ~300–400 lines or handle multiple responsibilities:
+- `GameLoop` → delegates to `GameEventManager`, `RogueActionHandler`, `MatchSetup`, `TurnExecutor`, `EnemyTurnHandler`, `SetupBoardHandler`
+- `EntityManager` → delegates to `WaterShaderManager`, `VesselVisibilityManager`, `FogManager`, `EmitterManager`
+- `AIEngine` → delegates to `AIMovement`, `AITargeting`
+- Primary classes act as thin coordinators; specialized helpers own the logic
+- Shared state between coordinator and helpers uses explicit state interfaces or minimal public APIs

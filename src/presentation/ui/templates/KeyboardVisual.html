@@ -1,0 +1,11 @@
+${rows.map(row => `
+    <div class="flex justify-center gap-[5px] mb-[5px]">
+        ${row.map(key => {
+            const isBound = allBinds.includes(key);
+            return `
+            <div class="w-[30px] h-[30px] border border-panel-border flex items-center justify-center font-mono text-[0.8rem] rounded-sm transition-all duration-150 ${isBound ? 'bg-theme-highlight text-white opacity-100 shadow-[0_0_8px_var(--color-highlight)]' : 'bg-transparent text-theme-text opacity-50'}">
+                ${key}
+            </div>`;
+        }).join('')}
+    </div>
+`).join('')}

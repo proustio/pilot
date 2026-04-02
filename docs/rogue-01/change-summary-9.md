@@ -4,10 +4,10 @@ This sprint focuses on implementing the **Rogue Mode** for Battleships. This mod
 
 ### Key Conceptual Changes:
 
-1.  **Shared Battlefield**: Unlike Classic mode, Rogue mode takes place on a single 10x10 grid. Both players place their ships on this same board, creating a "cat and mouse" environment where positioning and movement are crucial.
+1.  **Shared Battlefield**: Unlike Classic mode, Rogue mode takes place on a single 20x20 grid. Both players place their ships on this same board, creating a "cat and mouse" environment where positioning and movement are crucial.
 2.  **Dynamic Fog of War**: The fog of war is no longer a static overlay on the enemy board. Instead, it’s a personal "bubble" attached to each ship. As ships move, they reveal the area around them (7-cell radius) and leave a trail of fog behind.
 3.  **Ship Lifecycle & Movement**: Ships are no longer static targets. Every ship has a movement allowance (inversely proportional to its size) and can change position once per turn.
-4.  **Advanced Arsenal**: While this sprint focus on stubs, the architecture supports a wider range of weapons beyond the standard cannon, including mines, sonar, and air strikes.
+4.  **Advanced Arsenal**: The advanced arsenal is fully implemented from the start. The architecture supports a wider range of weapons beyond the standard cannon, including at least mines, sonar, and air strikes.
 
 ### Architectural Impact:
 

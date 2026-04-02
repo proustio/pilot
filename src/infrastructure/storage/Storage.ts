@@ -10,12 +10,9 @@ export interface SaveMetadata {
 }
 
 export interface ViewState {
-    cameraX: number;
-    cameraY: number;
-    cameraZ: number;
-    targetX: number;
-    targetY: number;
-    targetZ: number;
+    camera: string;
+    cameraDist?: number;
+    target: string;
     boardOrientation: 'player' | 'enemy';
     isDayMode: boolean;
     gameSpeedMultiplier: number;
@@ -35,6 +32,12 @@ interface ShipData {
     headZ: number;
     segments: boolean[];
     isPlaced: boolean;
+    isEnemy?: boolean;
+    isSpecialWeapon?: boolean;
+    specialType?: 'mine' | 'sonar';
+    visionRadius?: number;
+    movesRemaining?: number;
+    hasActedThisTurn?: boolean;
 }
 
 interface BoardData {
@@ -52,6 +55,13 @@ interface SaveData {
     playerBoard: BoardData;
     enemyBoard: BoardData;
     viewState?: ViewState;
+    resources?: {
+        airStrikes: number;
+        sonars: number;
+        mines: number;
+    };
+    activeRogueShipIndex?: number;
+    activeEnemyRogueShipIndex?: number;
 }
 
 export class Storage {
@@ -64,7 +74,13 @@ export class Storage {
             headX: ship.headX,
             headZ: ship.headZ,
             segments: [...ship.segments],
-            isPlaced: ship.isPlaced
+            isPlaced: ship.isPlaced,
+            isEnemy: ship.isEnemy,
+            isSpecialWeapon: ship.isSpecialWeapon,
+            specialType: ship.specialType,
+            visionRadius: ship.visionRadius,
+            movesRemaining: ship.movesRemaining,
+            hasActedThisTurn: ship.hasActedThisTurn
         };
     }
 
@@ -74,6 +90,13 @@ export class Storage {
         if (data.isPlaced) {
             ship.placeCoordinate(data.headX, data.headZ, data.orientation as Orientation);
         }
+        if (data.movesRemaining !== undefined) ship.movesRemaining = data.movesRemaining;
+        if (data.hasActedThisTurn !== undefined) ship.hasActedThisTurn = data.hasActedThisTurn;
+        if (data.isEnemy !== undefined) ship.isEnemy = data.isEnemy;
+        if (data.isSpecialWeapon !== undefined) ship.isSpecialWeapon = data.isSpecialWeapon;
+        if (data.specialType !== undefined) ship.specialType = data.specialType;
+        if (data.visionRadius !== undefined) ship.visionRadius = data.visionRadius;
+
         return ship;
     }
 
@@ -99,7 +122,7 @@ export class Storage {
             board.ships.push(ship);
 
             if (ship.isPlaced) {
-                if (!ship.isSunk()) {
+                if (!ship.isSunk() && !ship.isSpecialWeapon) {
                     board.aliveShipsCount++;
                 }
                 const coords = ship.getOccupiedCoordinates();
@@ -116,7 +139,13 @@ export class Storage {
     /**
      * Serializes the current Match state and optional view/camera state.
      */
-    public static saveGame(slotId: number | 'session', match: Match, viewState?: ViewState): boolean {
+    public static saveGame(
+        slotId: number | 'session',
+        match: Match,
+        viewState?: ViewState,
+        activeRogueShipIndex?: number,
+        activeEnemyRogueShipIndex?: number
+    ): boolean {
         if (typeof slotId === 'number' && (slotId < 1 || slotId > Config.storage.maxSlots)) return false;
 
         const key = slotId === 'session' ? 'battleships_session' : `${Config.storage.prefix}${slotId}`;
@@ -133,7 +162,10 @@ export class Storage {
                 mode: match.mode,
                 playerBoard: Storage.serialiseBoard(match.playerBoard),
                 enemyBoard: Storage.serialiseBoard(match.enemyBoard),
-                viewState
+                viewState,
+                resources: { ...Ship.resources },
+                activeRogueShipIndex,
+                activeEnemyRogueShipIndex
             };
 
             localStorage.setItem(key, JSON.stringify(saveData));
@@ -147,7 +179,11 @@ export class Storage {
     /**
      * Loads a Match + optional ViewState from localStorage.
      */
-    public static loadGame(slotId: number | 'session'): LoadedGame | null {
+    public static loadGame(slotId: number | 'session'): (LoadedGame & {
+        resources?: { airStrikes: number; sonars: number; mines: number };
+        activeRogueShipIndex?: number;
+        activeEnemyRogueShipIndex?: number;
+    }) | null {
         const key = slotId === 'session' ? 'battleships_session' : `${Config.storage.prefix}${slotId}`;
         const data = localStorage.getItem(key);
 
@@ -156,11 +192,20 @@ export class Storage {
         try {
             const parsed: SaveData = JSON.parse(data);
 
-            const match = new Match(parsed.mode as MatchMode, Config.board.width, Config.board.height);
+            const isRogue = parsed.mode === MatchMode.Rogue;
+            const w = isRogue ? Config.board.rogueWidth : Config.board.width;
+            const h = isRogue ? Config.board.rogueHeight : Config.board.height;
+            const match = new Match(parsed.mode as MatchMode, w, h);
             (match as any).playerBoard = Storage.deserialiseBoard(parsed.playerBoard);
             (match as any).enemyBoard = Storage.deserialiseBoard(parsed.enemyBoard);
 
-            return { match, viewState: parsed.viewState ?? null };
+            return {
+                match,
+                viewState: parsed.viewState ?? null,
+                resources: parsed.resources,
+                activeRogueShipIndex: parsed.activeRogueShipIndex,
+                activeEnemyRogueShipIndex: parsed.activeEnemyRogueShipIndex
+            };
         } catch (e) {
             console.error('Failed to load game', e);
             return null;

@@ -1,0 +1,17 @@
+{
+  "name": "3D Voxel Battleships",
+  "short_name": "Battleships",
+  "description": "Browser-based Battleships game with a Minecraft-style 3D voxel aesthetic",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#050515",
+  "theme_color": "#050515",
+  "icons": [
+    {
+      "src": "./assets/classic-battleships.png",
+      "sizes": "any",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

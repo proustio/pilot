@@ -1,36 +1,46 @@
 import { Ship, Orientation } from '../fleet/Ship';
 import { getIndex } from './BoardUtils';
+import { WeaponSystem } from './WeaponSystem';
+import { ShipPlacement } from './ShipPlacement';
 
 export enum CellState {
     Empty = 0,
     Miss = 1,
     Ship = 2,
     Hit = 3,
-    Sunk = 4
+    Sunk = 4,
+    Mine = 5
+}
+
+export enum WeaponType {
+    Cannon = 'cannon',
+    Mine = 'mine',
+    Sonar = 'sonar',
+    AirStrike = 'airstrike'
 }
 
 export enum AttackResult {
     Miss = 'miss',
     Hit = 'hit',
     Sunk = 'sunk',
-    Invalid = 'invalid', // Already attacked or out of bounds
+    Invalid = 'invalid',
 }
 
 export class Board {
     public width: number;
     public height: number;
-    
-    // Using a simple 1D array mapped as 2D for memory layout optimizations later if needed.
-    // Index = z * width + x
+
     public gridState: Uint8Array;
-    
-    // Map of absolute coordinates "x,z" to a specific Ship and its local segment index
-    private shipMap: Map<string, { ship: Ship, segmentIndex: number }>;
+
+    public shipMap: Map<string, { ship: Ship; segmentIndex: number }>;
     public ships: Ship[] = [];
     public aliveShipsCount: number = 0;
-    
+
     public shotsFired: number = 0;
     public hits: number = 0;
+
+    private weaponSystem = new WeaponSystem();
+    private shipPlacement = new ShipPlacement();
 
     constructor(width: number, height: number) {
         this.width = width;
@@ -43,64 +53,24 @@ export class Board {
         return x < 0 || x >= this.width || z < 0 || z >= this.height;
     }
 
-    public canPlaceShip(shipSize: number, headX: number, headZ: number, orientation: Orientation): boolean {
-        for (let i = 0; i < shipSize; i++) {
-            const currentX = orientation === Orientation.Horizontal ? headX + i : headX;
-            const currentZ = orientation === Orientation.Vertical ? headZ + i : headZ;
-
-            if (this.isOutOfBounds(currentX, currentZ)) {
-                return false;
-            }
-
-            if (this.gridState[getIndex(currentX, currentZ, this.width)] !== CellState.Empty) {
-                return false;
-            }
-        }
-        return true;
+    public canPlaceShip(shipSize: number, headX: number, headZ: number, orientation: Orientation, ignoredShip?: Ship): boolean {
+        return this.shipPlacement.canPlaceShip(this, shipSize, headX, headZ, orientation, ignoredShip);
     }
 
     public placeShip(ship: Ship, headX: number, headZ: number, orientation: Orientation): boolean {
-        if (!this.canPlaceShip(ship.size, headX, headZ, orientation)) {
-            return false;
-        }
-
-        ship.placeCoordinate(headX, headZ, orientation);
-        this.ships.push(ship);
-        if (!ship.isSunk()) {
-            this.aliveShipsCount++;
-        }
-
-        const coords = ship.getOccupiedCoordinates();
-        coords.forEach((coord, segmentIndex) => {
-            const mapKey = `${coord.x},${coord.z}`;
-            this.gridState[getIndex(coord.x, coord.z, this.width)] = CellState.Ship;
-            this.shipMap.set(mapKey, { ship, segmentIndex });
-        });
-
-        return true;
+        return this.shipPlacement.placeShip(this, ship, headX, headZ, orientation);
     }
 
     public removeShip(ship: Ship): boolean {
-        const index = this.ships.indexOf(ship);
-        if (index === -1) return false;
+        return this.shipPlacement.removeShip(this, ship);
+    }
 
-        // Use swap and pop for O(1) removal
-        const last = this.ships[this.ships.length - 1];
-        this.ships[index] = last;
-        this.ships.pop();
+    public moveShip(ship: Ship, newHeadX: number, newHeadZ: number, newOrientation: Orientation): { success: boolean; hitMine: boolean; mineX?: number; mineZ?: number } {
+        return this.shipPlacement.moveShip(this, ship, newHeadX, newHeadZ, newOrientation);
+    }
 
-        if (!ship.isSunk()) {
-            this.aliveShipsCount--;
-        }
-
-        const coords = ship.getOccupiedCoordinates();
-        coords.forEach(coord => {
-            const mapKey = `${coord.x},${coord.z}`;
-            this.gridState[getIndex(coord.x, coord.z, this.width)] = CellState.Empty;
-            this.shipMap.delete(mapKey);
-        });
-
-        return true;
+    public getShipAt(x: number, z: number): Ship | undefined {
+        return this.shipMap.get(`${x},${z}`)?.ship;
     }
 
     public receiveAttack(x: number, z: number): AttackResult {
@@ -119,7 +89,7 @@ export class Board {
             return AttackResult.Miss;
         }
 
-        if (state === CellState.Ship) {
+        if (state === CellState.Ship || state === CellState.Mine) {
             this.shotsFired++;
             this.hits++;
 
@@ -129,8 +99,8 @@ export class Board {
 
             const wasSunk = target.ship.isSunk();
             target.ship.hitSegment(target.segmentIndex);
-            
-            if (!wasSunk && target.ship.isSunk()) {
+
+            if (!wasSunk && target.ship.isSunk() && !target.ship.isSpecialWeapon) {
                 this.aliveShipsCount--;
             }
 
@@ -148,14 +118,25 @@ export class Board {
 
         return AttackResult.Invalid;
     }
-    
-    /**
-     * Checks if all ships placed on this board are sunk.
-     */
+
     public allShipsSunk(): boolean {
-        if (this.ships.length === 0) {
-            throw new Error('Board has no ships');
-        }
+        if (this.ships.length === 0) throw new Error('Board has no ships');
         return this.aliveShipsCount === 0;
+    }
+
+    public placeMine(x: number, z: number): boolean {
+        return this.weaponSystem.placeMine(this, x, z);
+    }
+
+    public placeSonar(x: number, z: number): boolean {
+        return this.weaponSystem.placeSonar(this, x, z);
+    }
+
+    public sonarPing(centerX: number, centerZ: number, radius: number): { x: number; z: number }[] {
+        return this.weaponSystem.sonarPing(this, centerX, centerZ, radius);
+    }
+
+    public dispatchAirStrike(startX: number, startZ: number, directionX: -1 | 0 | 1, directionZ: -1 | 0 | 1, length: number = 999): { x: number; z: number; result: AttackResult }[] {
+        return this.weaponSystem.dispatchAirStrike(this, startX, startZ, directionX, directionZ, length);
     }
 }

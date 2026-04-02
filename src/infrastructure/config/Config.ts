@@ -2,7 +2,9 @@ export const Config = {
     version: '0.1.0',
     board: {
         width: 10,
-        height: 10
+        height: 10,
+        rogueWidth: 20,
+        rogueHeight: 20
     },
     storage: {
         maxSlots: 3,
@@ -14,8 +16,10 @@ export const Config = {
         turnDelayMs: 1000,
         boardFlipSpeed: 0.05,
         projectileSpeed: 0.04,
-        cameraLerpSpeed: 0.05,
-        boardFlipWaitMs: 100
+        cameraLerpSpeed: 0.07,
+        boardFlipWaitMs: 100,
+        rogueMoveDurationMs: 600,
+        rogueTurnDurationMs: 400
     },
     visual: {
         isDayMode: new Date().getHours() >= 6 && new Date().getHours() < 18,
@@ -25,20 +29,44 @@ export const Config = {
             enemyShip: '#8D2B00',
             waterPrimary: '#00563F',
             waterSecondary: '#3D5E42',
-            boardLines: '#2C3F50'
+            boardLines: '#2C3F50',
+            industrialBase: '#050515',
+            rivet: '#444455',
+            screw: '#444444'
         },
         showGeekStats: true,
-        fpsCap: 30,
+        fpsCap: 120,
         sinkingFloor: -0.08,
         sinkingMaxAngle: 0.25,
         shadowsEnabled: true,
         antialias: typeof navigator !== 'undefined' ? !/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) : true
     },
 
+    particles: {
+        firePoolCapacity: 256,
+        smokePoolCapacity: 384,
+        explosionPoolCapacity: 128,
+        splashPoolCapacity: 128,
+        get fogPoolCapacity() { return Math.ceil(Config.board.width * Config.board.height * 1.3); },
+        drawCallBudget: 100,
+        minSpawnRateScale: 0.1,
+        emitterThrottleThreshold: 64,
+        maxActiveEmitters: 128,
+    },
+
+    rogue: {
+        fogRadius: 7,  // cells of personal fog halo around each ship
+    },
+    rogueMode: false,
+
     autoBattler: false,
     aiDifficulty: 'normal',
     audio: {
         masterVolume: 0.5
+    },
+    preferredMode: 'classic' as 'classic' | 'russian' | 'rogue',
+    network: {
+        serverUrl: null as string | null
     },
 
     loadConfig() {
@@ -71,14 +99,24 @@ export const Config = {
                 if (parsedConfig.visual?.antialias !== undefined) {
                     this.visual.antialias = parsedConfig.visual.antialias;
                 }
-                if (parsedConfig.autoBattler !== undefined) {
-                    this.autoBattler = parsedConfig.autoBattler;
+                if (parsedConfig.board?.width !== undefined) {
+                    this.board.width = parsedConfig.board.width;
+                    this.board.height = parsedConfig.board.height;
+                }
+                if (parsedConfig.rogueMode !== undefined) {
+                    this.rogueMode = parsedConfig.rogueMode;
                 }
                 if (parsedConfig.aiDifficulty !== undefined) {
                     this.aiDifficulty = parsedConfig.aiDifficulty;
                 }
                 if (parsedConfig.audio?.masterVolume !== undefined) {
                     this.audio.masterVolume = parsedConfig.audio.masterVolume;
+                }
+                if (parsedConfig.preferredMode !== undefined) {
+                    this.preferredMode = parsedConfig.preferredMode;
+                }
+                if (parsedConfig.keybindings !== undefined) {
+                    this.keybindings = { ...this.keybindings, ...parsedConfig.keybindings };
                 }
             }
         } catch (e) {
@@ -101,15 +139,33 @@ export const Config = {
                     shadowsEnabled: this.visual.shadowsEnabled,
                     antialias: this.visual.antialias
                 },
-                autoBattler: this.autoBattler,
+                board: {
+                    width: this.board.width,
+                    height: this.board.height
+                },
+                rogueMode: this.rogueMode,
                 aiDifficulty: this.aiDifficulty,
                 audio: {
                     masterVolume: this.audio.masterVolume
-                }
+                },
+                preferredMode: this.preferredMode,
+                keybindings: this.keybindings
             };
             localStorage.setItem('battleships_config', JSON.stringify(configToSave));
         } catch (e) {
             console.error('Failed to save user config', e);
         }
+    },
+
+    keybindings: {
+        'ToggleMoveSection': ['m'],
+        'ToggleAttackSection': ['a'],
+        'ActionSail': ['s'],
+        'ActionPing': ['p'],
+        'ActionMine': ['m'],
+        'ActionCannon': ['c'],
+        'ActionAirStrike': ['a'],
+        'RotateWeapon': ['r'],
+        'SkipTurn': ['Enter', ' ']
     }
 };

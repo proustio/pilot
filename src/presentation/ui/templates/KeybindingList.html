@@ -1,0 +1,16 @@
+${actions.map(action => {
+    const binds = Config.keybindings[action];
+    return `
+        <div class="flex justify-between items-center mb-2.5 border-b border-white/10 pb-[5px] w-full">
+            <label class="font-mono text-[0.9rem] text-theme-text uppercase flex-grow">${action}:</label>
+            <div class="flex gap-[5px] flex-wrap">
+                ${binds.map((key, idx) => `
+                    <span class="bg-white/10 px-1.5 py-0.5 rounded text-[0.8rem] cursor-pointer hover:bg-white/20">
+                        ${key} <span class="bg-transparent border-none text-red-500 cursor-pointer p-0 font-bold ml-1 hover:text-red-400 remove-bind" data-action="${action}" data-index="${idx}">×</span>
+                    </span>
+                `).join('')}
+                ${binds.length < 3 ? `<button class="bg-btn-bg text-btn-text border border-btn-border rounded shadow-voxel-btn px-1.5 py-0.5 my-0.5 font-mono text-[0.8rem] font-bold uppercase cursor-pointer transition-all duration-100 w-auto min-w-[30px] text-shadow-voxel-btn tracking-wider hover:bg-btn-hover hover:shadow-voxel-btn-hover active:shadow-voxel-btn-active active:translate-y-[1px] add-bind" data-action="${action}">+</button>` : ''}
+            </div>
+        </div>
+    `;
+}).join('')}

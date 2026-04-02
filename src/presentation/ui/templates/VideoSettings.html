@@ -1,0 +1,80 @@
+<div class="flex justify-between items-center mb-[15px] w-full">
+    <label class="font-mono text-theme-text uppercase tracking-wider">Show HUD:</label>
+    <input type="checkbox" id="toggle-hud" checked class="scale-[2] mr-2 cursor-pointer accent-theme-primary">
+</div>
+
+<div class="flex justify-between items-center mb-[15px] w-full">
+    <label class="font-mono text-theme-text uppercase tracking-wider">Show Geek Stats:</label>
+    <input type="checkbox" id="toggle-geek-stats" ${Config.visual.showGeekStats ? 'checked' : ''} class="scale-[2] mr-2 cursor-pointer accent-theme-primary">
+</div>
+
+<div class="flex justify-between items-center mb-[15px] w-full">
+    <label class="font-mono text-theme-text uppercase tracking-wider">FPS Cap:</label>
+    <div id="fps-cap-dropdown" class="custom-dropdown relative w-full max-w-[280px] z-[60] group">
+        <div class="custom-dropdown-selected flex items-center justify-between p-2 bg-[#111] border border-[#333] rounded text-theme-primary cursor-pointer transition-all duration-200 shadow-[inset_0_0_8px_rgba(0,0,0,0.8)] hover:bg-[#181818] hover:border-theme-primary/50" id="fps-cap-selected">
+            <span id="fps-cap-selected-text" class="font-mono text-[0.9rem] font-bold tracking-tight whitespace-nowrap">✔ ${Config.visual.fpsCap} FPS</span>
+            <span class="custom-dropdown-arrow transition-all duration-300 ml-2 opacity-60 text-[1.1rem] leading-none">▾</span>
+        </div>
+        <div class="custom-dropdown-options absolute left-0 right-0 top-full mt-1 bg-[rgba(15,15,15,0.98)] backdrop-blur-xl border border-[#333] rounded shadow-[0_10px_30px_rgba(0,0,0,0.8)] z-[70] overflow-hidden hidden" id="fps-cap-options">
+            <div class="custom-dropdown-option ${Config.visual.fpsCap === 30 ? 'active' : ''} px-3 py-2 cursor-pointer transition-all duration-150 hover:bg-theme-primary/10 hover:text-white flex items-center gap-2 border-b border-white/5 last:border-0 [&.active]:bg-theme-primary/10 [&.active]:text-theme-primary [&.active]:font-bold" data-value="30">
+                <span class="option-check w-5 flex-shrink-0 text-center font-bold">${Config.visual.fpsCap === 30 ? '✔' : '&nbsp;'}</span>
+                <span class="option-text font-mono text-[0.85rem]">30 FPS</span>
+            </div>
+            <div class="custom-dropdown-option ${Config.visual.fpsCap === 60 ? 'active' : ''} px-3 py-2 cursor-pointer transition-all duration-150 hover:bg-theme-primary/10 hover:text-white flex items-center gap-2 border-b border-white/5 last:border-0 [&.active]:bg-theme-primary/10 [&.active]:text-theme-primary [&.active]:font-bold" data-value="60">
+                <span class="option-check w-5 flex-shrink-0 text-center font-bold">${Config.visual.fpsCap === 60 ? '✔' : '&nbsp;'}</span>
+                <span class="option-text font-mono text-[0.85rem]">60 FPS</span>
+            </div>
+            <div class="custom-dropdown-option ${Config.visual.fpsCap === 120 ? 'active' : ''} px-3 py-2 cursor-pointer transition-all duration-150 hover:bg-theme-primary/10 hover:text-white flex items-center gap-2 [&.active]:bg-theme-primary/10 [&.active]:text-theme-primary [&.active]:font-bold" data-value="120">
+                <span class="option-check w-5 flex-shrink-0 text-center font-bold">${Config.visual.fpsCap === 120 ? '✔' : '&nbsp;'}</span>
+                <span class="option-text font-mono text-[0.85rem]">120 FPS</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="flex justify-between items-center mb-[15px] w-full">
+    <label class="font-mono text-theme-text uppercase tracking-wider">Color Theme:</label>
+    <div id="theme-dropdown" class="custom-dropdown relative w-full max-w-[280px] z-[60] group">
+        <div class="custom-dropdown-selected flex items-center justify-between p-2 bg-[#111] border border-[#333] rounded text-theme-primary cursor-pointer transition-all duration-200 shadow-[inset_0_0_8px_rgba(0,0,0,0.8)] hover:bg-[#181818] hover:border-theme-primary/50" id="theme-selected">
+            <span id="theme-selected-text" class="font-mono text-[0.9rem] font-bold tracking-tight whitespace-nowrap">✔ ${Config.visual.colorScheme === 'default' ? 'Default' : Config.visual.colorScheme === 'grayscale' ? 'Grayscale' : 'Custom'}</span>
+            <span class="custom-dropdown-arrow transition-all duration-300 ml-2 opacity-60 text-[1.1rem] leading-none">▾</span>
+        </div>
+        <div class="custom-dropdown-options absolute left-0 right-0 top-full mt-1 bg-[rgba(15,15,15,0.98)] backdrop-blur-xl border border-[#333] rounded shadow-[0_10px_30px_rgba(0,0,0,0.8)] z-[70] overflow-hidden hidden" id="theme-options">
+            <div class="custom-dropdown-option ${Config.visual.colorScheme === 'default' ? 'active' : ''} px-3 py-2 cursor-pointer transition-all duration-150 hover:bg-theme-primary/10 hover:text-white flex items-center gap-2 border-b border-white/5 last:border-0 [&.active]:bg-theme-primary/10 [&.active]:text-theme-primary [&.active]:font-bold" data-value="default">
+                <span class="option-check w-5 flex-shrink-0 text-center font-bold">${Config.visual.colorScheme === 'default' ? '✔' : '&nbsp;'}</span>
+                <span class="option-text font-mono text-[0.85rem]">Default (Emerald/Orange)</span>
+            </div>
+            <div class="custom-dropdown-option ${Config.visual.colorScheme === 'grayscale' ? 'active' : ''} px-3 py-2 cursor-pointer transition-all duration-150 hover:bg-theme-primary/10 hover:text-white flex items-center gap-2 border-b border-white/5 last:border-0 [&.active]:bg-theme-primary/10 [&.active]:text-theme-primary [&.active]:font-bold" data-value="grayscale">
+                <span class="option-check w-5 flex-shrink-0 text-center font-bold">${Config.visual.colorScheme === 'grayscale' ? '✔' : '&nbsp;'}</span>
+                <span class="option-text font-mono text-[0.85rem]">Grayscale (High Contrast)</span>
+            </div>
+            <div class="custom-dropdown-option ${Config.visual.colorScheme === 'custom' ? 'active' : ''} px-3 py-2 cursor-pointer transition-all duration-150 hover:bg-theme-primary/10 hover:text-white flex items-center gap-2 [&.active]:bg-theme-primary/10 [&.active]:text-theme-primary [&.active]:font-bold" data-value="custom">
+                <span class="option-check w-5 flex-shrink-0 text-center font-bold">${Config.visual.colorScheme === 'custom' ? '✔' : '&nbsp;'}</span>
+                <span class="option-text font-mono text-[0.85rem]">Custom</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="custom-colors-container" class="ml-5 border-l-2 border-panel-border pl-2.5 mb-2.5 ${Config.visual.colorScheme === 'custom' ? 'block' : 'hidden'}">
+    <div class="flex justify-between items-center mb-[5px] w-full">
+        <label class="font-mono text-[0.9rem] text-theme-text uppercase">Player Fleet:</label>
+        <input type="color" id="color-player-ship" value="${Config.visual.customColors.playerShip}" class="bg-transparent border border-panel-border p-0 cursor-pointer">
+    </div>
+    <div class="flex justify-between items-center mb-[5px] w-full">
+        <label class="font-mono text-[0.9rem] text-theme-text uppercase">Enemy Fleet:</label>
+        <input type="color" id="color-enemy-ship" value="${Config.visual.customColors.enemyShip}" class="bg-transparent border border-panel-border p-0 cursor-pointer">
+    </div>
+    <div class="flex justify-between items-center mb-[5px] w-full">
+        <label class="font-mono text-[0.9rem] text-theme-text uppercase">Water Primary:</label>
+        <input type="color" id="color-water-primary" value="${Config.visual.customColors.waterPrimary}" class="bg-transparent border border-panel-border p-0 cursor-pointer">
+    </div>
+    <div class="flex justify-between items-center mb-[5px] w-full">
+        <label class="font-mono text-[0.9rem] text-theme-text uppercase">Water Sec.:</label>
+        <input type="color" id="color-water-secondary" value="${Config.visual.customColors.waterSecondary}" class="bg-transparent border border-panel-border p-0 cursor-pointer">
+    </div>
+    <div class="flex justify-between items-center mb-[5px] w-full">
+        <label class="font-mono text-[0.9rem] text-theme-text uppercase">Board Lines:</label>
+        <input type="color" id="color-board-lines" value="${Config.visual.customColors.boardLines}" class="bg-transparent border border-panel-border p-0 cursor-pointer">
+    </div>
+</div>

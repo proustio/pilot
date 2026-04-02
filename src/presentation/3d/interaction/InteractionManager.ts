@@ -2,343 +2,297 @@ import * as THREE from 'three';
 import { GameState } from '../../../application/game-loop/GameLoop';
 import { InteractivityGuard } from '../../InteractivityGuard';
 import { Orientation } from '../../../domain/fleet/Ship';
+import { MatchMode } from '../../../domain/match/Match';
 import { CellState } from '../../../domain/board/Board';
 import { Config } from '../../../infrastructure/config/Config';
+import { eventBus, GameEventType } from '../../../application/events/GameEventBus';
+import { RaycastService } from './RaycastService';
+import { InputFeedbackHandler } from './InputFeedbackHandler';
+import { ClickHandler } from './ClickHandler';
 
 export class InteractionManager {
-  private raycaster: THREE.Raycaster;
-  private mouse: THREE.Vector2;
+  private gameLoop: any = null;
+
+  private raycastService: RaycastService;
+  private feedbackHandler: InputFeedbackHandler;
+  private clickHandler: ClickHandler;
+
   private lastMouseClientX: number = 0;
   private lastMouseClientY: number = 0;
+  private isShiftDown: boolean = false;
 
-  private camera: THREE.PerspectiveCamera;
-  private entityManager: any;
-
-  private hoverCursor: THREE.Mesh;
   public hoveredCell: { x: number, z: number } | null = null;
-
-  private clickListeners: ((intersection: THREE.Intersection) => void)[] = [];
-
-  public interactionEnabled: boolean = true;
-  private gameLoop: any = null;
-  private ghostGroup: THREE.Group;
-  private currentGhostSize: number = 0;
   private uiHoveredCell: { x: number, z: number, isPlayerSide: boolean } | null = null;
+  public interactionEnabled: boolean = true;
+
+  private lastMoveShipId: string | null = null;
+  private lastMoveShipX: number = -1;
+  private lastMoveShipZ: number = -1;
+  private lastMoveAction: string | null = null;
+  private lastMovesRemaining: number = -1;
 
   constructor(scene: THREE.Scene, camera: THREE.PerspectiveCamera, entityManager: any) {
-    this.camera = camera;
-    this.entityManager = entityManager;
-
-    this.ghostGroup = new THREE.Group();
-    this.ghostGroup.visible = false;
-    scene.add(this.ghostGroup);
-
-    this.raycaster = new THREE.Raycaster();
-    this.mouse = new THREE.Vector2();
-
-    const glowVertexShader = `
-      varying vec2 vUv;
-      void main() {
-        vUv = uv;
-        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-      }
-    `;
-    const glowFragmentShader = `
-      varying vec2 vUv;
-      void main() {
-        float hFade = 1.0 - pow(abs(vUv.x - 0.5) * 2.0, 2.0);
-        float vFade = pow(1.0 - vUv.y, 2.0);
-        float alpha = hFade * vFade * 0.6;
-        gl_FragColor = vec4(1.0, 0.95, 0.3, alpha);
-      }
-    `;
-    const glowMat = new THREE.ShaderMaterial({
-      vertexShader: glowVertexShader,
-      fragmentShader: glowFragmentShader,
-      transparent: true,
-      depthTest: false,
-      depthWrite: false,
-      side: THREE.DoubleSide,
-      blending: THREE.AdditiveBlending
-    });
-
-    const glowGroup = new THREE.Group();
-    const planeGeo = new THREE.PlaneGeometry(1.0, 2.5);
-    const plane1 = new THREE.Mesh(planeGeo, glowMat);
-    const plane2 = new THREE.Mesh(planeGeo, glowMat.clone());
-    plane2.rotation.y = Math.PI / 2;
-    glowGroup.add(plane1);
-    glowGroup.add(plane2);
-    glowGroup.renderOrder = 999;
-
-    this.hoverCursor = glowGroup as any;
-    this.hoverCursor.visible = false;
-    scene.add(this.hoverCursor);
+    this.raycastService = new RaycastService(camera, entityManager);
+    this.feedbackHandler = new InputFeedbackHandler(scene, entityManager);
+    this.clickHandler = new ClickHandler(this.raycastService, entityManager);
 
     window.addEventListener('mousemove', this.onMouseMove.bind(this));
-    window.addEventListener('click', this.onMouseClick.bind(this));
+    window.addEventListener('keydown', (e) => { if (e.key === 'Shift') this.isShiftDown = true; });
+    window.addEventListener('keyup', (e) => { if (e.key === 'Shift') this.isShiftDown = false; });
 
-    document.addEventListener('SET_INTERACTION_ENABLED', (e: Event) => {
-      const ce = e as CustomEvent;
-      if (ce.detail && ce.detail.enabled !== undefined) {
-        this.interactionEnabled = ce.detail.enabled;
-        if (!this.interactionEnabled) {
-          this.hoverCursor.visible = false;
-          this.hoveredCell = null;
-        }
+    this.setupGlobalListeners();
+  }
+
+  private setupGlobalListeners() {
+    eventBus.on(GameEventType.SET_INTERACTION_ENABLED, (payload) => {
+      this.interactionEnabled = payload.enabled;
+      this.clickHandler.setInteractionEnabled(payload.enabled);
+      if (!this.interactionEnabled) {
+        this.feedbackHandler.hoverCursor.visible = false;
+        this.hoveredCell = null;
       }
     });
 
-    document.addEventListener('MOUSE_CELL_HOVER', (e: Event) => {
-      const ce = e as CustomEvent;
-      if (!ce.detail || ce.detail.source === '3d') {
-        if (ce.detail === null) {
-            this.uiHoveredCell = null;
+    eventBus.on(GameEventType.SET_ROGUE_WEAPON, (payload) => {
+      (window as any).selectedRogueWeapon = payload.weapon;
+    });
+
+    eventBus.on(GameEventType.SET_ROGUE_ACTION_SECTION, (payload) => {
+      (window as any).selectedRogueAction = payload.section;
+    });
+
+    eventBus.on(GameEventType.MOUSE_CELL_HOVER, (payload) => {
+      if (!payload || payload.source === '3d') {
+        if (payload === null) {
+          this.uiHoveredCell = null;
         }
         return;
       }
-      this.uiHoveredCell = { x: ce.detail.x, z: ce.detail.z, isPlayerSide: ce.detail.isPlayerSide };
+      this.uiHoveredCell = { x: payload.x, z: payload.z, isPlayerSide: payload.isPlayerSide };
     });
+  }
+
+  private handleCellLeave() {
+    this.feedbackHandler.hoverCursor.visible = false;
+    if (!this.uiHoveredCell) eventBus.emit(GameEventType.MOUSE_CELL_HOVER, null);
   }
 
   public setGameLoop(gameLoop: any) {
     this.gameLoop = gameLoop;
+    this.clickHandler.setGameLoop(gameLoop);
   }
 
-  public onClick(listener: (intersection: THREE.Intersection) => void) {
-    this.clickListeners.push(listener);
-  }
-
-  private playErrorSound() {
-    try {
-      const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
-      const oscillator = audioCtx.createOscillator();
-      const gainNode = audioCtx.createGain();
-
-      oscillator.type = 'sawtooth';
-      oscillator.frequency.setValueAtTime(150, audioCtx.currentTime); // Low frequency
-      oscillator.frequency.exponentialRampToValueAtTime(50, audioCtx.currentTime + 0.1); // Quick drop
-
-      gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
-
-      oscillator.connect(gainNode);
-      gainNode.connect(audioCtx.destination);
-
-      oscillator.start();
-      oscillator.stop(audioCtx.currentTime + 0.1);
-    } catch (e) {
-      console.warn('AudioContext not supported or blocked', e);
-    }
-  }
-
-  private onMouseClick(event: MouseEvent) {
-    if (InteractivityGuard.isBlocked() || !this.interactionEnabled || (this.gameLoop && (this.gameLoop.isAnimating || this.gameLoop.currentState === GameState.GAME_OVER))) return;
-
-    // Block if clicking over HUD/UI
-    if (InteractivityGuard.isPointerOverUI(event.clientX, event.clientY)) return;
-
-
-    this.raycaster.setFromCamera(this.mouse, this.camera);
-    const interacts = this.entityManager.getInteractableObjects();
-    const intersects = this.raycaster.intersectObjects(interacts);
-    if (intersects.length > 0) {
-      const hit = intersects.find((i: THREE.Intersection) => i.object.userData.isGridTile);
-      if (hit) {
-        const x = hit.object.userData.cellX;
-        const z = hit.object.userData.cellZ;
-        const isPlayerSide = hit.object.userData.isPlayerSide;
-
-        // Check if the cell has already been shot at
-        if (this.gameLoop && this.gameLoop.match && this.gameLoop.currentState === GameState.PLAYER_TURN) {
-          const targetBoard = isPlayerSide ? this.gameLoop.match.playerBoard : this.gameLoop.match.enemyBoard;
-          const index = z * targetBoard.width + x;
-          const cellState = targetBoard.gridState[index];
-
-          if (cellState === CellState.Hit || cellState === CellState.Miss || cellState === CellState.Sunk) {
-            this.playErrorSound();
-            return; // Prevent click from propagating
-          }
-        }
-
-        this.clickListeners.forEach(listener => listener(hit));
-      }
-    }
+  public onClick(listener: (x: number, z: number, isPlayerSide: boolean) => void) {
+    this.clickHandler.onClick(listener);
   }
 
   private onMouseMove(event: MouseEvent) {
+    this.isShiftDown = event.shiftKey;
     if (!this.interactionEnabled) return;
-
-    this.mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-    this.mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+    this.raycastService.updateMouse(event.clientX, event.clientY);
     this.lastMouseClientX = event.clientX;
     this.lastMouseClientY = event.clientY;
   }
 
   public update() {
-    let pickedTile: THREE.Object3D | null = null;
+    this.feedbackHandler.update(performance.now());
 
-    this.raycaster.setFromCamera(this.mouse, this.camera);
-    const interacts = this.entityManager.getInteractableObjects();
-    const intersects = this.raycaster.intersectObjects(interacts);
+    const pickedIntersection = this.raycastService.getPickedIntersection();
+    const pickedTile = pickedIntersection ? pickedIntersection.object : null;
 
-    if (intersects.length > 0) {
-      const hit = intersects.find((i: THREE.Intersection) => i.object.userData.isGridTile);
-      if (hit) pickedTile = hit.object;
-    }
+    const isStateBlocked = InteractivityGuard.isBlocked() ||
+      !this.interactionEnabled ||
+      this.isShiftDown ||
+      (this.gameLoop && (this.gameLoop.isAnimating || this.gameLoop.currentState === GameState.GAME_OVER));
 
-    const isInteractionBlocked = InteractivityGuard.isBlocked() || 
-                                 !this.interactionEnabled || 
-                                 (this.gameLoop && (this.gameLoop.isAnimating || this.gameLoop.currentState === GameState.GAME_OVER)) ||
-                                 InteractivityGuard.isPointerOverUI(this.lastMouseClientX, this.lastMouseClientY);
+    const isPointerOverUI = InteractivityGuard.isPointerOverUI(this.lastMouseClientX, this.lastMouseClientY);
+    const isInteractionBlocked = isStateBlocked || isPointerOverUI;
 
+    if (pickedTile && pickedIntersection && !isInteractionBlocked) {
+      let hoverX, hoverZ;
+      if (pickedTile.userData.isRaycastPlane) {
+        const localPoint = pickedTile.worldToLocal(pickedIntersection.point.clone());
+        hoverX = Math.floor(localPoint.x + Config.board.width / 2);
+        hoverZ = Math.floor(localPoint.z + Config.board.width / 2);
+        hoverX = Math.max(0, Math.min(Config.board.width - 1, hoverX));
+        hoverZ = Math.max(0, Math.min(Config.board.width - 1, hoverZ));
+      } else {
+        const isInstanced = pickedTile.userData.isInstancedGrid;
+        hoverX = isInstanced && pickedIntersection.instanceId !== undefined ? pickedIntersection.instanceId % Config.board.width : pickedTile.userData.cellX;
+        hoverZ = isInstanced && pickedIntersection.instanceId !== undefined ? Math.floor(pickedIntersection.instanceId / Config.board.width) : pickedTile.userData.cellZ;
+      }
 
-    if (pickedTile && !isInteractionBlocked) {
       if (this.gameLoop && this.gameLoop.currentState === GameState.SETUP_BOARD && this.gameLoop.playerShipsToPlace.length > 0) {
-        this.hoverCursor.visible = false;
+        this.feedbackHandler.hoverCursor.visible = false;
 
         const ship = this.gameLoop.playerShipsToPlace[0];
-        const size = ship.size;
         const orientation = this.gameLoop.currentPlacementOrientation;
+        const x = hoverX;
+        const z = hoverZ;
+        const isPlayerSide = pickedTile.userData.isPlayerSide;
 
-        if (this.currentGhostSize !== size) {
-          this.buildGhost(size);
-          this.currentGhostSize = size;
+        if (!Config.rogueMode && !isPlayerSide) {
+          this.feedbackHandler.ghostGroup.visible = false;
+        } else {
+          const targetBoard = Config.rogueMode ? this.gameLoop.match.sharedBoard : this.gameLoop.match.playerBoard;
+          const isValid = this.gameLoop.match.validatePlacement(targetBoard, ship, x, z, orientation);
+          this.feedbackHandler.updateGhost(ship, orientation, pickedTile, isValid, x, z);
         }
 
-        const x = pickedTile.userData.cellX;
-        const z = pickedTile.userData.cellZ;
-
-        const isValid = this.gameLoop.match.validatePlacement(this.gameLoop.match.playerBoard, ship, x, z, orientation);
-        const color = isValid ? 0x00ff00 : 0xff0000;
-
-        this.ghostGroup.children.forEach((child: THREE.Object3D, index: number) => {
-          const mesh = child as THREE.Mesh;
-          const mat = mesh.material as THREE.MeshBasicMaterial;
-          mat.color.setHex(color);
-
-          const cx = orientation === Orientation.Horizontal ? index : 0;
-          const cz = orientation === Orientation.Vertical ? index : 0;
-
-          mesh.position.set(cx, 0, cz);
-        });
-
-        const ghostWorldPos = new THREE.Vector3();
-        pickedTile.getWorldPosition(ghostWorldPos);
-        this.ghostGroup.position.copy(ghostWorldPos);
-        this.ghostGroup.position.y += 0.45;
-        this.ghostGroup.quaternion.copy(pickedTile.parent!.quaternion);
-        this.ghostGroup.visible = true;
-
       } else {
-        this.ghostGroup.visible = false;
+        this.feedbackHandler.ghostGroup.visible = false;
 
         let showHover = true;
-        const x = pickedTile.userData.cellX;
-        const z = pickedTile.userData.cellZ;
+        const x = hoverX;
+        const z = hoverZ;
         const isPlayerSide = pickedTile.userData.isPlayerSide;
 
         if (this.gameLoop && this.gameLoop.match && this.gameLoop.currentState === GameState.PLAYER_TURN) {
-          const targetBoard = isPlayerSide ? this.gameLoop.match.playerBoard : this.gameLoop.match.enemyBoard;
-          const index = z * targetBoard.width + x;
-          const st = targetBoard.gridState[index];
+          const isRogue = this.gameLoop.match.mode === MatchMode.Rogue;
+          const targetBoard = isRogue ? this.gameLoop.match.sharedBoard : (isPlayerSide ? this.gameLoop.match.playerBoard : this.gameLoop.match.enemyBoard);
+          const cellIndex = z * targetBoard.width + x;
+          const st = targetBoard.gridState[cellIndex];
           if (st === CellState.Hit || st === CellState.Miss || st === CellState.Sunk) {
             showHover = false;
           }
         }
 
         if (showHover) {
-          const worldPos = new THREE.Vector3();
-          pickedTile.getWorldPosition(worldPos);
-          this.hoverCursor.position.copy(worldPos);
-          this.hoverCursor.position.y += 1.25;
-          this.hoverCursor.visible = true;
-          this.hoverCursor.quaternion.identity();
+          const { scaleX, scaleZ } = this.calculateHoverScale();
+          const localOffset = new THREE.Vector3(x - Config.board.width / 2 + 0.5, 0, z - Config.board.width / 2 + 0.5);
+
+          if (pickedTile.userData.isRaycastPlane) {
+            const boardGrp = pickedTile.parent || pickedTile;
+            boardGrp.localToWorld(localOffset);
+            const worldPos = localOffset.clone();
+
+            this.feedbackHandler.hoverCursor.position.copy(worldPos);
+            this.feedbackHandler.hoverCursor.visible = true;
+            this.feedbackHandler.hoverCursor.quaternion.identity();
+            this.feedbackHandler.hoverCursor.scale.set(scaleX, 1, scaleZ);
+          } else if (pickedTile.userData.isInstancedGrid) {
+            pickedTile.localToWorld(localOffset);
+            const worldPos = localOffset.clone();
+            this.feedbackHandler.hoverCursor.position.copy(worldPos);
+            this.feedbackHandler.hoverCursor.position.y += 1.25;
+            this.feedbackHandler.hoverCursor.visible = true;
+            this.feedbackHandler.hoverCursor.quaternion.identity();
+            this.feedbackHandler.hoverCursor.scale.set(scaleX, 1, scaleZ);
+          } else {
+            this.feedbackHandler.updateHoverCursor(pickedTile, scaleX, scaleZ);
+          }
+
         } else {
-          this.hoverCursor.visible = false;
+          this.feedbackHandler.hoverCursor.visible = false;
         }
-        this.uiHoveredCell = null; // 3D hover takes priority
+        this.uiHoveredCell = null;
       }
 
-      this.hoveredCell = {
-        x: pickedTile.userData.cellX,
-        z: pickedTile.userData.cellZ
-      };
+      this.hoveredCell = { x: hoverX, z: hoverZ };
 
-      document.dispatchEvent(new CustomEvent('MOUSE_CELL_HOVER', {
-          detail: {
-              x: this.hoveredCell.x,
-              z: this.hoveredCell.z,
-              isPlayerSide: pickedTile.userData.isPlayerSide,
-              source: '3d',
-              clientX: this.lastMouseClientX,
-              clientY: this.lastMouseClientY
-          }
-      }));
+      eventBus.emit(GameEventType.MOUSE_CELL_HOVER, {
+        x: this.hoveredCell.x,
+        z: this.hoveredCell.z,
+        isPlayerSide: pickedTile.userData.isPlayerSide,
+        source: '3d',
+        clientX: this.lastMouseClientX,
+        clientY: this.lastMouseClientY
+      });
 
     } else {
-      // No 3D interaction or pick. Clear 3D hover state if it was active.
-      if (this.interactionEnabled && this.hoveredCell !== null) {
-          this.hoveredCell = null;
-          document.dispatchEvent(new CustomEvent('MOUSE_CELL_HOVER', { detail: null }));
-      }
-      
-      this.ghostGroup.visible = false;
+      this.feedbackHandler.ghostGroup.visible = false;
+      this.feedbackHandler.hoverCursor.visible = false;
+      this.hoveredCell = null;
 
-      // Check if there's a UI hover to display instead
-      if (this.uiHoveredCell) {
-        const { x, z, isPlayerSide } = this.uiHoveredCell;
-        const tiles = isPlayerSide ? this.entityManager.playerGridTiles : this.entityManager.enemyGridTiles;
-        const boardWidth = Config.board.width;
-        const tileIndex = z * boardWidth + x;
-        const tile = tiles[tileIndex];
+      this.handleCellLeave();
 
-        if (tile) {
-          const localOffset = new THREE.Vector3(0, 1.25, 0);
-          const worldPos = tile.localToWorld(localOffset);
-          this.hoverCursor.position.copy(worldPos);
-          
-          // Align cursor with the board's orientation (upright or flipped)
-          const boardQuat = new THREE.Quaternion();
-          tile.getWorldQuaternion(boardQuat);
-          this.hoverCursor.quaternion.copy(boardQuat);
-          
-          this.hoverCursor.visible = true;
-        } else {
-          this.hoverCursor.visible = false;
-        }
+      if (this.uiHoveredCell && !isStateBlocked) {
+        const { x, z } = this.uiHoveredCell;
+
+        const { scaleX, scaleZ } = this.calculateHoverScale();
+        const worldPos = new THREE.Vector3(x - Config.board.width / 2 + 0.5, 1.25, z - Config.board.width / 2 + 0.5);
+        this.feedbackHandler.hoverCursor.position.copy(worldPos);
+        this.feedbackHandler.hoverCursor.visible = true;
+        this.feedbackHandler.hoverCursor.quaternion.identity();
+        this.feedbackHandler.hoverCursor.scale.set(scaleX, 1, scaleZ);
       } else {
-        this.hoverCursor.visible = false;
+        this.feedbackHandler.hoverCursor.visible = false;
       }
     }
 
-    this.updateHoverState();
-  }
-
-  private updateHoverState() {
-    // We want to report it even if blocked for clicking, because the camera guard needs it.
+    this.updateMoveHighlight();
+    this.updateRangeHighlights();
     (window as any).isHoveringBattlefield = this.hoveredCell !== null;
   }
 
-  private buildGhost(size: number) {
-    while (this.ghostGroup.children.length > 0) {
-      const child = this.ghostGroup.children[0] as THREE.Mesh;
-      this.ghostGroup.remove(child);
-      child.geometry.dispose();
-      (child.material as THREE.Material).dispose();
+  private calculateHoverScale(): { scaleX: number, scaleZ: number } {
+    let scaleX = 1, scaleZ = 1;
+    if (Config.rogueMode) {
+      const weapon = (window as any).selectedRogueWeapon;
+      if (weapon === 'airstrike' || (weapon as any) === 'air-strike') {
+        const isVertical = this.gameLoop.airStrikeOrientation === Orientation.Vertical;
+        if (isVertical) scaleZ = 10; else scaleX = 10;
+      }
+    }
+    return { scaleX, scaleZ };
+  }
+
+  private updateMoveHighlight() {
+    if (!this.gameLoop || this.gameLoop.currentState !== GameState.PLAYER_TURN || !this.gameLoop.match || this.gameLoop.match.mode !== MatchMode.Rogue) {
+      this.feedbackHandler.moveHighlightGroup.visible = false;
+      return;
+    }
+    const action = (window as any).selectedRogueAction || 'move';
+    if (action !== 'move') {
+      this.feedbackHandler.moveHighlightGroup.visible = false;
+      this.lastMoveAction = action;
+      return;
     }
 
-    const ghostGeo = new THREE.BoxGeometry(0.85, 0.45, 0.85);
+    const order = this.gameLoop.rogueShipOrder;
+    const index = this.gameLoop.activeRogueShipIndex;
+    const activeShip = order && index >= 0 && index < order.length ? order[index] : null;
 
-    for (let i = 0; i < size; i++) {
-      const ghostMat = new THREE.MeshBasicMaterial({
-        color: 0x00ff00,
-        transparent: true,
-        opacity: 0.6,
-        depthTest: false
-      });
-      const mesh = new THREE.Mesh(ghostGeo, ghostMat);
-      this.ghostGroup.add(mesh);
+    if (!activeShip || activeShip.hasActedThisTurn || activeShip.movesRemaining <= 0) {
+      this.feedbackHandler.moveHighlightGroup.visible = false;
+      return;
+    }
+
+    this.feedbackHandler.moveHighlightGroup.visible = true;
+
+    if (this.lastMoveShipId !== activeShip.id || this.lastMoveAction !== action || this.lastMovesRemaining !== activeShip.movesRemaining) {
+      this.feedbackHandler.rebuildMoveHighlight(activeShip, this.gameLoop.match.sharedBoard);
+      this.lastMoveShipId = activeShip.id;
+      this.lastMoveAction = action;
+      this.lastMovesRemaining = activeShip.movesRemaining;
+    }
+  }
+
+  private updateRangeHighlights() {
+    if (!this.gameLoop || !this.gameLoop.match || this.gameLoop.match.mode !== MatchMode.Rogue) {
+      this.feedbackHandler.visionHighlightGroup.visible = false;
+      this.feedbackHandler.attackHighlightGroup.visible = false;
+      return;
+    }
+
+    const order = this.gameLoop.rogueShipOrder;
+    const index = this.gameLoop.activeRogueShipIndex;
+    const activeShip = order && index >= 0 && index < order.length ? order[index] : null;
+
+    if (!activeShip || this.gameLoop.currentState !== GameState.PLAYER_TURN) {
+      this.feedbackHandler.visionHighlightGroup.visible = false;
+      this.feedbackHandler.attackHighlightGroup.visible = false;
+      return;
+    }
+
+    this.feedbackHandler.visionHighlightGroup.visible = true;
+    this.feedbackHandler.attackHighlightGroup.visible = true;
+
+    if (this.lastMoveShipId !== activeShip.id || this.lastMoveShipX !== activeShip.headX || this.lastMoveShipZ !== activeShip.headZ) {
+      this.feedbackHandler.rebuildRangeHighlights(activeShip, this.gameLoop.match.sharedBoard);
+      this.lastMoveShipId = activeShip.id;
+      this.lastMoveShipX = activeShip.headX;
+      this.lastMoveShipZ = activeShip.headZ;
     }
   }
 }

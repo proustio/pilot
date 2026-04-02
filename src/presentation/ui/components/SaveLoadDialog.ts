@@ -1,6 +1,10 @@
 import { BaseUIComponent } from './BaseUIComponent';
-import { Storage, SaveMetadata } from '../../../infrastructure/storage/Storage';
+import { Storage } from '../../../infrastructure/storage/Storage';
+import { eventBus, GameEventType } from '../../../application/events/GameEventBus';
 import { Config } from '../../../infrastructure/config/Config';
+import { TemplateEngine } from '../templates/TemplateEngine';
+import saveLoadDialogTemplate from '../templates/SaveLoadDialog.html?raw';
+import saveSlotTemplate from '../templates/SaveSlot.html?raw';
 
 export type SaveLoadMode = 'save' | 'load';
 
@@ -9,8 +13,7 @@ export class SaveLoadDialog extends BaseUIComponent {
 
     constructor() {
         super('save-load-dialog');
-        this.container.classList.add('voxel-panel');
-        this.container.style.zIndex = '200';
+        this.container.classList.add('absolute', 'top-1/2', 'left-1/2', '-translate-x-1/2', '-translate-y-1/2', 'bg-[rgba(20,20,20,0.55)]', 'backdrop-blur-[8px]', 'border-4', 'border-[#333]', 'rounded', 'shadow-voxel-panel', 'text-[#eee]', 'p-8', 'pointer-events-auto', 'text-shadow-voxel', 'z-[200]', 'w-[900px]', 'max-w-[95vw]', 'max-h-[90vh]', 'overflow-hidden', 'flex', 'flex-row', 'gap-8');
     }
 
     public openAs(mode: SaveLoadMode): void {
@@ -20,13 +23,12 @@ export class SaveLoadDialog extends BaseUIComponent {
     }
 
     protected onShow(): void {
-        document.dispatchEvent(new CustomEvent('PAUSE_GAME'));
-        document.dispatchEvent(new CustomEvent('SET_INTERACTION_ENABLED', { detail: { enabled: false } }));
+        eventBus.emit(GameEventType.PAUSE_GAME, undefined);
+        eventBus.emit(GameEventType.SET_INTERACTION_ENABLED, { enabled: false });
     }
 
     protected onHide(): void {
-        // Return to pause menu instead of resuming
-        document.dispatchEvent(new CustomEvent('SHOW_PAUSE_MENU'));
+        eventBus.emit(GameEventType.SHOW_PAUSE_MENU, undefined);
     }
 
     protected render(): void {
@@ -36,48 +38,22 @@ export class SaveLoadDialog extends BaseUIComponent {
         for (let i = 1; i <= Config.storage.maxSlots; i++) {
             const meta = Storage.getSlotMetadata(i);
             const isEmpty = !meta;
-
-            const slotContent = isEmpty
-                ? `<span class="slot-empty">— Empty —</span>`
-                : `<span class="slot-mode">${(meta as SaveMetadata).mode.toUpperCase()}</span>
-                   <span class="slot-date">${new Date((meta as SaveMetadata).date).toLocaleString()}</span>
-                   <span class="slot-turns">Turns: ${(meta as SaveMetadata).turnCount}</span>`;
-
             const isDisabled = this.mode === 'load' && isEmpty;
             const disabledClass = isDisabled ? 'slot-disabled' : '';
 
-            slotsHtml += `
-                <div class="slot-wrapper" style="display: flex; justify-content: center; width: 100%;">
-                    <button class="save-slot voxel-btn ${disabledClass}" data-slot="${i}" ${isDisabled ? 'disabled' : ''} style="flex-grow: 1; max-width: 300px;">
-                        <div class="slot-header">Slot ${i}</div>
-                        <div class="slot-info">${slotContent}</div>
-                    </button>
-                    ${!isEmpty ? `
-                    <button class="slot-delete-btn voxel-btn danger" data-slot="${i}" title="Delete Save">
-                        <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
-                            <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
-                        </svg>
-                    </button>` : ''}
-                </div>
-            `;
+            slotsHtml += TemplateEngine.render(saveSlotTemplate, {
+                i,
+                meta,
+                isEmpty,
+                isDisabled,
+                disabledClass
+            });
         }
 
-        this.container.innerHTML = `
-            <h2 class="voxel-title" style="font-size: 2rem;">${title}</h2>
-            <div class="save-slots-container">
-                ${slotsHtml}
-            </div>
-            <button id="btn-close-save-load" class="voxel-btn" style="margin-top: 15px;">Cancel</button>
-            <div id="confirm-overlay" class="confirm-overlay" style="display:none;">
-                <div class="confirm-dialog voxel-panel">
-                    <p id="confirm-message">Overwrite this save?</p>
-                    <div style="display:flex; gap:10px; justify-content:center;">
-                        <button id="confirm-yes" class="voxel-btn primary" style="width:auto; padding:10px 24px;">Yes</button>
-                        <button id="confirm-no" class="voxel-btn" style="width:auto; padding:10px 24px;">No</button>
-                    </div>
-                </div>
-            </div>
-        `;
+        this.container.innerHTML = TemplateEngine.render(saveLoadDialogTemplate, {
+            title,
+            slotsHtml
+        });
 
         const closeBtn = this.container.querySelector('#btn-close-save-load') as HTMLButtonElement;
         closeBtn.addEventListener('click', () => this.hide());
@@ -92,13 +68,16 @@ export class SaveLoadDialog extends BaseUIComponent {
                     const hasSave = Storage.hasSave(slotId);
                     if (hasSave) {
                         this.showConfirm('Overwrite this save?', () => {
-                            this.doSave(slotId);
+                            eventBus.emit(GameEventType.SAVE_GAME, { slotId });
+                            this.hide();
                         });
                     } else {
-                        this.doSave(slotId);
+                        eventBus.emit(GameEventType.SAVE_GAME, { slotId });
+                        this.hide();
                     }
                 } else {
-                    this.doLoad(slotId);
+                    eventBus.emit(GameEventType.LOAD_GAME, { slotId });
+                    this.hide();
                 }
             });
         });
@@ -135,15 +114,5 @@ export class SaveLoadDialog extends BaseUIComponent {
 
         yesBtn.addEventListener('click', () => { cleanup(); onConfirm(); }, { once: true });
         noBtn.addEventListener('click', () => { cleanup(); }, { once: true });
-    }
-
-    private doSave(slotId: number): void {
-        document.dispatchEvent(new CustomEvent('SAVE_GAME', { detail: { slotId } }));
-        this.render();
-    }
-
-    private doLoad(slotId: number): void {
-        document.dispatchEvent(new CustomEvent('LOAD_GAME', { detail: { slotId } }));
-        this.hide();
     }
 }

@@ -1,23 +1,31 @@
 import { BaseUIComponent } from '../components/BaseUIComponent';
+import { eventBus, GameEventType } from '../../../application/events/GameEventBus';
+import { TemplateEngine } from '../templates/TemplateEngine';
+import gameOverTemplate from '../templates/GameOver.html?raw';
 
 export class GameOver extends BaseUIComponent {
     constructor() {
         super('game-over');
-        this.container.classList.add('voxel-panel');
+        this.container.classList.add('absolute', 'top-1/2', 'left-1/2', '-translate-x-1/2', '-translate-y-1/2', 'bg-[rgba(20,20,20,0.55)]', 'backdrop-blur-[8px]', 'border-4', 'border-[#333]', 'rounded', 'shadow-voxel-panel', 'text-[#eee]', 'p-8', 'pointer-events-auto', 'text-shadow-voxel', 'z-[200]', 'w-[500px]', 'max-w-[90vw]', 'flex', 'flex-col', 'items-center', 'justify-center');
     }
 
     protected render(): void {
-        this.container.innerHTML = `
-            <h1 id="game-over-title" class="voxel-title" style="font-size: 3rem; margin-bottom: 10px;">Game Over</h1>
-            <p id="game-over-message" style="margin-bottom: 30px; font-size: 1.5rem;"></p>
-            <button id="btn-return-menu" class="voxel-btn primary">Main Menu</button>
-        `;
+        this.container.innerHTML = TemplateEngine.render(gameOverTemplate, {});
 
-        const returnBtn = this.container.querySelector('#btn-return-menu') as HTMLButtonElement;
-        returnBtn.addEventListener('click', () => {
-            document.dispatchEvent(new CustomEvent('EXIT_GAME'));
-            window.location.reload();
-        });
+        const restartBtn = this.container.querySelector('#btn-gameover-restart') as HTMLButtonElement;
+        if (restartBtn) {
+            restartBtn.addEventListener('click', () => {
+                window.location.reload();
+            });
+        }
+
+        const exitBtn = this.container.querySelector('#btn-gameover-exit') as HTMLButtonElement;
+        if (exitBtn) {
+            exitBtn.addEventListener('click', () => {
+                eventBus.emit(GameEventType.EXIT_GAME, undefined as any);
+                window.location.reload();
+            });
+        }
     }
 
     public updateMessage(status: string) {
@@ -26,11 +34,13 @@ export class GameOver extends BaseUIComponent {
         
         if (status === 'player_wins') {
             title.innerText = 'VICTORY!';
-            title.style.color = 'var(--color-primary)';
+            title.classList.add('text-theme-primary');
+            title.classList.remove('text-theme-danger');
             msg.innerText = 'All enemy ships have been sunk.';
         } else {
             title.innerText = 'DEFEAT!';
-            title.style.color = 'var(--color-danger)';
+            title.classList.add('text-theme-danger');
+            title.classList.remove('text-theme-primary');
             msg.innerText = 'Your fleet was destroyed.';
         }
     }

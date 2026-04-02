@@ -1,0 +1,18 @@
+<div class="flex justify-between items-center mb-[15px] w-full">
+    <label class="font-mono text-theme-text uppercase tracking-wider">Key Bindings:</label>
+    <button id="btn-open-keybindings" class="bg-btn-bg text-btn-text border border-btn-border rounded shadow-voxel-btn px-6 py-3 my-2.5 font-mono text-[1.2rem] font-bold uppercase cursor-pointer transition-all duration-100 flex-grow ml-5 text-shadow-voxel-btn tracking-wider hover:bg-btn-hover hover:shadow-voxel-btn-hover hover:text-shadow-[0_0_8px_rgba(255,215,0,1)] active:shadow-voxel-btn-active active:translate-y-[2px]">Configure...</button>
+</div>
+
+<div id="keybindings-sub-panel" class="hidden absolute inset-0 w-full h-full z-[1000] box-border overflow-y-auto bg-[rgba(20,20,20,0.55)] backdrop-blur-[8px] border-4 border-[#333] rounded shadow-voxel-panel text-[#eee] p-6 pointer-events-auto text-shadow-voxel">
+    <h3 class="font-mono font-bold uppercase tracking-[2px] text-theme-text text-shadow-voxel-title text-2xl mb-8">Key Bindings</h3>
+    <p class="text-[0.8rem] opacity-70 mb-2.5">Click a key to highlight it, or click an action to bind/unbind.</p>
+    
+    <div id="keyboard-visual" class="mb-5"></div>
+    
+    <div id="keybindings-list" class="mt-5"></div>
+    
+    <div class="flex gap-2.5 mt-5">
+        <button id="btn-close-keybindings" class="bg-btn-bg text-btn-text border border-btn-border rounded shadow-voxel-btn px-6 py-3 my-2.5 font-mono text-[1.2rem] font-bold uppercase cursor-pointer transition-all duration-100 flex-grow min-w-[50px] text-shadow-voxel-btn tracking-wider hover:bg-btn-hover hover:shadow-voxel-btn-hover hover:text-shadow-[0_0_8px_rgba(255,215,0,1)] active:shadow-voxel-btn-active active:translate-y-[2px]">Back to General</button>
+        <button id="btn-reset-keybindings" class="bg-btn-danger-bg text-theme-danger border border-theme-danger rounded shadow-voxel-btn-danger px-6 py-3 my-2.5 font-mono text-[1.2rem] font-bold uppercase cursor-pointer transition-all duration-100 flex-grow min-w-[50px] text-shadow-voxel-btn tracking-wider hover:bg-btn-danger-hover hover:text-white active:shadow-voxel-btn-active active:translate-y-[2px]">Reset to Defaults</button>
+    </div>
+</div>

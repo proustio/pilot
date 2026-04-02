@@ -66,3 +66,4 @@ TEST-results.xml
 *v8.log
 /lib/
 /dist/
+public/icons/*.png

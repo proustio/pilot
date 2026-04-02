@@ -1,0 +1,79 @@
+<div class="flex flex-row bg-gradient-to-br from-[#222] to-[#111] border-[8px] border-[#333] border-r-[#111] border-b-[#111] rounded-lg shadow-[inset_0_0_40px_rgba(0,0,0,0.8),0_20px_50px_rgba(0,0,0,0.9),0_0_10px_rgba(0,0,0,0.5)] p-[30px] gap-[40px] relative overflow-hidden max-w-[1050px] w-auto retro-console">
+    <!-- Left: Control Panel -->
+    <div class="flex-1 flex flex-col gap-5 bg-[rgba(30,30,30,0.5)] border-4 border-[#111] border-r-[#444] border-b-[#444] p-5 rounded relative min-w-[250px] control-panel">
+        <span class="console-label">System: Operational</span>
+        <h1 class="font-mono text-[1.2rem] font-bold uppercase tracking-[2px] text-theme-text text-shadow-voxel-title text-2xl mb-5 text-left">Battleships</h1>
+        
+        <div id="new-game-section" class="w-full flex flex-col gap-2.5 items-start">
+            <button id="btn-new-game" class="bg-btn-primary-bg text-white border border-theme-secondary rounded shadow-voxel-btn-primary px-6 py-3 my-2.5 font-mono text-[1.5rem] font-bold uppercase cursor-pointer transition-all duration-100 w-full min-w-[50px] text-shadow-[0_0_5px_var(--color-secondary)] tracking-wider hover:bg-btn-primary-hover hover:shadow-[inset_0_0_15px_rgba(34,139,34,0.8),0_0_10px_rgba(34,139,34,0.5)] hover:text-shadow-[0_0_8px_white] active:shadow-voxel-btn-active active:translate-y-[2px] mt-1 engage-btn">ENGAGE</button>
+        </div>
+
+        <div class="mt-auto pt-5 border-t-2 border-dashed border-[#444] flex flex-col gap-2.5">
+            <button id="btn-game-saves" class="bg-btn-bg text-btn-text border border-btn-border rounded shadow-voxel-btn px-6 py-3 my-2.5 font-mono text-[1.2rem] font-bold uppercase cursor-pointer transition-all duration-100 w-full min-w-[50px] text-shadow-voxel-btn tracking-wider hover:bg-btn-hover hover:shadow-voxel-btn-hover hover:text-shadow-[0_0_8px_rgba(255,215,0,1)] active:shadow-voxel-btn-active active:translate-y-[2px]">Memory Banks</button>
+            <div class="flex gap-2.5">
+                <button id="btn-settings" class="bg-btn-bg text-btn-text border border-btn-border rounded shadow-voxel-btn px-6 py-3 my-2.5 font-mono text-[1.2rem] font-bold uppercase cursor-pointer transition-all duration-100 flex-1 min-w-[50px] text-shadow-voxel-btn tracking-wider hover:bg-btn-hover hover:shadow-voxel-btn-hover hover:text-shadow-[0_0_8px_rgba(255,215,0,1)] active:shadow-voxel-btn-active active:translate-y-[2px]">Settings</button>
+            </div>
+            
+            <label class="relative cursor-pointer w-full mt-2 mb-1 block h-[58px]">
+                <input type="checkbox" id="theme-toggle" ${Config.visual.isDayMode ? 'checked' : ''} class="sr-only peer">
+                
+                <!-- Track -->
+                <div class="absolute inset-0 w-full h-full bg-[rgba(0,0,0,0.8)] peer-checked:bg-[rgba(200,200,200,0.8)] border border-[#444] peer-checked:border-[#999] rounded shadow-[inset_0_4px_10px_rgba(0,0,0,1)] peer-checked:shadow-[inset_0_4px_10px_rgba(0,0,0,0.2)] transition-all duration-300"></div>
+                
+                <!-- Background Label Left (Day Mode) -->
+                <div class="absolute left-0 top-0 w-1/2 h-full flex items-center justify-center font-mono text-[1.1rem] font-bold uppercase tracking-wider text-[#333] opacity-0 peer-checked:opacity-100 transition-opacity duration-300 pointer-events-none z-0">
+                    🌒
+                </div>
+                
+                <!-- Background Label Right (Night Mode) -->
+                <div class="absolute right-0 top-0 w-1/2 h-full flex items-center justify-center font-mono text-[1.1rem] font-bold uppercase tracking-wider text-[#666] opacity-100 peer-checked:opacity-0 transition-opacity duration-300 pointer-events-none z-0">
+                    🌖
+                </div>
+
+                <!-- Sliding Knob Background -->
+                <div class="absolute top-[4px] left-[4px] w-[calc(50%-4px)] h-[calc(100%-8px)] bg-[#111] border border-theme-secondary rounded shadow-[inset_0px_0px_8px_rgba(34,139,34,0.3)] peer-checked:translate-x-full peer-checked:bg-[rgba(255,255,255,0.95)] peer-checked:border-[#222] peer-checked:shadow-[inset_0_2px_5px_rgba(0,0,0,0.2)] transition-all duration-300 z-10 pointer-events-none"></div>
+
+                <!-- Sliding Knob Text: DARK (Night state) -->
+                <div class="absolute top-[4px] left-[4px] w-[calc(50%-4px)] h-[calc(100%-8px)] flex flex-nowrap items-center justify-center gap-2 font-mono text-[1.15rem] font-bold uppercase tracking-wider whitespace-nowrap text-white peer-checked:opacity-0 peer-checked:translate-x-full transition-all duration-300 z-20 pointer-events-none" style="text-shadow: 0 0 5px rgba(34,139,34,0.5);">
+                    🌒 DARK
+                </div>
+
+                <!-- Sliding Knob Text: LIGHT (Day state) -->
+                <div class="absolute top-[4px] left-[4px] w-[calc(50%-4px)] h-[calc(100%-8px)] flex flex-nowrap items-center justify-center gap-2 font-mono text-[1.15rem] font-bold uppercase tracking-wider whitespace-nowrap text-[#111] opacity-0 peer-checked:opacity-100 peer-checked:translate-x-full transition-all duration-300 z-20 pointer-events-none text-shadow-none">
+                    LIGHT 🌖
+                </div>
+            </label>
+        </div>
+    </div>
+
+    <!-- Right: Monitor Port -->
+    <div class="flex-[1.2] bg-[#050505] border-[6px] border-[#222] rounded relative flex flex-col p-5 justify-start gap-[15px] overflow-hidden shadow-[inset_0_0_30px_rgba(0,255,0,0.05)] min-w-[300px] min-height-[400px] monitor-port">
+        <div class="w-full max-w-[320px] z-40">
+            <label class="console-label text-[#0f0]" style="text-shadow: 0 0 5px rgba(0,255,0,0.5);">Select Engagement:</label>
+            <div id="mode-dropdown" class="custom-dropdown relative w-full max-w-[320px] z-40 group">
+                <div class="custom-dropdown-selected flex items-center justify-between p-2.5 bg-[#111] border border-[#333] rounded text-theme-primary cursor-pointer transition-all duration-200 shadow-[inset_0_0_10px_rgba(0,0,0,0.8)] hover:bg-[#181818] hover:border-theme-primary/50" id="dropdown-selected">
+                    <span id="dropdown-selected-text" class="font-mono font-bold tracking-tight whitespace-nowrap">✔ Classic (US Fleet)</span>
+                    <span class="custom-dropdown-arrow transition-all duration-300 ml-2 opacity-60 text-[1.2rem] leading-none">▾</span>
+                </div>
+                <div class="custom-dropdown-options absolute left-0 right-0 top-full mt-1 bg-[rgba(15,15,15,0.98)] backdrop-blur-xl border border-[#333] rounded shadow-[0_10px_30px_rgba(0,0,0,0.8),0_0_20px_rgba(0,255,0,0.05)] z-50 overflow-hidden hidden" id="dropdown-options">
+                    <div class="custom-dropdown-option px-4 py-3 cursor-pointer transition-all duration-150 hover:bg-theme-primary/10 hover:text-white flex items-center gap-2 border-b border-white/5 last:border-0 [&.active]:bg-theme-primary/10 [&.active]:text-theme-primary [&.active]:font-bold" data-value="classic">
+                        <span class="option-check w-5 flex-shrink-0 text-center font-bold">✔</span>
+                        <span class="font-mono text-[0.9rem] tracking-wide">Classic (US Fleet)</span>
+                    </div>
+                    <div class="custom-dropdown-option px-4 py-3 cursor-pointer transition-all duration-150 hover:bg-theme-primary/10 hover:text-white flex items-center gap-2 border-b border-white/5 last:border-0 [&.active]:bg-theme-primary/10 [&.active]:text-theme-primary [&.active]:font-bold" data-value="russian">
+                        <span class="option-check w-5 flex-shrink-0 text-center font-bold">❄</span>
+                        <span class="font-mono text-[0.9rem] tracking-wide">Russian (No Touching)</span>
+                    </div>
+                    <div class="custom-dropdown-option px-4 py-3 cursor-pointer transition-all duration-150 hover:bg-theme-primary/10 hover:text-white flex items-center gap-2 [&.active]:bg-theme-primary/10 [&.active]:text-theme-primary [&.active]:font-bold" data-value="rogue">
+                        <span class="option-check w-5 flex-shrink-0 text-center font-bold">☠</span>
+                        <span class="font-mono text-[0.9rem] tracking-wide">Rogue (Action)</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="mtg-card-anchor" class="mtg-card-container !mt-0 scale-[0.85] flex-none z-30 relative">
+            <!-- Card injected here dynamically -->
+        </div>
+    </div>
+</div>
