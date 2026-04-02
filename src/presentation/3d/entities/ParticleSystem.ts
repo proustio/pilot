@@ -29,7 +29,7 @@ export class ParticleSystem {
     // ── Spawn methods ────────────────────────────────────────────
 
     public hasActiveParticles(): boolean {
-        return this.particles.some(p => !p.isSmoke && !p.isFire);
+        return this.particles.some(p => p.poolType !== 'smoke' && p.poolType !== 'fire');
     }
 
     public getEmitterStats(): { emitterCount: number; throttleFactor: number } {
