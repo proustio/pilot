@@ -1,5 +1,5 @@
 import { Config } from '../../../infrastructure/config/Config';
-import { Ship } from '../../../domain/fleet/Ship';
+import { Ship, Orientation } from '../../../domain/fleet/Ship';
 
 /**
  * Tracks cell reveal state (temporary, permanent) and vision radius queries
@@ -74,7 +74,9 @@ export class FogVisibility {
 
         // Rule 1: Radius-based fog around ships
         let minDist = Infinity;
-        for (const cell of shipCells) {
+        // Optimization: Standard `for` loop is faster than `for...of` on hot paths
+        for (let i = 0; i < shipCells.length; i++) {
+            const cell = shipCells[i];
             if (cell.ship.isEnemy) continue;
             const dx = Math.abs(cell.x - x);
             const dz = Math.abs(cell.z - z);
@@ -134,10 +136,16 @@ export class FogVisibility {
             if (this.lastShipsOnBoard) {
                 for (const ship of this.lastShipsOnBoard) {
                     if (ship.isEnemy || ship.isSunk()) continue;
-                    const coords = ship.getOccupiedCoordinates();
-                    for (const c of coords) {
-                        const dx = Math.abs(c.x - x);
-                        const dz = Math.abs(c.z - z);
+                    for (let i = 0; i < ship.size; i++) {
+                        let cx = ship.headX;
+                        let cz = ship.headZ;
+                        if (ship.orientation === Orientation.Horizontal) cx += i;
+                        else if (ship.orientation === Orientation.Vertical) cz += i;
+                        else if (ship.orientation === Orientation.Left) cx -= i;
+                        else if (ship.orientation === Orientation.Up) cz -= i;
+
+                        const dx = Math.abs(cx - x);
+                        const dz = Math.abs(cz - z);
                         if (Math.max(dx, dz) <= ship.visionRadius) return true;
                     }
                 }
@@ -146,9 +154,17 @@ export class FogVisibility {
             // Check if specific ship segment is hit or sunk at this location
             if (this.lastShipsOnBoard) {
                 for (const ship of this.lastShipsOnBoard) {
-                    const coords = ship.getOccupiedCoordinates();
-                    for (let i = 0; i < coords.length; i++) {
-                        if (coords[i].x === x && coords[i].z === z) {
+                    if (!ship.isSunk() && !ship.segments.includes(false)) continue;
+
+                    for (let i = 0; i < ship.size; i++) {
+                        let cx = ship.headX;
+                        let cz = ship.headZ;
+                        if (ship.orientation === Orientation.Horizontal) cx += i;
+                        else if (ship.orientation === Orientation.Vertical) cz += i;
+                        else if (ship.orientation === Orientation.Left) cx -= i;
+                        else if (ship.orientation === Orientation.Up) cz -= i;
+
+                        if (cx === x && cz === z) {
                             if (ship.isSunk() || ship.segments[i] === false) return true;
                         }
                     }

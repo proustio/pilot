@@ -136,11 +136,15 @@ export class InputFeedbackHandler {
         }
 
         const color = isValid ? 0x00ff00 : 0xff0000;
+
+        // Single material is shared among children, so we only need to update it once.
+        if (this.ghostGroup.children.length > 0) {
+            const firstMesh = this.ghostGroup.children[0] as THREE.Mesh;
+            (firstMesh.material as THREE.MeshBasicMaterial).color.setHex(color);
+        }
+
         this.ghostGroup.children.forEach((child: THREE.Object3D, index: number) => {
             const mesh = child as THREE.Mesh;
-            const mat = mesh.material as THREE.MeshBasicMaterial;
-            mat.color.setHex(color);
-
             let cx = 0;
             let cz = 0;
             if (orientation === Orientation.Horizontal) cx = index;
@@ -207,14 +211,14 @@ export class InputFeedbackHandler {
         }
 
         const ghostGeo = new THREE.BoxGeometry(0.85, 0.45, 0.85);
+        const ghostMat = new THREE.MeshBasicMaterial({
+            color: 0x00ff00,
+            transparent: true,
+            opacity: 0.6,
+            depthTest: false
+        });
 
         for (let i = 0; i < size; i++) {
-            const ghostMat = new THREE.MeshBasicMaterial({
-                color: 0x00ff00,
-                transparent: true,
-                opacity: 0.6,
-                depthTest: false
-            });
             const mesh = new THREE.Mesh(ghostGeo, ghostMat);
             this.ghostGroup.add(mesh);
         }

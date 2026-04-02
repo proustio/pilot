@@ -58,8 +58,8 @@ describe('FogManager Rogue Mode', () => {
         playerShip.isEnemy = false;
         playerShip.visionRadius = 5;
         
-        // Mock the ship coordinates manually
-        vi.spyOn(playerShip, 'getOccupiedCoordinates').mockReturnValue([{ x: 10, z: 10 }]);
+        // Place the ship correctly so orientation and headX/headZ are set
+        playerShip.placeCoordinate(10, 10, 'horizontal' as any);
 
         // Run update multiple times to let opacity lerp below 0.2
         // lerpFactor is 0.1, target is 0.1, start is 0.85. 

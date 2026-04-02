@@ -39,12 +39,17 @@ export class VesselVisibilityManager {
 
             let isVisible: boolean;
             if (Config.rogueMode) {
-                const coords = ship.getOccupiedCoordinates();
-
                 // Rule: If the ship has taken ANY hits, consider it visible immediately, 
                 // bypassing the local fog check for the parent visibility.
-                const isHit = ship.isSunk() || ship.segments.some(s => s === false);
-                isVisible = isHit || coords.some(c => this.fogManager.isCellRevealed(c.x, c.z));
+                let isHit = ship.isSunk() || ship.segments.some(s => s === false);
+                isVisible = isHit;
+
+                if (!isVisible) {
+                    const coords = ship.getOccupiedCoordinates();
+                    if (coords.some(c => this.fogManager.isCellRevealed(c.x, c.z))) {
+                        isVisible = true;
+                    }
+                }
 
                 if (isVisible) {
                     this.updateShipPartialVisibility(ship, shipGroup);
