@@ -51,9 +51,29 @@ export class ShipVoxelBuilder {
 
                     let maxLy = ShipVoxelBuilder.getBridgeHeight(xNorm, isEdge, shipWidthPos, maxW, ship.size);
 
+                    const isBow = xNorm > 0.4 && !isCarrier;
+
                     if (isEdge || isBowStern) {
-                        const bowRise = isCarrier ? 0 : Math.pow(Math.max(0, Math.abs(xNorm) - 0.7) / 0.3, 2) * 2;
-                        maxLy = Math.max(maxLy, 2 + bowRise);
+                        if (isCarrier) {
+                            maxLy = Math.max(maxLy, 2);
+                        } else if (!isBow) {
+                            // Stern: modest rise for the transom
+                            const sternRise = Math.pow(Math.max(0, -xNorm - 0.8) / 0.2, 2) * 1.5;
+                            maxLy = Math.max(maxLy, 2 + sternRise);
+                        }
+                    }
+
+                    // Bow V-shape: applied to ALL voxels in the bow taper zone,
+                    // not just edges. Height peaks at centerline, drops at edges.
+                    if (isBow) {
+                        const distFromCenter = Math.abs(shipWidthPos - center);
+                        const edgeFactor = halfWidth > 0.5
+                            ? distFromCenter / halfWidth
+                            : 1.0;
+                        const bowProgress = (xNorm - 0.4) / 0.6;
+                        const peakRise = Math.pow(bowProgress, 1.2) * 5;
+                        const rise = peakRise * Math.pow(Math.max(0, 1.0 - edgeFactor), 0.6);
+                        maxLy = Math.max(maxLy, 2 + rise);
                     }
 
                     for (let ly = 1; ly <= maxLy; ly++) {
@@ -76,28 +96,54 @@ export class ShipVoxelBuilder {
             }
         }
 
+        // ───── Stern flag pole and Jolly Roger ─────
+        if (!isCarrier) {
+            const flagVoxels = ShipVoxelBuilder.buildFlagVoxels(ship, darkAccent);
+            voxelsData.push(...flagVoxels);
+        }
+
         return voxelsData;
     }
 
-    /** Computes hull half-width at a normalized length position. */
+    /**
+     * Computes hull half-width at a normalized length position.
+     * Bow (xNorm > 0) tapers to a sharp 1-voxel point for a V shape from above.
+     * Stern (xNorm < 0) tapers earlier and rounder.
+     */
     public static getHullWidth(xNorm: number, shipSize: number): number {
         const absX = Math.abs(xNorm);
+        const isBow = xNorm > 0;
         const isCarrier = shipSize === 5;
         const isBattleship = shipSize === 4;
         const isDestroyer = shipSize === 3;
 
+        let bodyWidth: number;
+        let bowStart: number;
+        let sternStart: number;
+        let sternTip: number;
+
         if (isCarrier) {
-            if (absX > 0.8) return 2.0 + 3.0 * (1.0 - (absX - 0.8) / 0.2);
-            return 5.0;
+            bodyWidth = 5.0; bowStart = 0.6; sternStart = 0.7; sternTip = 1.5;
         } else if (isBattleship) {
-            if (absX > 0.7) return 1.5 + 2.5 * (1.0 - (absX - 0.7) / 0.3);
-            return 4.0;
+            bodyWidth = 4.0; bowStart = 0.5; sternStart = 0.6; sternTip = 1.0;
         } else if (isDestroyer) {
-            if (absX > 0.6) return 1.0 + 2.0 * (1.0 - (absX - 0.6) / 0.4);
-            return 3.0;
+            bodyWidth = 3.0; bowStart = 0.45; sternStart = 0.5; sternTip = 0.8;
         } else {
-            if (absX > 0.5) return 1.0 + 1.0 * (1.0 - (absX - 0.5) / 0.5);
-            return 2.0;
+            bodyWidth = 2.0; bowStart = 0.4; sternStart = 0.4; sternTip = 0.8;
+        }
+
+        if (isBow) {
+            if (absX > bowStart) {
+                const t = (absX - bowStart) / (1.0 - bowStart);
+                return Math.max(0.5, bodyWidth * (1.0 - t));
+            }
+            return bodyWidth;
+        } else {
+            if (absX > sternStart) {
+                const t = (absX - sternStart) / (1.0 - sternStart);
+                return sternTip + (bodyWidth - sternTip) * (1.0 - t);
+            }
+            return bodyWidth;
         }
     }
 
@@ -125,6 +171,71 @@ export class ShipVoxelBuilder {
             if (xNorm > 0.0 && xNorm < 0.4 && !isEdge) return 2;
             return 1;
         }
+    }
+
+    /**
+     * Generates voxel data for a flag pole and pixel-art Jolly Roger at the stern.
+     * The pole rises from the side edge at the middle of the stern section;
+     * the flag (skull & crossbones bitmap) extends toward the back of the ship.
+     */
+    private static buildFlagVoxels(ship: Ship, poleColor: THREE.Color): VoxelData[] {
+        const voxels: VoxelData[] = [];
+        const voxelSize = 0.1;
+
+        const sternMidLx = Math.round(ship.size * 10 * 0.12);
+        const sternHalfWidth = ShipVoxelBuilder.getHullWidth(-0.75, ship.size);
+        const poleLz = Math.round(4.5 + sternHalfWidth);
+
+        const poleHeight = Math.min(4 + ship.size, 8);
+        const deckTop = 3;
+
+        // Flag pole — vertical column
+        for (let ly = deckTop; ly <= deckTop + poleHeight; ly++) {
+            voxels.push({
+                pos: new THREE.Vector3(
+                    sternMidLx * voxelSize - (voxelSize / 2 * 9),
+                    ly * voxelSize,
+                    poleLz * voxelSize - (voxelSize / 2 * 9)
+                ),
+                color: poleColor,
+                isAccent: false
+            });
+        }
+
+        // Jolly Roger pixel bitmap (7 wide × 7 tall, row 0 = bottom)
+        // 0 = black background, 1 = white skull/bones
+        const skull: number[][] = [
+            [1, 0, 0, 0, 0, 0, 1], // row 0: crossbone tips
+            [0, 1, 0, 0, 0, 1, 0], // row 1: crossbone ends
+            [0, 0, 1, 0, 1, 0, 0], // row 2: crossbones X center
+            [0, 0, 1, 1, 1, 0, 0], // row 3: jaw
+            [0, 1, 0, 1, 0, 1, 0], // row 4: eyes + nose
+            [0, 1, 1, 1, 1, 1, 0], // row 5: skull sides
+            [0, 0, 1, 1, 1, 0, 0], // row 6: top of skull
+        ];
+
+        const flagBlack = new THREE.Color(0x111111);
+        const flagWhite = new THREE.Color(0xeeeeee);
+        const flagW = skull[0].length;
+        const flagH = skull.length;
+        const flagBaseY = deckTop + poleHeight - flagH;
+
+        for (let fy = 0; fy < flagH; fy++) {
+            for (let fx = 0; fx < flagW; fx++) {
+                const pixel = skull[fy][fx];
+                voxels.push({
+                    pos: new THREE.Vector3(
+                        (sternMidLx - fx - 1) * voxelSize - (voxelSize / 2 * 9),
+                        (flagBaseY + fy) * voxelSize,
+                        poleLz * voxelSize - (voxelSize / 2 * 9)
+                    ),
+                    color: pixel === 1 ? flagWhite : flagBlack,
+                    isAccent: false
+                });
+            }
+        }
+
+        return voxels;
     }
 
     /** Resolves base hull/deck/bridge/accent colors based on player side. */

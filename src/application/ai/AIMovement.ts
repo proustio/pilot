@@ -35,6 +35,8 @@ export class AIMovement {
      */
     public computeMove(ship: Ship, board: Board, match: Match, difficulty: AIDifficulty): { x: number, z: number, orientation: Orientation } | null {
         if (ship.movesRemaining <= 0) return null;
+        // Static/dead entity guard: skip sunk ships and special weapons (mines, sonars)
+        if (ship.isSunk() || ship.isSpecialWeapon) return null;
 
         const isEasy = difficulty === 'easy';
         const detectedEnemy = this.findVisibleEnemyInRange(ship, board, ship.visionRadius + 5);

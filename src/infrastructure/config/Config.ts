@@ -3,8 +3,8 @@ export const Config = {
     board: {
         width: 10,
         height: 10,
-        rogueWidth: 15,
-        rogueHeight: 15
+        rogueWidth: 20,
+        rogueHeight: 20
     },
     storage: {
         maxSlots: 3,
@@ -17,7 +17,9 @@ export const Config = {
         boardFlipSpeed: 0.05,
         projectileSpeed: 0.04,
         cameraLerpSpeed: 0.07,
-        boardFlipWaitMs: 100
+        boardFlipWaitMs: 100,
+        rogueMoveDurationMs: 600,
+        rogueTurnDurationMs: 400
     },
     visual: {
         isDayMode: new Date().getHours() >= 6 && new Date().getHours() < 18,
