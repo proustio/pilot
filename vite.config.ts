@@ -2,9 +2,7 @@ import { defineConfig } from 'vitest/config';
 import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig({
-    // Base public path when served in development or production.
-    // Useful if you deploy to a subdirectory (like GitHub Pages).
-    base: './',
+    base: '/pilot/',
 
     plugins: [
         VitePWA({
