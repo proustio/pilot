@@ -54,6 +54,11 @@ export class EntityManager {
     private ledMesh: THREE.InstancedMesh | null = null;
     private ledPhases: number[] = [];
 
+    // Camera shake state for ramming impacts
+    private cameraShakeElapsedMs: number = 0;
+    private cameraShakeDurationMs: number = 0;
+    private cameraShakeIntensity: number = 0;
+
     constructor(scene: THREE.Scene) {
         this.scene = scene;
 
@@ -122,6 +127,58 @@ export class EntityManager {
         eventBus.on(GameEventType.ROGUE_MOVE_SHIP, () => {
             this.fogManager.markFogDirty();
             this.visibilityManager.forceUpdate();
+        });
+
+        eventBus.on(GameEventType.ROGUE_PATH_MOVE, (payload) => {
+            const shipGroup = this.shipAnimator.findShipGroup(payload.shipId);
+            if (shipGroup) {
+                this.shipAnimator.animateAlongPath(
+                    shipGroup,
+                    payload.path,
+                    payload.finalOrientation,
+                    payload.animationDurationMs
+                );
+            }
+
+            // Spawn water ripples evenly spaced across the animation duration
+            if (payload.path.length > 0) {
+                const boardOffset = Config.board.width / 2;
+                const interval = payload.animationDurationMs / payload.path.length;
+                payload.path.forEach((cell, i) => {
+                    setTimeout(() => {
+                        const worldX = cell.x - boardOffset + 0.5;
+                        const worldZ = cell.z - boardOffset + 0.5;
+                        this.waterManager.addRipple(worldX, worldZ, true);
+                    }, interval * i);
+                });
+            }
+        });
+
+        eventBus.on(GameEventType.ROGUE_SHIP_RAMMED, (payload) => {
+            const boardOffset = Config.board.width / 2;
+            const worldX = payload.contactX - boardOffset + 0.5;
+            const worldZ = payload.contactZ - boardOffset + 0.5;
+
+            // Spawn reduced-intensity collision particle burst at contact point
+            this.particleSystem.spawnExplosion(worldX, 0.4, worldZ, this.playerBoardGroup);
+
+            // Trigger camera shake
+            this.cameraShakeElapsedMs = 0;
+            this.cameraShakeDurationMs = 300;
+            this.cameraShakeIntensity = 0.15;
+
+            // Animate rammer's 90° rotation smoothly
+            const rammerGroup = this.shipAnimator.findShipGroup(payload.rammerShipId);
+            if (rammerGroup) {
+                const targetRotY = ShipAnimator.orientationToRotationY(payload.rammerNewOrientation);
+                const turnDuration = Config.timing.rogueTurnDurationMs * Config.timing.gameSpeedMultiplier;
+                rammerGroup.userData.rotationAnim = {
+                    startRotY: rammerGroup.rotation.y,
+                    targetRotY,
+                    elapsedMs: 0,
+                    durationMs: turnDuration,
+                };
+            }
         });
 
         eventBus.on(GameEventType.MINE_PLACED, (payload) => {
@@ -304,6 +361,7 @@ export class EntityManager {
         if (this.projectileManager.hasFallingMarkers()) return true;
         if (this.particleSystem.hasActiveParticles()) return true;
         if (this.activeSonarEffects.some(effect => effect.isActive())) return true;
+        if (this.shipAnimator.hasActivePathAnimation()) return true;
 
         let isAnimating = false;
         const sinkFloor = Config.visual.sinkingFloor;
@@ -359,6 +417,12 @@ export class EntityManager {
 
         this.shipAnimator.update(this.time, this.activeRogueShipId, this.isPlayerTurn, this.isSetupPhase);
 
+        // Update ramming rotation animations on ship groups
+        this.updateRammingRotations();
+
+        // Apply camera shake offset (sinusoidal decay)
+        this.updateCameraShake(camera);
+
         // Update turret instance transforms for sinking/moving ships
         this.updateTurretTransforms(this.playerBoardGroup, this.playerTurretManager);
         this.updateTurretTransforms(this.enemyBoardGroup, this.enemyTurretManager);
@@ -382,6 +446,56 @@ export class EntityManager {
                 turretManager.updateTransform(ship.id, child.matrix);
             }
         }
+    }
+
+    /**
+     * Updates smooth 90° rotation animations triggered by ramming events.
+     */
+    private updateRammingRotations(): void {
+        const dtMs = 16.67 * Config.timing.gameSpeedMultiplier;
+        for (const group of [this.playerBoardGroup, this.enemyBoardGroup]) {
+            for (const child of group.children) {
+                const anim = child.userData.rotationAnim;
+                if (!anim) continue;
+
+                anim.elapsedMs += dtMs;
+                const t = Math.min(anim.elapsedMs / anim.durationMs, 1.0);
+                // Smooth ease-out interpolation
+                const eased = 1 - Math.pow(1 - t, 3);
+
+                // Shortest-path angle interpolation
+                let diff = ((anim.targetRotY - anim.startRotY) % (Math.PI * 2) + Math.PI * 3) % (Math.PI * 2) - Math.PI;
+                child.rotation.y = anim.startRotY + diff * eased;
+
+                if (t >= 1.0) {
+                    child.rotation.y = anim.targetRotY;
+                    child.userData.rotationAnim = null;
+                }
+            }
+        }
+    }
+
+    /**
+     * Applies sinusoidal camera shake that decays over time.
+     */
+    private updateCameraShake(camera: THREE.Camera): void {
+        if (this.cameraShakeDurationMs <= 0) return;
+
+        const dtMs = 16.67 * Config.timing.gameSpeedMultiplier;
+        this.cameraShakeElapsedMs += dtMs;
+
+        if (this.cameraShakeElapsedMs >= this.cameraShakeDurationMs) {
+            this.cameraShakeDurationMs = 0;
+            return;
+        }
+
+        const progress = this.cameraShakeElapsedMs / this.cameraShakeDurationMs;
+        const decay = 1 - progress;
+        const frequency = 30;
+        const offsetY = Math.sin(progress * frequency) * this.cameraShakeIntensity * decay;
+        const offsetX = Math.cos(progress * frequency * 0.7) * this.cameraShakeIntensity * decay * 0.5;
+        camera.position.y += offsetY;
+        camera.position.x += offsetX;
     }
 
     private updateStaticAnimations() {

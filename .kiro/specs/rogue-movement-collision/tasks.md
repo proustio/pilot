@@ -6,12 +6,12 @@ Incremental implementation of the PathResolver-based movement pipeline, ramming 
 
 ## Tasks
 
-- [ ] 1. Config timing additions and Ship.maxMoves refactor
-  - [ ] 1.1 Add `rogueMoveDurationMs` and `rogueTurnDurationMs` to `Config.timing`
+- [x] 1. Config timing additions and Ship.maxMoves refactor
+  - [x] 1.1 Add `rogueMoveDurationMs` and `rogueTurnDurationMs` to `Config.timing`
     - Add `rogueMoveDurationMs: 600` and `rogueTurnDurationMs: 400` to the `timing` object in `src/infrastructure/config/Config.ts`
     - _Requirements: 1.3, 7.1, 7.2_
 
-  - [ ] 1.2 Refactor `Ship.maxMoves` from `readonly` to getter/setter with doubled formula
+  - [x] 1.2 Refactor `Ship.maxMoves` from `readonly` to getter/setter with doubled formula
     - Replace `public readonly maxMoves: number` with a private `_maxMoves` backing field
     - Add `get maxMoves()` / `set maxMoves(value)` accessors
     - Change constructor formula to `Math.max(0, 5 - this.size) * 2`
@@ -30,8 +30,8 @@ Incremental implementation of the PathResolver-based movement pipeline, ramming 
     - Add to `src/domain/fleet/Ship.test.ts`
     - **Validates: Requirements 2.3**
 
-- [ ] 2. Implement PathResolver domain class
-  - [ ] 2.1 Create `src/domain/board/PathResolver.ts` with `PathCell`, `PathResult` interfaces and `PathResolver` class
+- [-] 2. Implement PathResolver domain class
+  - [x] 2.1 Create `src/domain/board/PathResolver.ts` with `PathCell`, `PathResult` interfaces and `PathResolver` class
     - Implement `computeCellPath(fromX, fromZ, toX, toZ)` — axis-aligned stepping (primary axis first, then secondary)
     - Implement `isCellBlocked(board, x, z, movingShip)` — checks for ships, Sunk cells, ignores moving ship's own cells
     - Implement `resolve(board, ship, targetX, targetZ, newOrientation)` — walks cell-by-cell, checks bounds, mines, blocked cells, returns `PathResult`
@@ -80,16 +80,16 @@ Incremental implementation of the PathResolver-based movement pipeline, ramming 
     - Add to `src/domain/board/__tests__/PathResolver.test.ts`
     - **Validates: Requirements 6.5**
 
-- [ ] 3. Checkpoint - Ensure all tests pass
+- [x] 3. Checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 4. Add GameEventBus events and refactor RogueActionHandler
-  - [ ] 4.1 Add `ROGUE_SHIP_RAMMED` and `ROGUE_PATH_MOVE` event types and payloads to `GameEventBus.ts`
+- [x] 4. Add GameEventBus events and refactor RogueActionHandler
+  - [x] 4.1 Add `ROGUE_SHIP_RAMMED` and `ROGUE_PATH_MOVE` event types and payloads to `GameEventBus.ts`
     - Add enum entries and typed payloads as specified in the design
     - Import `PathCell` type from PathResolver
     - _Requirements: 6.1, 7.1, 8.1, 9.1_
 
-  - [ ] 4.2 Refactor `RogueActionHandler.handleAttemptMove` to use PathResolver
+  - [x] 4.2 Refactor `RogueActionHandler.handleAttemptMove` to use PathResolver
     - Add static/dead entity guard: reject moves when `ship.isSunk()` or `ship.isSpecialWeapon`
     - Replace direct `sharedBoard.moveShip()` with `PathResolver.resolve()` + apply results to board
     - On ramming: inflict damage to both ships, rotate rammer 90°, set `movesRemaining=0` and `hasActedThisTurn=true`, emit `ROGUE_SHIP_RAMMED`
@@ -98,7 +98,7 @@ Incremental implementation of the PathResolver-based movement pipeline, ramming 
     - Scale animation duration by `Config.timing.gameSpeedMultiplier`
     - _Requirements: 1.1, 1.3, 1.4, 1.5, 3.1, 3.2, 3.3, 4.1, 5.1, 5.2, 6.1, 6.2, 6.3, 6.4, 6.5, 6.6, 6.7_
 
-  - [ ] 4.3 Add static/dead entity guard to `AIMovement.computeMove`
+  - [x] 4.3 Add static/dead entity guard to `AIMovement.computeMove`
     - Skip movement for ships where `isSunk()` or `isSpecialWeapon` is true
     - _Requirements: 5.1, 5.2, 5.3_
 
@@ -120,11 +120,11 @@ Incremental implementation of the PathResolver-based movement pipeline, ramming 
     - Add to `src/application/game-loop/__tests__/RogueActionHandler.movement.test.ts`
     - **Validates: Requirements 6.7**
 
-- [ ] 5. Checkpoint - Ensure all tests pass
+- [x] 5. Checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 6. Implement movement animation normalization
-  - [ ] 6.1 Add `animateAlongPath` method to `ShipAnimator`
+- [x] 6. Implement movement animation normalization
+  - [x] 6.1 Add `animateAlongPath` method to `ShipAnimator`
     - Accept ship group, path cells, final orientation, and duration in ms
     - Lerp through waypoints with fixed total duration (divide by cell count)
     - Slerp rotation blending over the same duration for orientation changes
@@ -132,18 +132,18 @@ Incremental implementation of the PathResolver-based movement pipeline, ramming 
     - Listen for `ROGUE_PATH_MOVE` events to trigger animation
     - _Requirements: 7.1, 7.2, 7.3, 7.4_
 
-  - [ ] 6.2 Wire `ROGUE_PATH_MOVE` listener in EntityManager or ShipAnimator initialization
+  - [x] 6.2 Wire `ROGUE_PATH_MOVE` listener in EntityManager or ShipAnimator initialization
     - On event, find the ship mesh in playerBoardGroup, call `animateAlongPath`
     - _Requirements: 7.1, 7.3_
 
-- [ ] 7. Implement water ripple and ramming visual effects
-  - [ ] 7.1 Add water ripple spawning along movement path
+- [x] 7. Implement water ripple and ramming visual effects
+  - [x] 7.1 Add water ripple spawning along movement path
     - Listen for `ROGUE_PATH_MOVE` in the presentation layer (EntityManager or a new listener)
     - Schedule `WaterShaderManager.addRipple()` calls evenly spaced across the animation duration, one per path cell
     - Convert path cell coordinates to world-space using board offset
     - _Requirements: 8.1, 8.2, 8.3_
 
-  - [ ] 7.2 Add ramming collision effects
+  - [x] 7.2 Add ramming collision effects
     - Listen for `ROGUE_SHIP_RAMMED` in the presentation layer
     - Spawn collision particle burst at contact point via `ImpactEffects` (reuse `spawnExplosion` with reduced intensity)
     - Add camera shake: short-duration sinusoidal offset on `Engine3D` camera position

@@ -1,11 +1,33 @@
 import * as THREE from 'three';
 import { Orientation } from '../../../domain/fleet/Ship';
 import { Config } from '../../../infrastructure/config/Config';
+import type { PathCell } from '../../../domain/board/PathResolver';
+
+/** Per-ship state for multi-waypoint path animation */
+interface PathAnimationState {
+    /** World-space waypoints (converted from grid cells) */
+    waypoints: THREE.Vector3[];
+    /** Index of the waypoint we're currently moving toward */
+    currentSegment: number;
+    /** Elapsed time in ms since animation started */
+    elapsedMs: number;
+    /** Total animation duration in ms */
+    totalDurationMs: number;
+    /** Duration per segment in ms */
+    segmentDurationMs: number;
+    /** Starting rotation.y */
+    startRotationY: number;
+    /** Target rotation.y */
+    targetRotationY: number;
+    /** Whether rotation needs blending */
+    hasRotation: boolean;
+}
 
 /**
  * Handles ship animation logic extracted from EntityManager:
  * - Sinking descent animation (with break-apart for broken ships)
  * - Movement lerp (smooth position transitions)
+ * - Multi-waypoint path animation (Rogue mode per-cell movement)
  * - Active ship highlight pulsing (Rogue mode)
  * - Placement zone highlight (Rogue setup phase)
  */
@@ -21,24 +43,115 @@ export class ShipAnimator {
     }
 
     /**
+     * Returns true if any ship has an active path animation.
+     * Used by EntityManager.isBusy() to block turn progression during movement.
+     */
+    public hasActivePathAnimation(): boolean {
+        for (const group of [this.playerBoardGroup, this.enemyBoardGroup]) {
+            for (const child of group.children) {
+                if (child.userData.isShip && child.userData.pathAnimation) return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Finds a ship mesh group by ship ID across both board groups.
+     */
+    public findShipGroup(shipId: string): THREE.Group | null {
+        for (const boardGroup of [this.playerBoardGroup, this.enemyBoardGroup]) {
+            for (const child of boardGroup.children) {
+                if (child.userData.isShip && child.userData.ship?.id === shipId) {
+                    return child as THREE.Group;
+                }
+            }
+        }
+        return null;
+    }
+
+    /** Timestamp of the last update call for delta-time calculation */
+    private lastUpdateTime: number = 0;
+
+    /**
+     * Maps an Orientation enum to the Three.js rotation.y value used by ShipFactory.
+     */
+    public static orientationToRotationY(orientation: Orientation): number {
+        switch (orientation) {
+            case Orientation.Horizontal: return 0;
+            case Orientation.Vertical: return -Math.PI / 2;
+            case Orientation.Left: return Math.PI;
+            case Orientation.Up: return Math.PI / 2;
+        }
+    }
+
+    /**
+     * Starts a multi-waypoint path animation on a ship mesh.
+     * Divides total duration evenly across path cells so all moves take the same time.
+     * No-op for zero-length paths.
+     */
+    public animateAlongPath(
+        shipGroup: THREE.Group,
+        path: PathCell[],
+        finalOrientation: Orientation,
+        durationMs: number
+    ): void {
+        if (path.length === 0) return;
+
+        const boardOffset = Config.board.width / 2;
+        const waypoints = path.map(cell =>
+            new THREE.Vector3(cell.x - boardOffset + 0.5, 0, cell.z - boardOffset + 0.5)
+        );
+
+        const startRotY = shipGroup.rotation.y;
+        const targetRotY = ShipAnimator.orientationToRotationY(finalOrientation);
+        const hasRotation = Math.abs(this.shortestAngleDist(startRotY, targetRotY)) > 0.001;
+
+        // Clear any existing single-target lerp so they don't conflict
+        shipGroup.userData.targetPosition = null;
+
+        shipGroup.userData.pathAnimation = {
+            waypoints,
+            currentSegment: 0,
+            elapsedMs: 0,
+            totalDurationMs: durationMs,
+            segmentDurationMs: durationMs / waypoints.length,
+            startRotationY: startRotY,
+            targetRotationY: targetRotY,
+            hasRotation,
+        } as PathAnimationState;
+    }
+
+    /**
+     * Returns the shortest signed angular distance from angle a to angle b (radians).
+     */
+    private shortestAngleDist(a: number, b: number): number {
+        let diff = ((b - a) % (Math.PI * 2) + Math.PI * 3) % (Math.PI * 2) - Math.PI;
+        return diff;
+    }
+
+    /**
      * Runs all ship animation updates for the current frame.
      */
     public update(time: number, activeRogueShipId: string | null, isPlayerTurn: boolean, isSetupPhase: boolean): void {
-        this.updateShipAnimations();
+        this.updateShipAnimations(time);
         this.updateShipHighlighting(time, activeRogueShipId, isPlayerTurn);
         this.updatePlacementHighlight(time, isSetupPhase);
     }
 
     /**
-     * Animates ship sinking descent and movement lerp for all ships on both boards.
-     * - Sinking: gradual Y descent with tilt angles; mines are removed immediately.
-     * - Broken ships: halves rotate apart during sink.
-     * - Movement: smooth lerp toward targetPosition, snapping when close enough.
+     * Animates ship sinking descent, single-target movement lerp, and
+     * multi-waypoint path animations for all ships on both boards.
      */
-    private updateShipAnimations(): void {
+    private updateShipAnimations(time: number): void {
         const descentRate = 0.001 * Config.timing.gameSpeedMultiplier;
         const sinkFloor = Config.visual.sinkingFloor;
         const moveLerpFactor = 0.1 * Config.timing.gameSpeedMultiplier;
+
+        // Compute delta time in ms (~16ms per frame at 60fps)
+        const dtMs = this.lastUpdateTime > 0
+            ? Math.min((time - this.lastUpdateTime) * 1000, 50) // cap at 50ms to avoid jumps
+            : 16;
+        this.lastUpdateTime = time;
 
         [this.playerBoardGroup, this.enemyBoardGroup].forEach(group => {
             group.children.forEach((child: THREE.Object3D) => {
@@ -77,6 +190,13 @@ export class ShipAnimator {
                     }
                 }
 
+                // Multi-waypoint path animation (takes priority over single-target lerp)
+                const anim = child.userData.pathAnimation as PathAnimationState | undefined;
+                if (anim) {
+                    this.updatePathAnimation(child, anim, dtMs);
+                    return; // skip single-target lerp while path animation is active
+                }
+
                 if (child.userData.targetPosition) {
                     child.position.lerp(child.userData.targetPosition, moveLerpFactor);
                     if (child.position.distanceToSquared(child.userData.targetPosition) < 0.001) {
@@ -86,6 +206,53 @@ export class ShipAnimator {
                 }
             });
         });
+    }
+
+    /**
+     * Advances a multi-waypoint path animation by dtMs milliseconds.
+     * Lerps position through waypoints with fixed total duration.
+     * Slerps rotation over the entire animation duration.
+     */
+    private updatePathAnimation(child: THREE.Object3D, anim: PathAnimationState, dtMs: number): void {
+        anim.elapsedMs += dtMs * Config.timing.gameSpeedMultiplier;
+
+        const totalProgress = Math.min(anim.elapsedMs / anim.totalDurationMs, 1);
+
+        // Rotation blending over the full duration
+        if (anim.hasRotation) {
+            const angleDist = this.shortestAngleDist(anim.startRotationY, anim.targetRotationY);
+            child.rotation.y = anim.startRotationY + angleDist * totalProgress;
+        }
+
+        // Position: determine which segment we're in and interpolate within it
+        const segmentFloat = totalProgress * anim.waypoints.length;
+        const segmentIndex = Math.min(Math.floor(segmentFloat), anim.waypoints.length - 1);
+        const segmentT = segmentFloat - segmentIndex;
+
+        // Store the starting position on first frame so we have a stable reference
+        if (!anim.hasOwnProperty('startPosition')) {
+            (anim as any).startPosition = child.position.clone().setY(0);
+        }
+        const startPos = segmentIndex === 0
+            ? (anim as any).startPosition as THREE.Vector3
+            : anim.waypoints[segmentIndex - 1];
+
+        const endPos = anim.waypoints[segmentIndex];
+
+        // Lerp within the current segment
+        child.position.x = startPos.x + (endPos.x - startPos.x) * segmentT;
+        child.position.z = startPos.z + (endPos.z - startPos.z) * segmentT;
+
+        // Animation complete
+        if (totalProgress >= 1) {
+            const finalWaypoint = anim.waypoints[anim.waypoints.length - 1];
+            child.position.x = finalWaypoint.x;
+            child.position.z = finalWaypoint.z;
+            if (anim.hasRotation) {
+                child.rotation.y = anim.targetRotationY;
+            }
+            child.userData.pathAnimation = null;
+        }
     }
 
     /**
