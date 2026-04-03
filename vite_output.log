@@ -20,3 +20,11 @@
 1:04:14 PM [vite] (client) page reload src/application/ai/AITargeting.ts
 1:05:51 PM [vite] (client) hmr update /src/style.css?direct
 1:07:56 PM [vite] (client) page reload src/application/game-loop/TurnExecutor.ts
+2:58:12 PM [vite] (client) page reload src/presentation/3d/entities/EntityManager.ts
+2:59:31 PM [vite] (client) page reload src/presentation/3d/entities/EntityManager.ts
+3:13:52 PM [vite] (client) page reload src/presentation/3d/entities/EntityManager.ts
+3:13:54 PM [vite] (client) page reload src/presentation/3d/entities/ShipAnimator.ts
+3:14:19 PM [vite] (client) page reload src/presentation/3d/entities/ShipAnimator.ts
+3:18:09 PM [vite] (client) page reload src/presentation/3d/entities/SinkingEffects.ts
+3:19:05 PM [vite] (client) page reload src/application/events/GameEventBus.ts
+3:19:50 PM [vite] (client) page reload src/presentation/3d/entities/EntityManager.ts

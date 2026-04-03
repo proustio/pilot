@@ -65,6 +65,7 @@ export enum GameEventType {
     SONAR_PLACED = 'SONAR_PLACED',
     REQUEST_MARKER_CLEANUP = 'REQUEST_MARKER_CLEANUP',
     INTERACTION_GUARD_STATE = 'INTERACTION_GUARD_STATE',
+    SHIP_STARTED_SINKING = 'SHIP_STARTED_SINKING',
 
     // Network
     CONNECTION_STATUS_CHANGED = 'CONNECTION_STATUS_CHANGED',
@@ -167,6 +168,7 @@ export interface GameEventPayloads {
         gameAnimating: boolean,
         menuOpen: boolean
     };
+    [GameEventType.SHIP_STARTED_SINKING]: any;
     [GameEventType.CONNECTION_STATUS_CHANGED]: { status: 'CONNECTED' | 'CONNECTING' | 'DISCONNECTED' };
     [GameEventType.WINDOW_RESIZE]: { width: number, height: number };
     [GameEventType.DOCUMENT_KEYDOWN]: KeyboardEvent;
