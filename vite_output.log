@@ -1,0 +1,11 @@
+
+> 2-battleships@1.0.0 dev
+> vite
+
+
+  VITE v7.3.1  ready in 345 ms
+
+  ➜  Local:   http://localhost:5173/pilot/
+  ➜  Network: use --host to expose
+11:17:03 AM [vite] (client) page reload src/presentation/3d/entities/FogVisibility.ts
+11:17:12 AM [vite] (client) page reload src/presentation/3d/entities/FogVisibility.ts

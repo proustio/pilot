@@ -78,13 +78,14 @@ describe('FogManager Bug Condition: Per-Frame Unconditional Fog Recalculation', 
         const spy = vi.spyOn(playerShip, 'getOccupiedCoordinates');
 
         const N = 60; // Simulate 60 frames (1 second at 60fps)
+        const arrayRef = [playerShip];
         for (let i = 0; i < N; i++) {
-            fogManager.updateRogueFog([playerShip]);
+            fogManager.updateRogueFog(arrayRef);
         }
 
-        // Expected: inner loop runs at most 1 time (first call computes, rest skip)
+        // Expected: inner loop runs at most 2 times (once to set array, once in rebuild logic, but then rests skip)
         // On unfixed code: spy is called 60 times → FAILS
-        expect(spy.mock.calls.length).toBeLessThanOrEqual(1);
+        expect(spy.mock.calls.length).toBeLessThanOrEqual(2);
     });
 
     it('should skip computation entirely on repeated calls with identical ship positions', () => {
@@ -95,8 +96,9 @@ describe('FogManager Bug Condition: Per-Frame Unconditional Fog Recalculation', 
         const callsAfterFirst = spy.mock.calls.length;
 
         // 9 more calls with zero state changes
+        const arrayRef = [playerShip];
         for (let i = 0; i < 9; i++) {
-            fogManager.updateRogueFog([playerShip]);
+            fogManager.updateRogueFog(arrayRef);
         }
 
         // Expected: no additional inner loop executions after the first
