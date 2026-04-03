@@ -40,8 +40,41 @@ Style modules (`theme.css`, `components.css`, `hud.css`, etc.) are bundled via `
 
 ## Performance Constraints
 - Keep draw calls < 100 — use `InstancedMesh` for repeated voxel geometry (ships, water, particles)
-- Use `requestAnimationFrame` for rendering; decouple heavy simulation (e.g., Hard AI Monte Carlo) from the render loop
+- Use `requestAnimationFrame` for rendering; decouple heavy simulation from the render loop
+- Multi-speed engine supports toggles from **0.25x (slo-mo)** to **32x (ludicrous)**
 - `InteractivityGuard` (static class) blocks all user input during camera transitions, turn animations, and menu overlays
+
+## Performance Architecture
+
+Four architectural optimizations are implemented to eliminate CPU bottlenecks and target high FPS:
+
+### 1. O(1) Fog Visibility Cache (`FogVisibility.ts`)
+- `FogVisibility` maintains a flat `Uint8Array` visibility cache (one byte per cell)
+- `isCellRevealed(x, z)` is a direct array index — `O(1)` in the hot path
+- Cache is rebuilt via `rebuildCache()` **only on game state changes** (ship move, ship destroyed, sonar dropped) — never per-frame
+- Permanent reveals (`Set<number>`) and temporary reveals (`Map<number, duration>`) are overlaid on top
+
+### 2. Web Worker for Hard AI (`ai.worker.ts`)
+- The Hard AI Monte Carlo heatmap simulation runs inside a dedicated **Web Worker** (`src/application/ai/ai.worker.ts`)
+- The main thread serializes the board's `Uint8Array` grid state and ship manifest, posts to the worker, and awaits the result asynchronously — zero frame blocking
+- Worker is spawned per-calculation and terminates after posting results back
+- Falls back to synchronous execution in environments without `Worker` support (e.g., Node/JSDOM tests)
+- Import pattern: `new Worker(new URL('./ai.worker.ts', import.meta.url), { type: 'module' })` via Vite
+
+### 3. Data-Oriented Flat Animation Arrays (`EntityManager.ts`)
+- `EntityManager` keeps three flat arrays instead of scene-graph traversals during hot paths:
+  - `activelySinkingShips: THREE.Object3D[]`
+  - `activelyMovingShips: THREE.Object3D[]`
+  - `activelyRotatingShips: THREE.Object3D[]`
+- Completed animations are removed using **swap-and-pop** (`O(1)` removal)
+- `updateTurretTransforms()` iterates only these arrays to sync turret instance matrices — never walks `group.children`
+- The scene graph is used only for rendering, not for logic
+
+### 4. Ghost Mesh Pooling (`InputFeedbackHandler.ts`)
+- During `SETUP_BOARD`, the ghost ship preview is pre-built **once** via `buildGhostPool()` (5 shared `BoxGeometry` meshes + one material)
+- On `MOUSE_CELL_HOVER`, only `ghostGroup.position` and voxel visibility flags are updated — no geometry is created or destroyed
+- Invalid placements toggle mesh color/opacity via material properties, not mesh disposal
+- Ghost group has `renderOrder = 999` to always render on top
 
 ## Testing
 - Test files are co-located: `*.test.ts` alongside source, or in `__tests__/` subdirectories

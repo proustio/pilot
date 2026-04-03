@@ -116,8 +116,7 @@ const init = () => {
                 gameState: gameLoop.currentState
             };
 
-            console.log(`%c💾 Saving View State [${slotId}]`, 'color: #00ff00; font-weight: bold;');
-            console.table(vs);
+            //console.log(`%c💾 Saving View State [${slotId}]`, 'color: #00ff00; font-weight: bold;', vs);
 
             eventBus.emit(GameEventType.SAVE_GAME, { 
                 slotId, 
@@ -142,8 +141,7 @@ const init = () => {
         });
         
         eventBus.on(GameEventType.RESTORE_VIEW_STATE, (vs: any) => {
-            console.log(`%c🔄 Restoring View State [Source: ${vs?.source || 'Unknown'}]`, 'color: #00ffff; font-weight: bold;');
-            console.table(vs);
+            // console.log(`%c🔄 Restoring View State [Source: ${vs?.source || 'Unknown'}]`, 'color: #00ffff; font-weight: bold;', vs);
             
             const defPos = { x: 5.0233, y: 10.0466, z: 14.0652 };
             const defTgt = { x: 0, y: 0, z: 0 };

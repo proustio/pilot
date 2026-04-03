@@ -33,7 +33,8 @@ src/
 │   ├── ai/
 │   │   ├── AIEngine.ts            # AI coordinator (Easy/Normal/Hard)
 │   │   ├── AIMovement.ts          # Rogue-mode AI ship movement logic
-│   │   └── AITargeting.ts         # AI target selection and heatmap generation
+│   │   ├── AITargeting.ts         # AI target selection and heatmap generation
+│   │   └── ai.worker.ts           # Web Worker: Hard AI Monte Carlo simulation (off main thread)
 │   ├── events/
 │   │   └── GameEventBus.ts        # Typed singleton for cross-layer pub/sub
 │   └── game-loop/
@@ -152,7 +153,8 @@ src/
 
 Large classes are decomposed when they exceed ~300–400 lines or handle multiple responsibilities:
 - `GameLoop` → delegates to `GameEventManager`, `RogueActionHandler`, `MatchSetup`, `TurnExecutor`, `EnemyTurnHandler`, `SetupBoardHandler`
-- `EntityManager` → delegates to `WaterShaderManager`, `VesselVisibilityManager`, `FogManager`, `EmitterManager`
-- `AIEngine` → delegates to `AIMovement`, `AITargeting`
+- `EntityManager` → delegates to `WaterShaderManager`, `VesselVisibilityManager`, `FogManager`, `EmitterManager`; maintains flat DOD arrays (`activelySinkingShips`, `activelyMovingShips`, `activelyRotatingShips`) iterated with swap-and-pop instead of scene-graph traversal
+- `ParticleSystem` → delegates to `ParticlePoolManager` (pooling) and `ParticleSpawner` (spawning)
+- `AIEngine` → delegates to `AIMovement`, `AITargeting`; Hard AI offloads Monte Carlo heatmap to `ai.worker.ts` (Web Worker, zero main-thread blocking)
 - Primary classes act as thin coordinators; specialized helpers own the logic
 - Shared state between coordinator and helpers uses explicit state interfaces or minimal public APIs
