@@ -27,8 +27,8 @@
   - **Normal:** Adds a sense of self-preservation. Once it notices the enemy, it remembers the location for the current and next turn. It will actively try to retreat and fire from safety.
 - **Static Entities (Mines & Sonars):**
   - **Bug Fix:** Fix deployment and visibility (currently they are either invisible or fail to deploy).
-  - Mines are static, visible only to submarines, carriers, and sonars. They explode when an opponent vessel comes within a 1-cell distance.
-  - Sonars are static and visible to anyone within a 7-cell distance.
+  - Mines should be static, visible only to submarines, carriers, and sonars. They explode when an opponent vessel comes within a 1-cell distance.
+  - Sonars should be static and visible to anyone within a 7-cell distance. They should project ping animation every ~7 seconds revealing ships withing their range, flashing them briefly on the minimap and the 3D board.
 
 ### **Visuals, Animations & Audio**
 
