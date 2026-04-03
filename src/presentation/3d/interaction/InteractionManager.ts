@@ -31,6 +31,15 @@ export class InteractionManager {
   private lastMoveAction: string | null = null;
   private lastMovesRemaining: number = -1;
 
+  private ghostCheckCache: {
+    time: number;
+    x: number;
+    z: number;
+    orientation: Orientation | null;
+    shipId: string | null;
+    isValid: boolean;
+  } = { time: 0, x: -1, z: -1, orientation: null, shipId: null, isValid: false };
+
   constructor(scene: THREE.Scene, camera: THREE.PerspectiveCamera, entityManager: any) {
     this.raycastService = new RaycastService(camera, entityManager);
     this.feedbackHandler = new InputFeedbackHandler(scene, entityManager);
@@ -134,9 +143,23 @@ export class InteractionManager {
         if (!Config.rogueMode && !isPlayerSide) {
           this.feedbackHandler.ghostGroup.visible = false;
         } else {
-          const targetBoard = Config.rogueMode ? this.gameLoop.match.sharedBoard : this.gameLoop.match.playerBoard;
-          const isValid = this.gameLoop.match.validatePlacement(targetBoard, ship, x, z, orientation);
-          this.feedbackHandler.updateGhost(ship, orientation, pickedTile, isValid, x, z);
+          const now = performance.now();
+          const cache = this.ghostCheckCache;
+          const isSameState = cache.x === x && cache.z === z && cache.orientation === orientation && cache.shipId === ship.id;
+          const isCacheValid = isSameState && (now - cache.time < 300);
+
+          if (!isCacheValid) {
+            const targetBoard = Config.rogueMode ? this.gameLoop.match.sharedBoard : this.gameLoop.match.playerBoard;
+            const isValid = this.gameLoop.match.validatePlacement(targetBoard, ship, x, z, orientation);
+            this.feedbackHandler.updateGhost(ship, orientation, pickedTile, isValid, x, z);
+
+            cache.time = now;
+            cache.x = x;
+            cache.z = z;
+            cache.orientation = orientation;
+            cache.shipId = ship.id;
+            cache.isValid = isValid;
+          }
         }
 
       } else {

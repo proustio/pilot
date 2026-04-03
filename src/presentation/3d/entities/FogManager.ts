@@ -177,15 +177,6 @@ export class FogManager {
         const boardHeight = Config.board.height;
         const offset = boardWidth / 2;
 
-        // Get all cell coordinates occupied by any ship
-        const shipCells: { x: number, z: number, ship: Ship, segmentIndex: number }[] = [];
-        for (const ship of shipsOnBoard) {
-            const coords = ship.getOccupiedCoordinates();
-            for (let i = 0; i < coords.length; i++) {
-                shipCells.push({ x: coords[i].x, z: coords[i].z, ship, segmentIndex: i });
-            }
-        }
-
         // Update ship vision for isCellRevealed queries
         this.visibility.setLastShipsOnBoard(shipsOnBoard);
 
@@ -196,7 +187,7 @@ export class FogManager {
         for (let z = 0; z < boardHeight; z++) {
             for (let x = 0; x < boardWidth; x++) {
                 const fogIdx = z * boardWidth + x;
-                const targetOpacity = this.visibility.computeCellOpacity(x, z, fogIdx, shipCells);
+                const targetOpacity = this.visibility.computeCellOpacity(x, z, fogIdx);
 
                 // For consolidated mesh: include voxels for fogged cells only
                 if (this.consolidatedFogMesh && targetOpacity > 0.01) {
@@ -222,15 +213,7 @@ export class FogManager {
     }
 
     public isCellRevealed(x: number, z: number): boolean {
-        return this.visibility.isCellRevealed(x, z, () => {
-            // Classic/Fallback: Check mesh opacity
-            const boardWidth = Config.board.width;
-            const fogIdx = z * boardWidth + x;
-            const fogMesh = this.fogMeshes[fogIdx];
-            if (!fogMesh) return true;
-            const mat = (fogMesh as THREE.Mesh).material as THREE.MeshStandardMaterial;
-            return mat.opacity < 0.2;
-        });
+        return this.visibility.isCellRevealed(x, z);
     }
 
     private createFogMesh(x: number, z: number): THREE.InstancedMesh | null {

@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { Orientation } from '../../../domain/fleet/Ship';
 import { ParticleSystem } from './ParticleSystem';
 import { Config } from '../../../infrastructure/config/Config';
+import { eventBus, GameEventType } from '../../../application/events/GameEventBus';
 
 export type AddRippleFn = (worldX: number, worldZ: number, isPlayerBoard: boolean) => void;
 export type AddPersistentFireFn = (
@@ -54,6 +55,9 @@ export class SinkingEffects {
             child.userData.sinkAngleZ = (Math.random() - 0.5) * maxLean * 2;
 
             this.splitShipForBreaking(child as THREE.Group, cellX, cellZ);
+
+            // Notify EntityManager to track this in its O(1) animation array
+            eventBus.emit(GameEventType.SHIP_STARTED_SINKING, child);
         }
 
         child.visible = true;

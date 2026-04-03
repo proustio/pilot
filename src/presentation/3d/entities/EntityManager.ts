@@ -59,6 +59,11 @@ export class EntityManager {
     private cameraShakeDurationMs: number = 0;
     private cameraShakeIntensity: number = 0;
 
+    // Data-Oriented active animation arrays
+    public activelySinkingShips: THREE.Object3D[] = [];
+    public activelyMovingShips: THREE.Object3D[] = [];
+    public activelyRotatingShips: THREE.Object3D[] = [];
+
     constructor(scene: THREE.Scene) {
         this.scene = scene;
 
@@ -122,6 +127,12 @@ export class EntityManager {
 
         eventBus.on(GameEventType.REQUEST_MARKER_CLEANUP, () => {
             this.clearTransientMarkers();
+        });
+
+        eventBus.on(GameEventType.SHIP_STARTED_SINKING, (shipGroup: THREE.Object3D) => {
+            if (!this.activelySinkingShips.includes(shipGroup)) {
+                this.activelySinkingShips.push(shipGroup);
+            }
         });
 
         eventBus.on(GameEventType.ROGUE_MOVE_SHIP, () => {
@@ -423,54 +434,82 @@ export class EntityManager {
         // Apply camera shake offset (sinusoidal decay)
         this.updateCameraShake(camera);
 
-        // Update turret instance transforms for sinking/moving ships
-        this.updateTurretTransforms(this.playerBoardGroup, this.playerTurretManager);
-        this.updateTurretTransforms(this.enemyBoardGroup, this.enemyTurretManager);
+        // Update turret instance transforms for actively animating ships
+        this.updateTurretTransforms();
     }
 
     /**
-     * Iterates ships in a board group and updates turret instance matrices
-     * for any ship that is sinking or moving (position/rotation changed).
+     * Updates turret instance matrices based on actively animating ships
+     * using the flat active arrays instead of full tree traversal.
      */
-    private updateTurretTransforms(boardGroup: THREE.Group, turretManager: TurretInstanceManager): void {
-        for (const child of boardGroup.children) {
-            if (!child.userData.isShip) continue;
-            const ship = child.userData.ship;
-            if (!ship) continue;
+    private updateTurretTransforms(): void {
+        const sinkFloor = Config.visual.sinkingFloor;
+        const dirtyShips = new Set<THREE.Object3D>();
 
-            const isSinking = child.userData.isSinking && child.position.y > Config.visual.sinkingFloor;
-            const isMoving = !!child.userData.targetPosition;
-
-            if (isSinking || isMoving) {
-                child.updateMatrix();
-                turretManager.updateTransform(ship.id, child.matrix);
+        for (let i = this.activelySinkingShips.length - 1; i >= 0; i--) {
+            const shipGroup = this.activelySinkingShips[i];
+            if (shipGroup.position.y <= sinkFloor) {
+                this.activelySinkingShips[i] = this.activelySinkingShips[this.activelySinkingShips.length - 1];
+                this.activelySinkingShips.pop();
+            } else {
+                dirtyShips.add(shipGroup);
             }
         }
+
+        for (let i = this.activelyMovingShips.length - 1; i >= 0; i--) {
+            const shipGroup = this.activelyMovingShips[i];
+            if (!shipGroup.userData.targetPosition || shipGroup.position.distanceToSquared(shipGroup.userData.targetPosition) <= 0.001) {
+                this.activelyMovingShips[i] = this.activelyMovingShips[this.activelyMovingShips.length - 1];
+                this.activelyMovingShips.pop();
+            } else {
+                dirtyShips.add(shipGroup);
+            }
+        }
+
+        for (let i = 0; i < this.activelyRotatingShips.length; i++) {
+             dirtyShips.add(this.activelyRotatingShips[i]);
+        }
+
+        dirtyShips.forEach(child => {
+            const ship = child.userData.ship;
+            if (!ship) return;
+
+            const isPlayer = child.parent === this.playerBoardGroup;
+            const turretManager = isPlayer ? this.playerTurretManager : this.enemyTurretManager;
+
+            child.updateMatrix();
+            turretManager.updateTransform(ship.id, child.matrix);
+        });
     }
 
     /**
      * Updates smooth 90° rotation animations triggered by ramming events.
+     * Uses flat arrays and swap-and-pop for O(1) removal.
      */
     private updateRammingRotations(): void {
         const dtMs = 16.67 * Config.timing.gameSpeedMultiplier;
-        for (const group of [this.playerBoardGroup, this.enemyBoardGroup]) {
-            for (const child of group.children) {
-                const anim = child.userData.rotationAnim;
-                if (!anim) continue;
 
-                anim.elapsedMs += dtMs;
-                const t = Math.min(anim.elapsedMs / anim.durationMs, 1.0);
-                // Smooth ease-out interpolation
-                const eased = 1 - Math.pow(1 - t, 3);
+        for (let i = this.activelyRotatingShips.length - 1; i >= 0; i--) {
+            const child = this.activelyRotatingShips[i];
+            const anim = child.userData.rotationAnim;
+            if (!anim) {
+                this.activelyRotatingShips[i] = this.activelyRotatingShips[this.activelyRotatingShips.length - 1];
+                this.activelyRotatingShips.pop();
+                continue;
+            }
 
-                // Shortest-path angle interpolation
-                let diff = ((anim.targetRotY - anim.startRotY) % (Math.PI * 2) + Math.PI * 3) % (Math.PI * 2) - Math.PI;
-                child.rotation.y = anim.startRotY + diff * eased;
+            anim.elapsedMs += dtMs;
+            const t = Math.min(anim.elapsedMs / anim.durationMs, 1.0);
+            const eased = 1 - Math.pow(1 - t, 3);
 
-                if (t >= 1.0) {
-                    child.rotation.y = anim.targetRotY;
-                    child.userData.rotationAnim = null;
-                }
+            let diff = ((anim.targetRotY - anim.startRotY) % (Math.PI * 2) + Math.PI * 3) % (Math.PI * 2) - Math.PI;
+            child.rotation.y = anim.startRotY + diff * eased;
+
+            if (t >= 1.0) {
+                child.rotation.y = anim.targetRotY;
+                child.userData.rotationAnim = null;
+                this.activelyRotatingShips[i] = this.activelyRotatingShips[this.activelyRotatingShips.length - 1];
+                this.activelyRotatingShips.pop();
             }
         }
     }

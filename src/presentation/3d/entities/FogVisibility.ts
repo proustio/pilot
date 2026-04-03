@@ -14,8 +14,13 @@ export class FogVisibility {
     private isSetupPhase: boolean = false;
     public rogueMode: boolean;
 
+    // O(1) Cache for visibility
+    private visibilityCache: Uint8Array;
+
     constructor(rogueMode: boolean) {
         this.rogueMode = rogueMode;
+        const totalCells = Config.board.width * Config.board.height;
+        this.visibilityCache = new Uint8Array(totalCells);
     }
 
     public setInitialized(value: boolean): void {
@@ -35,19 +40,23 @@ export class FogVisibility {
     }
 
     public setLastShipsOnBoard(ships: Ship[]): void {
+        // Remove strictly referential equality check to ensure cache rebuilds on property updates
         this.lastShipsOnBoard = ships;
+        this.rebuildCache();
     }
 
     public revealCellTemporarily(x: number, z: number, duration: number = 2): void {
         const boardWidth = Config.board.width;
         const index = z * boardWidth + x;
         this.temporarilyRevealedCells.set(index, duration);
+        this.rebuildCache();
     }
 
     public revealCellPermanently(x: number, z: number): void {
         const boardWidth = Config.board.width;
         const index = z * boardWidth + x;
         this.permanentlyRevealedCells.add(index);
+        this.rebuildCache();
     }
 
     public onTurnChange(): void {
@@ -56,6 +65,74 @@ export class FogVisibility {
                 this.temporarilyRevealedCells.delete(index);
             } else {
                 this.temporarilyRevealedCells.set(index, duration - 1);
+            }
+        }
+        this.rebuildCache();
+    }
+
+    /**
+     * Rebuilds the O(1) visibility cache. This should be called whenever
+     * ships move, are destroyed, or temporary/permanent reveals change.
+     */
+    public rebuildCache(): void {
+        if (!this.rogueMode) return;
+
+        this.visibilityCache.fill(0); // 0 = fogged, 1 = revealed
+        const boardWidth = Config.board.width;
+        const totalCells = boardWidth * Config.board.height;
+
+        // 1. Permanent and Temporary reveals
+        for (const index of this.permanentlyRevealedCells) {
+            if (index >= 0 && index < totalCells) this.visibilityCache[index] = 1;
+        }
+        for (const [index] of this.temporarilyRevealedCells.entries()) {
+            if (index >= 0 && index < totalCells) this.visibilityCache[index] = 1;
+        }
+
+        // 2. Setup Phase reveal (player quadrant)
+        if (this.isSetupPhase) {
+            for (let z = 0; z < 7; z++) {
+                for (let x = 0; x < 7; x++) {
+                    const idx = z * boardWidth + x;
+                    if (idx < totalCells) this.visibilityCache[idx] = 1;
+                }
+            }
+        }
+
+        if (!this.lastShipsOnBoard) return;
+
+        // 3. Radius-based fog around player ships
+        for (const ship of this.lastShipsOnBoard) {
+            if (ship.isEnemy || ship.isSunk()) continue;
+            const coords = ship.getOccupiedCoordinates();
+            for (const c of coords) {
+                const startX = Math.max(0, c.x - ship.visionRadius);
+                const endX = Math.min(boardWidth - 1, c.x + ship.visionRadius);
+                const startZ = Math.max(0, c.z - ship.visionRadius);
+                const endZ = Math.min(Config.board.height - 1, c.z + ship.visionRadius);
+
+                for (let z = startZ; z <= endZ; z++) {
+                    for (let x = startX; x <= endX; x++) {
+                        const dx = Math.abs(c.x - x);
+                        const dz = Math.abs(c.z - z);
+                        if (Math.max(dx, dz) <= ship.visionRadius) {
+                            this.visibilityCache[z * boardWidth + x] = 1;
+                        }
+                    }
+                }
+            }
+        }
+
+        // 4. Reveal fog on any sunk ships or specific hit segments
+        for (const ship of this.lastShipsOnBoard) {
+            const coords = ship.getOccupiedCoordinates();
+            for (let i = 0; i < coords.length; i++) {
+                if (ship.isSunk() || ship.segments[i] === false) {
+                    const c = coords[i];
+                    if (c.x >= 0 && c.x < boardWidth && c.z >= 0 && c.z < Config.board.height) {
+                        this.visibilityCache[c.z * boardWidth + c.x] = 1;
+                    }
+                }
             }
         }
     }
@@ -67,104 +144,53 @@ export class FogVisibility {
     public computeCellOpacity(
         x: number,
         z: number,
-        fogIdx: number,
-        shipCells: { x: number; z: number; ship: Ship; segmentIndex: number }[]
+        fogIdx: number
     ): number {
-        let targetOpacity = 0.85;
+        // Permanent and temporary reveals apply to all modes
+        if (this.permanentlyRevealedCells.has(fogIdx)) return 0.0;
+        if (this.temporarilyRevealedCells.has(fogIdx)) return 0.0;
 
-        // Rule 1: Radius-based fog around ships
-        let minDist = Infinity;
-        for (const cell of shipCells) {
-            if (cell.ship.isEnemy) continue;
-            const dx = Math.abs(cell.x - x);
-            const dz = Math.abs(cell.z - z);
-            const dist = Math.max(dx, dz);
-            const normalizedDist = dist / cell.ship.visionRadius;
-            if (normalizedDist < minDist) {
-                minDist = normalizedDist;
-            }
-        }
-        if (minDist <= 1.0) {
-            targetOpacity = 0.0;
-        }
-
-        // Rule 2: During setup, reveal player quadrant (0-6, 0-6)
+        // Setup phase reveal applies to all modes
         if (this.isSetupPhase && x < 7 && z < 7) {
-            targetOpacity = 0.0;
+            return 0.0;
         }
 
-        // Rule 3: Temporary reveals from attacks
-        if (this.temporarilyRevealedCells.has(fogIdx)) {
-            targetOpacity = 0.0;
+        if (!this.rogueMode) {
+            // In classic mode, everything is revealed by default
+            return 0.0;
         }
 
-        // Rule 4: Permanent reveals (e.g. sunk ships)
-        if (this.permanentlyRevealedCells.has(fogIdx)) {
-            targetOpacity = 0.0;
+        if (!this.isInitialized) {
+            return 0.85; // Default to fogged in rogue mode if not initialized
         }
 
-        // Rule 5: Reveal fog on any sunk ships or hit segments
-        for (const cell of shipCells) {
-            if (cell.x === x && cell.z === z) {
-                const isSunk = cell.ship.isSunk();
-                const isHit = cell.ship.segments[cell.segmentIndex] === false;
-                if (isSunk || isHit) {
-                    targetOpacity = 0.0;
-                    break;
-                }
-            }
+        if (fogIdx >= 0 && fogIdx < this.visibilityCache.length) {
+            return this.visibilityCache[fogIdx] === 1 ? 0.0 : 0.85;
         }
 
-        return targetOpacity;
+        return 0.85;
     }
 
-    public isCellRevealed(x: number, z: number, fogMeshOpacityCheck?: () => boolean): boolean {
-        // In Rogue mode, if not yet initialized, nothing is revealed
-        if (this.rogueMode && !this.isInitialized) return false;
-
+    public isCellRevealed(x: number, z: number): boolean {
         const boardWidth = Config.board.width;
         const fogIdx = z * boardWidth + x;
 
-        // Permanent and temporary (ping) reveals are always true
+        // Permanent and temporary reveals apply to all modes
         if (this.permanentlyRevealedCells.has(fogIdx)) return true;
         if (this.temporarilyRevealedCells.has(fogIdx)) return true;
 
-        if (this.rogueMode) {
-            // Check if within any player ship's vision radius
-            if (this.lastShipsOnBoard) {
-                for (const ship of this.lastShipsOnBoard) {
-                    if (ship.isEnemy || ship.isSunk()) continue;
-                    const coords = ship.getOccupiedCoordinates();
-                    for (const c of coords) {
-                        const dx = Math.abs(c.x - x);
-                        const dz = Math.abs(c.z - z);
-                        if (Math.max(dx, dz) <= ship.visionRadius) return true;
-                    }
-                }
-            }
+        // Setup phase reveal applies to all modes
+        if (this.isSetupPhase && x < 7 && z < 7) return true;
 
-            // Check if specific ship segment is hit or sunk at this location
-            if (this.lastShipsOnBoard) {
-                for (const ship of this.lastShipsOnBoard) {
-                    const coords = ship.getOccupiedCoordinates();
-                    for (let i = 0; i < coords.length; i++) {
-                        if (coords[i].x === x && coords[i].z === z) {
-                            if (ship.isSunk() || ship.segments[i] === false) return true;
-                        }
-                    }
-                }
-            }
-
-            // Setup phase reveal
-            if (this.isSetupPhase && x < 7 && z < 7) return true;
-
-            // In Rogue mode, no per-cell fog meshes exist — cell is fogged by default
-            return false;
+        if (!this.rogueMode) {
+            // In Classic mode, visibility is always true
+            return true;
         }
 
-        // Classic/Fallback: delegate to fog mesh opacity check
-        if (fogMeshOpacityCheck) {
-            return fogMeshOpacityCheck();
+        if (!this.isInitialized) return false;
+
+        if (fogIdx >= 0 && fogIdx < this.visibilityCache.length) {
+            return this.visibilityCache[fogIdx] === 1;
         }
 
         return false;

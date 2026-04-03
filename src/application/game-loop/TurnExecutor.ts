@@ -83,7 +83,7 @@ export class TurnExecutor {
 
             const flipWait = this.s.config.timing.boardFlipWaitMs / this.s.config.timing.gameSpeedMultiplier;
             setTimeout(() => {
-                setTimeout(() => {
+                setTimeout(async () => {
                     if (!this.s.match) return;
 
                     if (this.s.isPaused) {
@@ -93,7 +93,7 @@ export class TurnExecutor {
                     }
 
                     const targetBoard = this.s.match.mode === MatchMode.Rogue ? this.s.match.sharedBoard : this.s.match.enemyBoard;
-                    const target = this.s.playerAIEngine.computeNextMove(targetBoard, this.s.match);
+                    const target = await this.s.playerAIEngine.computeNextMove(targetBoard, this.s.match);
                     const result = targetBoard.receiveAttack(target.x, target.z);
 
                     this.s.playerAIEngine.reportResult(target.x, target.z, result.toString(), targetBoard);

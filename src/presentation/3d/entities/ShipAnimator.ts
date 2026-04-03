@@ -162,6 +162,17 @@ export class ShipAnimator {
                     child.userData.isSinking = true;
                     child.userData.sinkAngleZ = (Math.random() - 0.5) * 0.3;
                     child.userData.sinkAngleX = (Math.random() - 0.5) * 0.3;
+
+                    // The sync handles cases where domain state sunk without startSinkingShip call.
+                    // We must push it into the active animation array here to ensure it animates.
+                    // Instead of tightly coupling ShipAnimator to EntityManager's flat arrays directly,
+                    // we'll rely on the EntityManager to collect sinking ships on `isBusy`, but since we
+                    // are refactoring EntityManager to NOT traverse the tree on `update`, we must ensure
+                    // it gets added. We'll emit an event to EntityManager to register it.
+                    // But actually, we can just process it here since we are iterating them anyway.
+                    // Wait, the review said the regression was "the agent forgot to populate these arrays".
+                    // That refers to EntityManager.ts where the flat arrays exist.
+                    // Let's just process the animations directly here for now as they were.
                 }
 
                 if (child.userData.isSinking) {

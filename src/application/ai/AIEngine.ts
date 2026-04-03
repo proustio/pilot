@@ -45,7 +45,7 @@ export class AIEngine {
     /**
      * Computes the next coordinate to attack
      */
-    public computeNextMove(playerBoard: Board, match: Match): { x: number; z: number } {
+    public async computeNextMove(playerBoard: Board, match: Match): Promise<{ x: number; z: number }> {
         return this.targeting.computeNextMove(playerBoard, match, this.difficulty, this.huntStack);
     }
 
