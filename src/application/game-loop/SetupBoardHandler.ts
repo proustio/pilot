@@ -22,17 +22,26 @@ export class SetupBoardHandler {
         const isRogue = this.s.match.mode === MatchMode.Rogue;
         const nextShip = this.s.playerShipsToPlace[0];
         const targetBoard = isRogue ? this.s.match.sharedBoard : this.s.match.playerBoard;
+        const orientation = this.s.currentPlacementOrientation;
+
+        // Click is the bow — derive head (stern, segment-0) from it
+        const s = nextShip.size - 1;
+        let headX = x, headZ = z;
+        if (orientation === Orientation.Horizontal) headX = x - s;
+        else if (orientation === Orientation.Vertical) headZ = z - s;
+        else if (orientation === Orientation.Left) headX = x + s;
+        else if (orientation === Orientation.Up) headZ = z + s;
 
         const isValid = this.s.match.validatePlacement(
-            targetBoard, nextShip, x, z, this.s.currentPlacementOrientation
+            targetBoard, nextShip, headX, headZ, orientation
         );
 
         if (isValid) {
-            const placed = targetBoard.placeShip(nextShip, x, z, this.s.currentPlacementOrientation);
+            const placed = targetBoard.placeShip(nextShip, headX, headZ, orientation);
             if (placed) {
                 this.s.playerShipsToPlace.shift();
                 this.s.shipPlacedListeners.forEach(l =>
-                    l(nextShip, x, z, this.s.currentPlacementOrientation, true)
+                    l(nextShip, headX, headZ, orientation, true)
                 );
                 this.s.requestAutoSave();
 

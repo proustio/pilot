@@ -150,7 +150,14 @@ export class InteractionManager {
 
           if (!isCacheValid) {
             const targetBoard = Config.rogueMode ? this.gameLoop.match.sharedBoard : this.gameLoop.match.playerBoard;
-            const isValid = this.gameLoop.match.validatePlacement(targetBoard, ship, x, z, orientation);
+            // Hover cell is the bow — derive head (stern) from it
+            const s = ship.size - 1;
+            let headX = x, headZ = z;
+            if (orientation === Orientation.Horizontal) headX = x - s;
+            else if (orientation === Orientation.Vertical) headZ = z - s;
+            else if (orientation === Orientation.Left) headX = x + s;
+            else if (orientation === Orientation.Up) headZ = z + s;
+            const isValid = this.gameLoop.match.validatePlacement(targetBoard, ship, headX, headZ, orientation);
             this.feedbackHandler.updateGhost(ship, orientation, pickedTile, isValid, x, z);
 
             cache.time = now;

@@ -6,8 +6,17 @@ import { getIndex } from './BoardUtils';
 export class ShipPlacement {
     public canPlaceShip(board: Board, shipSize: number, headX: number, headZ: number, orientation: Orientation, ignoredShip?: Ship): boolean {
         for (let i = 0; i < shipSize; i++) {
-            const currentX = orientation === Orientation.Horizontal ? headX + i : headX;
-            const currentZ = orientation === Orientation.Vertical ? headZ + i : headZ;
+            let currentX: number;
+            let currentZ: number;
+            if (orientation === Orientation.Horizontal) {
+                currentX = headX + i; currentZ = headZ;
+            } else if (orientation === Orientation.Vertical) {
+                currentX = headX; currentZ = headZ + i;
+            } else if (orientation === Orientation.Left) {
+                currentX = headX - i; currentZ = headZ;
+            } else { // Orientation.Up
+                currentX = headX; currentZ = headZ - i;
+            }
 
             if (board.isOutOfBounds(currentX, currentZ)) return false;
 

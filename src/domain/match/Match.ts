@@ -69,12 +69,17 @@ export class Match {
         // Rogue mode: Enforce quadrant placement ONLY during initial setup (first placement)
         if (this.mode === MatchMode.Rogue && !shipToPlace.isPlaced) {
             for (let i = 0; i < shipToPlace.size; i++) {
-                let cx = headX;
-                let cz = headZ;
-                if (orientation === Orientation.Horizontal) cx = headX + i;
-                else if (orientation === Orientation.Vertical) cz = headZ + i;
-                else if (orientation === Orientation.Left) cx = headX - i;
-                else if (orientation === Orientation.Up) cz = headZ - i;
+                let cx: number;
+                let cz: number;
+                if (orientation === Orientation.Horizontal) {
+                    cx = headX + i; cz = headZ;
+                } else if (orientation === Orientation.Vertical) {
+                    cx = headX; cz = headZ + i;
+                } else if (orientation === Orientation.Left) {
+                    cx = headX - i; cz = headZ;
+                } else { // Orientation.Up
+                    cx = headX; cz = headZ - i;
+                }
                 
                 if (shipToPlace.isEnemy === true) {
                     // Enemy must be in Bottom-Right quadrant (13-19, 13-19)
@@ -89,8 +94,17 @@ export class Match {
         // Apply Russian non-touching constraints
         if (this.mode === MatchMode.Russian) {
             for (let i = 0; i < shipToPlace.size; i++) {
-                const cx = orientation === Orientation.Horizontal ? headX + i : headX;
-                const cz = orientation === Orientation.Vertical ? headZ + i : headZ;
+                let cx: number;
+                let cz: number;
+                if (orientation === Orientation.Horizontal) {
+                    cx = headX + i; cz = headZ;
+                } else if (orientation === Orientation.Vertical) {
+                    cx = headX; cz = headZ + i;
+                } else if (orientation === Orientation.Left) {
+                    cx = headX - i; cz = headZ;
+                } else { // Orientation.Up
+                    cx = headX; cz = headZ - i;
+                }
 
                 // Check all 8 surrounding neighbors for any existing ship
                 for (let dx = -1; dx <= 1; dx++) {

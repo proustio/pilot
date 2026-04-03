@@ -142,12 +142,15 @@ export class InputFeedbackHandler {
                 const mat = mesh.material as THREE.MeshBasicMaterial;
                 mat.color.setHex(color);
 
+                // Anchor the ghost at the bow (front): segment (size-1) sits at the cursor,
+                // and the remaining segments extend backward from there.
+                const s = ship.size - 1;
                 let cx = 0;
                 let cz = 0;
-                if (orientation === Orientation.Horizontal) cx = index;
-                else if (orientation === Orientation.Vertical) cz = index;
-                else if (orientation === Orientation.Left) cx = -index;
-                else if (orientation === Orientation.Up) cz = -index;
+                if (orientation === Orientation.Horizontal) cx = index - s;      // stern..bow → left..cursor
+                else if (orientation === Orientation.Vertical) cz = index - s;   // stern..bow → up..cursor
+                else if (orientation === Orientation.Left) cx = s - index;       // stern..bow → right..cursor
+                else if (orientation === Orientation.Up) cz = s - index;         // stern..bow → down..cursor
 
                 mesh.position.set(cx, 0, cz);
             } else {

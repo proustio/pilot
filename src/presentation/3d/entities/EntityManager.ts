@@ -149,6 +149,10 @@ export class EntityManager {
                     payload.finalOrientation,
                     payload.animationDurationMs
                 );
+                // Register for per-frame turret transform updates during the animation
+                if (!this.activelyMovingShips.includes(shipGroup)) {
+                    this.activelyMovingShips.push(shipGroup);
+                }
             }
 
             // Spawn water ripples evenly spaced across the animation duration
@@ -458,7 +462,10 @@ export class EntityManager {
 
         for (let i = this.activelyMovingShips.length - 1; i >= 0; i--) {
             const shipGroup = this.activelyMovingShips[i];
-            if (!shipGroup.userData.targetPosition || shipGroup.position.distanceToSquared(shipGroup.userData.targetPosition) <= 0.001) {
+            const hasTargetPos = shipGroup.userData.targetPosition &&
+                shipGroup.position.distanceToSquared(shipGroup.userData.targetPosition) > 0.001;
+            const hasPathAnim = !!shipGroup.userData.pathAnimation;
+            if (!hasTargetPos && !hasPathAnim) {
                 this.activelyMovingShips[i] = this.activelyMovingShips[this.activelyMovingShips.length - 1];
                 this.activelyMovingShips.pop();
             } else {
