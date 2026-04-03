@@ -8,11 +8,11 @@ Browser-based Battleships game with a Minecraft-style 3D voxel aesthetic. Single
 
 ## Game Modes
 
-| Mode | Grid | Key Mechanics | Status |
-|------|------|---------------|--------|
-| Classic | 10x10 | American rules, dual boards, static ships | Stable |
-| Russian | 10x10 | Strict non-touching adjacency, static ships | Stable |
-| Rogue | 20x20 | Movable ships, special weapons, fog of war | In development |
+| Mode    | Grid  | Key Mechanics                               | Status         |
+| ------- | ----- | ------------------------------------------- | -------------- |
+| Classic | 10x10 | American rules, dual boards, static ships   | Stable         |
+| Russian | 10x10 | Strict non-touching adjacency, static ships | Stable         |
+| Rogue   | 20x20 | Movable ships, special weapons, fog of war  | In development |
 
 ## Core Loop
 
@@ -35,31 +35,46 @@ Place ships → take turns firing → destroy all enemy ships to win.
 ### Rogue
 
 - Single shared 20x20 board; ships start in opposing 10x10 corners
-- Each ship can move, attack, or skip per turn
+- Each ship can move, attack, or skip per turn.
 - Board orientation is static (never flips)
 - Fog of war: 5-cell visibility radius around each living ship
 - Destroyed ships remain on board permanently, blocking their occupied cells
 - Marker persistence: miss markers are transient (vanish after opponent's next turn); hit and kill markers are permanent
 - Weapon profiles: default 1x1 attack plus AoE and special weapons via `weaponType`
+- **Ramming**: Ships can ram others to inflict mutual damage. Rammer turns 90° and stops adjacent to the victim.
+- **Dynamic Ammo**: Ships can fire as many times as they have active (non-hit) sections in a single turn.
+
+## AI Behavior (Difficulty Tiers)
+
+- **Easy**: "Search & Destroy" — travels until an opponent is found, then moves all ships to kill it. Defaults to random fire.
+- **Normal**: "Self-Preservation" — remembers enemy locations for two turns and actively retreats while firing from safety.
+- **Hard**: "Tactical Heatmap" — uses Monte Carlo simulations to predict ship locations and patterns.
 
 ## Visual Identity
 
-- Voxel water with animated sine-wave + noise shaders and ripple effects
+- Voxel water with animated sine-wave + noise shaders and ripple effects during ship movement.
 - Volumetric voxel fog clouds at water level for fog of war
 - Ship destruction: voxel particle breakup, persistent hit flames, multi-layered explosion audio
-- Sunken ships: underwater wreckage with lingering black smoke
+- Sunken ships: underwater wreckage with lingering black smoke and lingering visual debris.
 - Attacker selection: random player vessel animates as the firing ship
 - Interaction feedback: raycasting-based grid selection with glowing translucent 3D hover highlights
+- **Range Visualization**: Firing range (beyond sight) highlights in a subtle orange glow.
+
+## Game Speed & Pacing
+
+- Classic and Russian modes default to **4x** speed.
+- Rogue mode defaults to **2x** speed.
+- Available speed toggles: 0.25x, 1x, 2x, 4x, 8x, 16x, 32x.
 
 ## Distribution
 
 Single `dist/` output deployed to all platforms. Core game logic and rendering stay decoupled from wrapper code.
 
-| Platform | Wrapper | Notes |
-|----------|---------|-------|
-| Web (PWA) | None | Offline-capable via Service Workers |
-| Desktop | Electron | Steam/Itch.io distribution |
-| Mobile | Capacitor | iOS/Android with native UI hardening |
+| Platform  | Wrapper   | Notes                                |
+| --------- | --------- | ------------------------------------ |
+| Web (PWA) | None      | Offline-capable via Service Workers  |
+| Desktop   | Electron  | Steam/Itch.io distribution           |
+| Mobile    | Capacitor | iOS/Android with native UI hardening |
 
 ## Design Priorities
 

@@ -79,7 +79,10 @@ src/
 │   │   │   ├── ProjectileAnimator.ts     # Projectile arc and flight animation
 │   │   │   ├── ImpactEffects.ts          # Hit/explosion/breaking visual effects
 │   │   │   ├── SinkingEffects.ts         # Underwater wreckage and smoke effects
-│   │   │   ├── ParticleSystem.ts         # Voxel-based particle effects
+│   │   │   ├── ParticleSystem.ts         # Thin coordinator for particle effects
+│   │   │   ├── ParticleTypes.ts          # Shared particle types and pool config
+│   │   │   ├── ParticlePoolManager.ts    # Geometry/material ownership and slot allocation
+│   │   │   ├── ParticleSpawner.ts        # Logic for spawning different particle types
 │   │   │   ├── EmitterManager.ts         # Particle emitter lifecycle management
 │   │   │   └── SonarEffect.ts            # Sonar ping visual effect
 │   │   ├── interaction/
@@ -130,14 +133,14 @@ src/
 
 ## Root Config Files
 
-| File | Purpose |
-|------|---------|
-| `vite.config.ts` | Vite build and dev server configuration |
-| `tsconfig.json` | TypeScript compiler options (strict, ES2020, noEmit) |
-| `tailwind.config.js` | Tailwind CSS theme and plugin configuration |
-| `postcss.config.js` | PostCSS pipeline (tailwindcss + autoprefixer) |
-| `index.html` | SPA entry point — mounts Three.js canvas + `#ui-layer` overlay |
-| `package.json` | Dependencies and npm scripts (`dev`, `build`, `preview`) |
+| File                 | Purpose                                                        |
+| -------------------- | -------------------------------------------------------------- |
+| `vite.config.ts`     | Vite build and dev server configuration                        |
+| `tsconfig.json`      | TypeScript compiler options (strict, ES2020, noEmit)           |
+| `tailwind.config.js` | Tailwind CSS theme and plugin configuration                    |
+| `postcss.config.js`  | PostCSS pipeline (tailwindcss + autoprefixer)                  |
+| `index.html`         | SPA entry point — mounts Three.js canvas + `#ui-layer` overlay |
+| `package.json`       | Dependencies and npm scripts (`dev`, `build`, `preview`)       |
 
 ## Conventions
 
@@ -152,6 +155,7 @@ src/
 ## Delegation Pattern
 
 Large classes are decomposed when they exceed ~300–400 lines or handle multiple responsibilities:
+
 - `GameLoop` → delegates to `GameEventManager`, `RogueActionHandler`, `MatchSetup`, `TurnExecutor`, `EnemyTurnHandler`, `SetupBoardHandler`
 - `EntityManager` → delegates to `WaterShaderManager`, `VesselVisibilityManager`, `FogManager`, `EmitterManager`; maintains flat DOD arrays (`activelySinkingShips`, `activelyMovingShips`, `activelyRotatingShips`) iterated with swap-and-pop instead of scene-graph traversal
 - `ParticleSystem` → delegates to `ParticlePoolManager` (pooling) and `ParticleSpawner` (spawning)
