@@ -129,4 +129,30 @@ If we implement these three architectural shifts, we will essentially eliminate 
 2. **Web Workers:** Offload the Hard AI Monte Carlo simulations and pathfinding to a background thread to guarantee 0 dropped frames during AI turns.
 3. **Data-Oriented Updates:** Stop iterating the Three.js scene graph during the `update` loop. Keep flat arrays of actively animating objects.
 
+## 4. The Ghost Mesh Bottleneck (Ship Placement Phase)
+
+### The Current Approach
+During the `SETUP_BOARD` phase, moving the mouse over the board triggers high-frequency `MOUSE_CELL_HOVER` events. The `InteractionManager` and `GhostShip` logic responds to this by constantly calculating bounding boxes, destroying old voxel meshes, and rebuilding new voxel ghost ships to show placement validity.
+
+**Why this is bad:** Creating and destroying 3D Geometry (especially voxel clusters) on every mouse movement causes extreme GC pressure and stalls the rendering pipeline, resulting in the worst FPS drops occurring right at the start of the game.
+
+### The Best Practice: Object Pooling
+Never create or destroy complex `BufferGeometry` or `Mesh` objects based on mouse movements.
+
+#### Suggestion: Ghost Object Pooling
+1. **Pre-instantiate:** When entering the `SETUP_BOARD` phase, pre-build the Ghost Ship mesh for the currently selected ship *once*.
+2. **Translate, Don't Rebuild:** In response to `MOUSE_CELL_HOVER`, simply update the `position` vector of the pre-built Ghost Ship mesh.
+3. **Toggle Visibility:** If the placement becomes invalid (e.g., hovering over another ship), do not destroy the mesh. Instead, change a uniform in a custom shader or simply toggle the mesh visibility/color properties.
+
+---
+
+## Conclusion & Next Steps
+
+If we implement these architectural shifts, we will essentially eliminate CPU bottlenecks:
+
+1. **O(1) Visibility:** Replace all `isCellRevealed` calculations with a pre-calculated `Uint8Array` cache that only updates on game events. *(Complete)*
+2. **Web Workers:** Offload the Hard AI Monte Carlo simulations and pathfinding to a background thread to guarantee 0 dropped frames during AI turns.
+3. **Data-Oriented Updates:** Stop iterating the Three.js scene graph during the `update` loop. Keep flat arrays of actively animating objects.
+4. **Mesh Pooling for Interaction:** Eliminate geometry creation inside mouse hover events by pooling and translating ghost ship meshes during setup.
+
 These changes are highly mechanical, require very little alteration to the user experience, and will allow the Electron app to push hundreds of frames per second on modern hardware.
