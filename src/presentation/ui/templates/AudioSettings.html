@@ -1,5 +1,5 @@
 <div class="flex justify-between items-center mb-[15px] w-full">
     <label class="font-mono text-theme-text uppercase tracking-wider">Master Volume:</label>
-    <input type="range" id="sound-volume" min="0" max="1" step="0.05" value="${Config.audio.masterVolume}" class="flex-grow ml-5 appearance-none h-2 bg-[#111] border border-[#444] rounded-sm outline-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:bg-theme-primary [&::-webkit-slider-thumb]:border [&::-webkit-slider-thumb]:border-white [&::-webkit-slider-thumb]:rounded-sm [&::-webkit-slider-thumb]:shadow-[0_0_10px_var(--player-primary)] [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:bg-theme-primary [&::-moz-range-thumb]:border [&::-moz-range-thumb]:border-white [&::-moz-range-thumb]:rounded-sm [&::-moz-range-thumb]:shadow-[0_0_10px_var(--player-primary)]">
+    <input type="range" id="sound-volume" min="0" max="1" step="0.05" value="${Config.audio.masterVolume}" class="retro-slider flex-grow ml-5">
     <span id="volume-value" class="w-12 text-right font-mono text-theme-text">${Math.round(Config.audio.masterVolume * 100)}%</span>
 </div>

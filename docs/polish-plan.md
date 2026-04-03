@@ -6,10 +6,10 @@
 
 ### **Game Mechanics: Movement & Collision**
 
-- **Distance:** Ships should move twice the distance they currently do.
+- [x] **Distance:** Ships should move twice the distance they currently do.
 - **Pathing Checks:** For each cell a ship traverses, the game needs to evaluate state changes: check if any map sections should be revealed/hidden, whether the vessel hit a mine, etc.
-- **Impassable Entities:** Ships should NOT be able to move through other ships (dead or alive). Dead ships, mines, sonars, etc., cannot move at all.
-- **Ramming Mechanics:** \* Ships can ram other ships to inflict damage on both their own and the enemy's sections.
+- [x] **Impassable Entities:** Ships should NOT be able to move through other ships (dead or alive). Dead ships, mines, sonars, etc., cannot move at all.
+- [x] **Ramming Mechanics:** \* Ships can ram other ships to inflict damage on both their own and the enemy's sections.
   - Ramming can happen accidentally to both friendly and enemy ships.
   - The ramming ship should turn 90 degrees and stop adjacent to the victim ship.
 

@@ -19,7 +19,11 @@ export class Settings extends BaseUIComponent {
 
     constructor(gameLoop: any) {
         super('settings-modal');
-        this.container.classList.add('fixed', 'inset-0', 'bg-black/85', 'backdrop-blur-sm', 'flex', 'flex-col', 'items-center', 'justify-center', 'z-[200]', 'pointer-events-auto');
+        this.container.classList.add(
+            'fixed', 'inset-0', 'bg-black/70', 'backdrop-blur-sm',
+            'flex', 'items-center', 'justify-center',
+            'z-[200]', 'pointer-events-auto'
+        );
         this.gameLoop = gameLoop;
 
         this.generalSettings = new GeneralSettings(
@@ -141,16 +145,64 @@ export class Settings extends BaseUIComponent {
         const optionsContainer = dropdown.querySelector('.custom-dropdown-options') as HTMLElement;
         const options = dropdown.querySelectorAll('.custom-dropdown-option');
 
+        // Store original parent so we can return the node on close
+        const originalParent = optionsContainer.parentElement!;
+
+        const closeAllDropdowns = () => {
+            // Collect all portaled options and return them home
+            document.querySelectorAll('.settings-dropdown-portal').forEach(el => {
+                const elHtml = el as HTMLElement;
+                const homeParent = elHtml.dataset.portalHome
+                    ? document.querySelector(`#${elHtml.dataset.portalHome}`) as HTMLElement
+                    : null;
+                elHtml.style.display = 'none';
+                elHtml.style.position = '';
+                elHtml.style.top = '';
+                elHtml.style.bottom = '';
+                elHtml.style.left = '';
+                elHtml.style.right = '';
+                elHtml.style.width = '';
+                elHtml.style.zIndex = '';
+                elHtml.classList.remove('settings-dropdown-portal');
+                if (homeParent && elHtml.parentElement !== homeParent) {
+                    homeParent.appendChild(elHtml);
+                }
+            });
+        };
+
         selected.addEventListener('click', (e) => {
             e.stopPropagation();
-            const isOpen = optionsContainer.style.display === 'block';
+            const isOpen = optionsContainer.parentElement === document.body;
 
             // Close all other dropdowns first
-            this.container.querySelectorAll('.custom-dropdown-options').forEach(el => {
-                (el as HTMLElement).style.display = 'none';
-            });
+            closeAllDropdowns();
 
-            optionsContainer.style.display = isOpen ? 'none' : 'block';
+            if (!isOpen) {
+                const rect = selected.getBoundingClientRect();
+
+                // Portal to body so it escapes all containing blocks (backdrop-blur etc.)
+                optionsContainer.dataset.portalHome = dropdown.id;
+                optionsContainer.classList.add('settings-dropdown-portal');
+                document.body.appendChild(optionsContainer);
+
+                optionsContainer.style.position = 'fixed';
+                optionsContainer.style.left = `${rect.left}px`;
+                optionsContainer.style.right = 'auto';
+                optionsContainer.style.width = `${rect.width}px`;
+                optionsContainer.style.zIndex = '9999';
+                optionsContainer.style.display = 'block';
+
+                const optionsHeight = optionsContainer.scrollHeight;
+                const spaceBelow = window.innerHeight - rect.bottom;
+
+                if (spaceBelow < optionsHeight + 8) {
+                    optionsContainer.style.top = 'auto';
+                    optionsContainer.style.bottom = `${window.innerHeight - rect.top + 4}px`;
+                } else {
+                    optionsContainer.style.top = `${rect.bottom + 4}px`;
+                    optionsContainer.style.bottom = 'auto';
+                }
+            }
         });
 
         options.forEach(option => {
@@ -162,14 +214,14 @@ export class Settings extends BaseUIComponent {
                 option.classList.add('active');
 
                 this.updateDropdownVisuals(id, val);
-                optionsContainer.style.display = 'none';
+                closeAllDropdowns();
                 callback(val);
             });
         });
 
-        // Close dropdown when clicking outside (within container)
-        this.container.addEventListener('click', () => {
-            optionsContainer.style.display = 'none';
+        // Close dropdown when clicking outside
+        document.addEventListener('click', () => {
+            closeAllDropdowns();
         });
     }
 
