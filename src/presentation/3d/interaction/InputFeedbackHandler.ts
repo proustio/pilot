@@ -9,10 +9,10 @@ export class InputFeedbackHandler {
     public hoverCursor: THREE.Group;
     public ghostGroup: THREE.Group;
     private rangeHighlighter: RangeHighlighter;
-    private currentGhostSize: number = 0;
     private hoverCursorVoxels!: THREE.InstancedMesh;
     private dummy: THREE.Object3D = new THREE.Object3D();
     private readonly VOXEL_COUNT = 120;
+    private readonly MAX_GHOST_SIZE = 5; // Max standard ship size
 
     // Expose highlight groups via delegation
     public get moveHighlightGroup(): THREE.Group { return this.rangeHighlighter.moveHighlightGroup; }
@@ -130,25 +130,29 @@ export class InputFeedbackHandler {
     }
 
     public updateGhost(ship: any, orientation: Orientation, pickedTile: THREE.Object3D, isValid: boolean, x?: number, z?: number) {
-        if (this.currentGhostSize !== ship.size) {
-            this.buildGhost(ship.size);
-            this.currentGhostSize = ship.size;
+        if (this.ghostGroup.children.length === 0) {
+            this.buildGhostPool();
         }
 
         const color = isValid ? 0x00ff00 : 0xff0000;
         this.ghostGroup.children.forEach((child: THREE.Object3D, index: number) => {
             const mesh = child as THREE.Mesh;
-            const mat = mesh.material as THREE.MeshBasicMaterial;
-            mat.color.setHex(color);
+            if (index < ship.size) {
+                mesh.visible = true;
+                const mat = mesh.material as THREE.MeshBasicMaterial;
+                mat.color.setHex(color);
 
-            let cx = 0;
-            let cz = 0;
-            if (orientation === Orientation.Horizontal) cx = index;
-            else if (orientation === Orientation.Vertical) cz = index;
-            else if (orientation === Orientation.Left) cx = -index;
-            else if (orientation === Orientation.Up) cz = -index;
+                let cx = 0;
+                let cz = 0;
+                if (orientation === Orientation.Horizontal) cx = index;
+                else if (orientation === Orientation.Vertical) cz = index;
+                else if (orientation === Orientation.Left) cx = -index;
+                else if (orientation === Orientation.Up) cz = -index;
 
-            mesh.position.set(cx, 0, cz);
+                mesh.position.set(cx, 0, cz);
+            } else {
+                mesh.visible = false; // Hide unused pooled voxels
+            }
         });
 
         const ghostWorldPos = new THREE.Vector3();
@@ -198,24 +202,20 @@ export class InputFeedbackHandler {
         this.rangeHighlighter.rebuildRangeHighlights(ship, board);
     }
 
-    private buildGhost(size: number) {
-        while (this.ghostGroup.children.length > 0) {
-            const child = this.ghostGroup.children[0] as THREE.Mesh;
-            this.ghostGroup.remove(child);
-            child.geometry.dispose();
-            (child.material as THREE.Material).dispose();
-        }
-
+    private buildGhostPool() {
         const ghostGeo = new THREE.BoxGeometry(0.85, 0.45, 0.85);
+        // Share a single material across all segments for performance
+        const ghostMat = new THREE.MeshBasicMaterial({
+            color: 0x00ff00,
+            transparent: true,
+            opacity: 0.6,
+            depthTest: false
+        });
 
-        for (let i = 0; i < size; i++) {
-            const ghostMat = new THREE.MeshBasicMaterial({
-                color: 0x00ff00,
-                transparent: true,
-                opacity: 0.6,
-                depthTest: false
-            });
+        // Pre-build the maximum possible size and toggle visibility later
+        for (let i = 0; i < this.MAX_GHOST_SIZE; i++) {
             const mesh = new THREE.Mesh(ghostGeo, ghostMat);
+            mesh.visible = false;
             this.ghostGroup.add(mesh);
         }
     }

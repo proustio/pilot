@@ -155,8 +155,13 @@ export class FogVisibility {
             return 0.0;
         }
 
-        if (!this.rogueMode || !this.isInitialized) {
-            return 0.85; // Default to fogged if not rogue mode or not initialized (beyond temp/perm reveals)
+        if (!this.rogueMode) {
+            // In classic mode, everything is revealed by default
+            return 0.0;
+        }
+
+        if (!this.isInitialized) {
+            return 0.85; // Default to fogged in rogue mode if not initialized
         }
 
         if (fogIdx >= 0 && fogIdx < this.visibilityCache.length) {
@@ -177,19 +182,15 @@ export class FogVisibility {
         // Setup phase reveal applies to all modes
         if (this.isSetupPhase && x < 7 && z < 7) return true;
 
-        // In Rogue mode, if not yet initialized, nothing is revealed
-        if (this.rogueMode && !this.isInitialized) return false;
-
-        if (this.rogueMode) {
-            if (fogIdx >= 0 && fogIdx < this.visibilityCache.length) {
-                return this.visibilityCache[fogIdx] === 1;
-            }
-            return false;
+        if (!this.rogueMode) {
+            // In Classic mode, visibility is always true
+            return true;
         }
 
-        // Classic/Fallback: delegate to fog mesh opacity check
-        if (fogMeshOpacityCheck) {
-            return fogMeshOpacityCheck();
+        if (!this.isInitialized) return false;
+
+        if (fogIdx >= 0 && fogIdx < this.visibilityCache.length) {
+            return this.visibilityCache[fogIdx] === 1;
         }
 
         return false;
