@@ -48,9 +48,9 @@
 
     <!-- Right: Monitor Port -->
     <div class="flex-[1.2] bg-[#050505] border-[6px] border-[#222] rounded relative flex flex-col p-5 justify-start gap-[15px] overflow-hidden shadow-[inset_0_0_30px_rgba(0,255,0,0.05)] min-w-[300px] min-height-[400px] monitor-port">
-        <div class="w-full max-w-[320px] z-40">
+        <div class="w-full max-w-[400px] z-40">
             <label class="console-label text-[#0f0]" style="text-shadow: 0 0 5px rgba(0,255,0,0.5);">Select Engagement:</label>
-            <div id="mode-dropdown" class="custom-dropdown relative w-full max-w-[320px] z-40 group">
+            <div id="mode-dropdown" class="custom-dropdown relative w-full max-w-[400px] z-40 group">
                 <div class="custom-dropdown-selected flex items-center justify-between p-2.5 bg-[#111] border border-[#333] rounded text-theme-primary cursor-pointer transition-all duration-200 shadow-[inset_0_0_10px_rgba(0,0,0,0.8)] hover:bg-[#181818] hover:border-theme-primary/50" id="dropdown-selected">
                     <span id="dropdown-selected-text" class="font-mono font-bold tracking-tight whitespace-nowrap">✔ Classic (US Fleet)</span>
                     <span class="custom-dropdown-arrow transition-all duration-300 ml-2 opacity-60 text-[1.2rem] leading-none">▾</span>
@@ -58,15 +58,15 @@
                 <div class="custom-dropdown-options absolute left-0 right-0 top-full mt-1 bg-[rgba(15,15,15,0.98)] backdrop-blur-xl border border-[#333] rounded shadow-[0_10px_30px_rgba(0,0,0,0.8),0_0_20px_rgba(0,255,0,0.05)] z-50 overflow-hidden hidden" id="dropdown-options">
                     <div class="custom-dropdown-option px-4 py-3 cursor-pointer transition-all duration-150 hover:bg-theme-primary/10 hover:text-white flex items-center gap-2 border-b border-white/5 last:border-0 [&.active]:bg-theme-primary/10 [&.active]:text-theme-primary [&.active]:font-bold" data-value="classic">
                         <span class="option-check w-5 flex-shrink-0 text-center font-bold">✔</span>
-                        <span class="font-mono text-[0.9rem] tracking-wide">Classic (US Fleet)</span>
+                        <span class="font-mono text-[0.9rem] tracking-wide whitespace-nowrap">Classic (US Fleet)</span>
                     </div>
                     <div class="custom-dropdown-option px-4 py-3 cursor-pointer transition-all duration-150 hover:bg-theme-primary/10 hover:text-white flex items-center gap-2 border-b border-white/5 last:border-0 [&.active]:bg-theme-primary/10 [&.active]:text-theme-primary [&.active]:font-bold" data-value="russian">
                         <span class="option-check w-5 flex-shrink-0 text-center font-bold">❄</span>
-                        <span class="font-mono text-[0.9rem] tracking-wide">Russian (No Touching)</span>
+                        <span class="font-mono text-[0.9rem] tracking-wide whitespace-nowrap">Russian (No Touching)</span>
                     </div>
                     <div class="custom-dropdown-option px-4 py-3 cursor-pointer transition-all duration-150 hover:bg-theme-primary/10 hover:text-white flex items-center gap-2 [&.active]:bg-theme-primary/10 [&.active]:text-theme-primary [&.active]:font-bold" data-value="rogue">
                         <span class="option-check w-5 flex-shrink-0 text-center font-bold">☠</span>
-                        <span class="font-mono text-[0.9rem] tracking-wide">Rogue (Action)</span>
+                        <span class="font-mono text-[0.9rem] tracking-wide whitespace-nowrap">Rogue (Action)</span>
                     </div>
                 </div>
             </div>
