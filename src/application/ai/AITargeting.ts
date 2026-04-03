@@ -13,19 +13,19 @@ export class AITargeting {
     /**
      * Computes the next coordinate to attack based on difficulty.
      */
-    public computeNextMove(
+    public async computeNextMove(
         playerBoard: Board,
         match: Match,
         difficulty: AIDifficulty,
         huntStack: { x: number; z: number }[]
-    ): { x: number; z: number } {
+    ): Promise<{ x: number; z: number }> {
         switch (difficulty) {
             case 'easy':
                 return this.computeEasyMove(playerBoard);
             case 'normal':
                 return this.computeNormalMove(playerBoard, huntStack);
             case 'hard':
-                return this.computeHardMove(playerBoard, match, huntStack);
+                return await this.computeHardMove(playerBoard, match, huntStack);
             default:
                 return this.computeEasyMove(playerBoard);
         }
@@ -99,64 +99,120 @@ export class AITargeting {
         board: Board,
         match: Match,
         huntStack: { x: number; z: number }[]
-    ): { x: number; z: number } {
-        if (huntStack.length > 0) {
-            return this.computeNormalMove(board, huntStack);
-        }
-
-        const aliveShips = board.ships.filter((s: Ship) => !s.isSunk());
-        if (aliveShips.length === 0) {
-            return this.computeEasyMove(board);
-        }
-
-        const width = board.width;
-        const height = board.height;
-        const heatMap = new Uint32Array(width * height);
-
-        const ITERATIONS = 1000;
-
-        for (let i = 0; i < ITERATIONS; i++) {
-            const shipToPlace = aliveShips[Math.floor(Math.random() * aliveShips.length)];
-
-            const x = Math.floor(Math.random() * width);
-            const z = Math.floor(Math.random() * height);
-            const orient = Math.random() > 0.5 ? Orientation.Horizontal : Orientation.Vertical;
-
-            if (this.canFitShipExperimentally(board, shipToPlace, x, z, orient, match.mode)) {
-                for (let s = 0; s < shipToPlace.size; s++) {
-                    const cx = orient === Orientation.Horizontal ? x + s : x;
-                    const cz = orient === Orientation.Vertical ? z + s : z;
-                    const idx = getIndex(cx, cz, width);
-                    heatMap[idx]++;
-                }
+    ): Promise<{ x: number; z: number }> {
+        return new Promise((resolve) => {
+            if (huntStack.length > 0) {
+                return resolve(this.computeNormalMove(board, huntStack));
             }
-        }
 
-        let maxHeat = -1;
-        let bestTarget = { x: -1, z: -1 };
+            const aliveShips = board.ships.filter((s: Ship) => !s.isSunk());
+            if (aliveShips.length === 0) {
+                return resolve(this.computeEasyMove(board));
+            }
 
-        for (let z = 0; z < height; z++) {
-            for (let x = 0; x < width; x++) {
-                const idx = getIndex(x, z, width);
-                const state = board.gridState[idx];
+            if (typeof Worker !== 'undefined') {
+                const worker = new Worker(new URL('./ai.worker.ts', import.meta.url), { type: 'module' });
 
-                if (state === CellState.Empty || state === CellState.Ship) {
-                    const ship = board.ships.find(s => s.occupies(x, z));
-                    if (ship && ship.isEnemy) continue;
+                worker.onmessage = (e: MessageEvent) => {
+                    const heatMap: Uint32Array = e.data.heatMap;
+                    worker.terminate();
 
-                    if (heatMap[idx] > maxHeat) {
-                        maxHeat = heatMap[idx];
-                        bestTarget = { x, z };
+                    const width = board.width;
+                    const height = board.height;
+
+                    let maxHeat = -1;
+                    let bestTarget = { x: -1, z: -1 };
+
+                    for (let z = 0; z < height; z++) {
+                        for (let x = 0; x < width; x++) {
+                            const idx = getIndex(x, z, width);
+                            const state = board.gridState[idx];
+
+                            if (state === CellState.Empty || state === CellState.Ship) {
+                                const ship = board.ships.find(s => s.occupies(x, z));
+                                if (ship && ship.isEnemy) continue;
+
+                                if (heatMap[idx] > maxHeat) {
+                                    maxHeat = heatMap[idx];
+                                    bestTarget = { x, z };
+                                }
+                            }
+                        }
+                    }
+
+                    if (bestTarget.x === -1) {
+                        resolve(this.computeEasyMove(board));
+                    } else {
+                        resolve(bestTarget);
+                    }
+                };
+
+                worker.onerror = (e) => {
+                    console.error("AI Worker Error:", e);
+                    worker.terminate();
+                    resolve(this.computeEasyMove(board));
+                };
+
+                const shipData = aliveShips.map(s => ({ size: s.size, isEnemy: s.isEnemy }));
+
+                worker.postMessage({
+                    width: board.width,
+                    height: board.height,
+                    gridState: board.gridState,
+                    mode: match.mode,
+                    aliveShips: shipData,
+                    ITERATIONS: 1000
+                });
+            } else {
+                // Fallback for environments without Web Worker support (e.g., Node/JSDOM tests)
+                const width = board.width;
+                const height = board.height;
+                const heatMap = new Uint32Array(width * height);
+                const ITERATIONS = 1000;
+
+                for (let i = 0; i < ITERATIONS; i++) {
+                    const shipToPlace = aliveShips[Math.floor(Math.random() * aliveShips.length)];
+                    const x = Math.floor(Math.random() * width);
+                    const z = Math.floor(Math.random() * height);
+                    const orient = Math.random() > 0.5 ? Orientation.Horizontal : Orientation.Vertical;
+
+                    if (this.canFitShipExperimentally(board, shipToPlace, x, z, orient, match.mode)) {
+                        for (let s = 0; s < shipToPlace.size; s++) {
+                            const cx = orient === Orientation.Horizontal ? x + s : x;
+                            const cz = orient === Orientation.Vertical ? z + s : z;
+                            const idx = getIndex(cx, cz, width);
+                            heatMap[idx]++;
+                        }
                     }
                 }
+
+                let maxHeat = -1;
+                let bestTarget = { x: -1, z: -1 };
+
+                for (let z = 0; z < height; z++) {
+                    for (let x = 0; x < width; x++) {
+                        const idx = getIndex(x, z, width);
+                        const state = board.gridState[idx];
+
+                        if (state === CellState.Empty || state === CellState.Ship) {
+                            const ship = board.ships.find(s => s.occupies(x, z));
+                            if (ship && ship.isEnemy) continue;
+
+                            if (heatMap[idx] > maxHeat) {
+                                maxHeat = heatMap[idx];
+                                bestTarget = { x, z };
+                            }
+                        }
+                    }
+                }
+
+                if (bestTarget.x === -1) {
+                    resolve(this.computeEasyMove(board));
+                } else {
+                    resolve(bestTarget);
+                }
             }
-        }
-
-        if (bestTarget.x === -1) {
-            return this.computeEasyMove(board);
-        }
-
-        return bestTarget;
+        });
     }
 
     /**

@@ -53,7 +53,7 @@ export class EnemyTurnHandler {
         executeTurn();
     }
 
-    private executeRogueTurn(targetBoard: import('../../domain/board/Board').Board): void {
+    private async executeRogueTurn(targetBoard: import('../../domain/board/Board').Board): Promise<void> {
         const activeIndex = this.s.activeEnemyRogueShipIndex;
         const ship = this.s.enemyRogueShipOrder[activeIndex];
 
@@ -102,7 +102,7 @@ export class EnemyTurnHandler {
                 }
             }
         } else if (action === 'attack') {
-            const target = this.s.aiEngine.computeNextMove(targetBoard, this.s.match!);
+            const target = await this.s.aiEngine.computeNextMove(targetBoard, this.s.match!);
             const dist = Math.max(Math.abs(target.x - ship.headX), Math.abs(target.z - ship.headZ));
             if (dist <= 10) {
                 const result = targetBoard.receiveAttack(target.x, target.z);
@@ -133,8 +133,8 @@ export class EnemyTurnHandler {
         completeAction();
     }
 
-    private executeClassicTurn(targetBoard: import('../../domain/board/Board').Board): void {
-        const target = this.s.aiEngine.computeNextMove(targetBoard, this.s.match!);
+    private async executeClassicTurn(targetBoard: import('../../domain/board/Board').Board): Promise<void> {
+        const target = await this.s.aiEngine.computeNextMove(targetBoard, this.s.match!);
         const result = targetBoard.receiveAttack(target.x, target.z);
 
         this.s.aiEngine.reportResult(target.x, target.z, result.toString(), targetBoard);
