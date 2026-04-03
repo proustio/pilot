@@ -12,3 +12,5 @@
 11:52:16 AM [vite] (client) page reload src/presentation/3d/interaction/InputFeedbackHandler.ts
 11:59:59 AM [vite] (client) page reload src/presentation/3d/interaction/InteractionManager.ts
 12:06:36 PM [vite] (client) page reload src/presentation/3d/entities/FogVisibility.ts
+12:13:31 PM [vite] (client) page reload src/presentation/3d/entities/FogVisibility.ts
+12:14:23 PM [vite] (client) page reload src/presentation/3d/entities/FogManager.ts

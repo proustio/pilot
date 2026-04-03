@@ -171,7 +171,7 @@ export class FogVisibility {
         return 0.85;
     }
 
-    public isCellRevealed(x: number, z: number, fogMeshOpacityCheck?: () => boolean): boolean {
+    public isCellRevealed(x: number, z: number): boolean {
         const boardWidth = Config.board.width;
         const fogIdx = z * boardWidth + x;
 

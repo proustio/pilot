@@ -213,15 +213,7 @@ export class FogManager {
     }
 
     public isCellRevealed(x: number, z: number): boolean {
-        return this.visibility.isCellRevealed(x, z, () => {
-            // Classic/Fallback: Check mesh opacity
-            const boardWidth = Config.board.width;
-            const fogIdx = z * boardWidth + x;
-            const fogMesh = this.fogMeshes[fogIdx];
-            if (!fogMesh) return true;
-            const mat = (fogMesh as THREE.Mesh).material as THREE.MeshStandardMaterial;
-            return mat.opacity < 0.2;
-        });
+        return this.visibility.isCellRevealed(x, z);
     }
 
     private createFogMesh(x: number, z: number): THREE.InstancedMesh | null {
