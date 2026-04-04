@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Digital Materiality - Precious Metals Theme</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    // Define the precise hexadecimal properties
+                    colors: {
+                        gold: { shadow: '#996515', base: '#D4AF37', highlight: '#FFE86A', edge: '#B8860B' },
+                        silver: { shadow: '#757575', base: '#C0C0C0', highlight: '#FFFFFF', edge: '#A8A9AD' },
+                        platinum: { shadow: '#A8A9AD', base: '#E5E4E2', highlight: '#FAFAF9', edge: '#DADADA' },
+                        rosegold: { shadow: '#713D32', base: '#B76E79', highlight: '#F6DFE1', edge: '#CF989F' },
+                        bronze: { shadow: '#3E2B01', base: '#CD7F32', highlight: '#EACA58', edge: '#804A00' }
+                    },
+                    // Construct the specular reflection gradients
+                    backgroundImage: {
+                        'metal-gold': 'linear-gradient(135deg, #996515 0%, #D4AF37 25%, #FFE86A 50%, #D4AF37 75%, #B8860B 100%)',
+                        'metal-silver': 'linear-gradient(135deg, #757575 0%, #C0C0C0 25%, #FFFFFF 50%, #C0C0C0 75%, #A8A9AD 100%)',
+                        'metal-platinum': 'linear-gradient(135deg, #A8A9AD 0%, #E5E4E2 25%, #FAFAF9 50%, #E5E4E2 75%, #DADADA 100%)',
+                        'metal-rosegold': 'linear-gradient(135deg, #713D32 0%, #B76E79 25%, #F6DFE1 50%, #B76E79 75%, #CF989F 100%)',
+                        'metal-bronze': 'linear-gradient(135deg, #3E2B01 0%, #CD7F32 25%, #EACA58 50%, #CD7F32 75%, #804A00 100%)',
+                    },
+                    // Synthesize structural volumetric depth using layered box-shadow bevels
+                    boxShadow: {
+                        'bevel-gold': '0 10px 15px -3px rgba(0,0,0,0.5), inset 0 2px 3px rgba(255, 232, 106, 0.9), inset 0 -3px 4px rgba(153, 101, 21, 0.9)',
+                        'bevel-silver': '0 10px 15px -3px rgba(0,0,0,0.5), inset 0 2px 3px rgba(255, 255, 255, 1), inset 0 -3px 4px rgba(117, 117, 117, 0.9)',
+                        'bevel-platinum': '0 10px 15px -3px rgba(0,0,0,0.4), inset 0 2px 3px rgba(250, 250, 249, 1), inset 0 -3px 4px rgba(168, 169, 173, 0.8)',
+                        'bevel-rosegold': '0 10px 15px -3px rgba(0,0,0,0.5), inset 0 2px 3px rgba(246, 223, 225, 1), inset 0 -3px 4px rgba(113, 61, 50, 0.9)',
+                        'bevel-bronze': '0 10px 15px -3px rgba(0,0,0,0.7), inset 0 2px 3px rgba(234, 202, 88, 0.8), inset 0 -3px 4px rgba(62, 43, 1, 1)',
+                        // Pressed state simulation pushing the bevel inward
+                        'bevel-pressed': 'inset 0 4px 6px rgba(0,0,0,0.6), inset 0 1px 2px rgba(0,0,0,0.4)'
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+
+<body class="bg-neutral-950 min-h-screen flex items-center justify-center p-8 font-sans antialiased selection:bg-neutral-700">
+    
+    <div class="w-full flex flex-col items-center gap-16">
+        
+        <h1 class="text-5xl md:text-6xl font-black text-transparent bg-clip-text bg-metal-platinum tracking-tighter text-center pb-4 drop-shadow-xl">
+            Digital Materiality Engine
+        </h1>
+
+        <div class="max-w-6xl w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+            
+            <div class="bg-metal-gold shadow-bevel-gold rounded-3xl p-10 flex flex-col items-center justify-center gap-8 transform transition-all duration-500 hover:-translate-y-3 hover:brightness-110 relative overflow-hidden group border border-transparent">
+                <div class="absolute inset-0 bg-gradient-to-tr from-transparent via-white/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none transform -translate-x-full group-hover:translate-x-full ease-in-out"></div>
+                
+                <h2 class="text-3xl font-extrabold text-amber-950 tracking-tight drop-shadow-md z-10">Aurum Gold</h2>
+                <button class="bg-metal-gold shadow-bevel-gold px-10 py-4 rounded-full font-bold text-amber-950 tracking-widest uppercase text-xs transition-all duration-150 active:translate-y-2 active:shadow-bevel-pressed z-10 cursor-pointer focus:outline-none focus:ring-4 focus:ring-white/20">
+                    Engage Mechanism
+                </button>
+            </div>
+
+            <div class="bg-metal-silver shadow-bevel-silver rounded-3xl p-10 flex flex-col items-center justify-center gap-8 transform transition-all duration-500 hover:-translate-y-3 hover:brightness-110 relative overflow-hidden group border border-transparent">
+                <div class="absolute inset-0 bg-gradient-to-tr from-transparent via-white/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none transform -translate-x-full group-hover:translate-x-full ease-in-out"></div>
+                
+                <h2 class="text-3xl font-extrabold text-neutral-800 tracking-tight drop-shadow-md z-10">Argent Silver</h2>
+                <button class="bg-metal-silver shadow-bevel-silver px-10 py-4 rounded-full font-bold text-neutral-800 tracking-widest uppercase text-xs transition-all duration-150 active:translate-y-2 active:shadow-bevel-pressed z-10 cursor-pointer focus:outline-none focus:ring-4 focus:ring-white/20">
+                    Engage Mechanism
+                </button>
+            </div>
+
+            <div class="bg-metal-platinum shadow-bevel-platinum rounded-3xl p-10 flex flex-col items-center justify-center gap-8 transform transition-all duration-500 hover:-translate-y-3 hover:brightness-110 relative overflow-hidden group border border-transparent">
+                <div class="absolute inset-0 bg-gradient-to-tr from-transparent via-white/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none transform -translate-x-full group-hover:translate-x-full ease-in-out"></div>
+                
+                <h2 class="text-3xl font-extrabold text-neutral-700 tracking-tight drop-shadow-md z-10">Platinum Lustre</h2>
+                <button class="bg-metal-platinum shadow-bevel-platinum px-10 py-4 rounded-full font-bold text-neutral-700 tracking-widest uppercase text-xs transition-all duration-150 active:translate-y-2 active:shadow-bevel-pressed z-10 cursor-pointer focus:outline-none focus:ring-4 focus:ring-white/20">
+                    Engage Mechanism
+                </button>
+            </div>
+
+            <div class="bg-metal-rosegold shadow-bevel-rosegold rounded-3xl p-10 flex flex-col items-center justify-center gap-8 transform transition-all duration-500 hover:-translate-y-3 hover:brightness-110 relative overflow-hidden group border border-transparent">
+                <div class="absolute inset-0 bg-gradient-to-tr from-transparent via-white/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none transform -translate-x-full group-hover:translate-x-full ease-in-out"></div>
+                
+                <h2 class="text-3xl font-extrabold text-rose-950 tracking-tight drop-shadow-md z-10">Modern Rose Gold</h2>
+                <button class="bg-metal-rosegold shadow-bevel-rosegold px-10 py-4 rounded-full font-bold text-rose-950 tracking-widest uppercase text-xs transition-all duration-150 active:translate-y-2 active:shadow-bevel-pressed z-10 cursor-pointer focus:outline-none focus:ring-4 focus:ring-white/20">
+                    Engage Mechanism
+                </button>
+            </div>
+
+            <div class="bg-metal-bronze shadow-bevel-bronze rounded-3xl p-10 flex flex-col items-center justify-center gap-8 transform transition-all duration-500 hover:-translate-y-3 hover:brightness-110 relative overflow-hidden group border border-transparent">
+                <div class="absolute inset-0 bg-gradient-to-tr from-transparent via-white/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none transform -translate-x-full group-hover:translate-x-full ease-in-out"></div>
+                
+                <h2 class="text-3xl font-extrabold text-orange-950 tracking-tight drop-shadow-md z-10">Antique Bronze</h2>
+                <button class="bg-metal-bronze shadow-bevel-bronze px-10 py-4 rounded-full font-bold text-orange-950 tracking-widest uppercase text-xs transition-all duration-150 active:translate-y-2 active:shadow-bevel-pressed z-10 cursor-pointer focus:outline-none focus:ring-4 focus:ring-white/20">
+                    Engage Mechanism
+                </button>
+            </div>
+
+        </div>
+    </div>
+</body>
+</html>
