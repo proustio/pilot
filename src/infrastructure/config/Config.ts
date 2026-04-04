@@ -57,7 +57,7 @@ export const Config = {
 
     rogue: {
         fogRadius: 7,  // cells of personal fog halo around each ship
-        voxelsPerCell: 400, // Amount of voxels per cell in Rogue mode
+        voxelsPerCell: 60, // Amount of voxels per cell in Rogue mode
     },
     rogueMode: false,
 

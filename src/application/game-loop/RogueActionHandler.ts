@@ -14,6 +14,7 @@ export class RogueActionHandler {
     public handleAttemptMove(targetX: number, targetZ: number): void {
         const { match, currentState } = this.gameLoop;
         const config = this.gameLoop.getConfig();
+        console.log(`[${new Date().toISOString()}] RogueActionHandler: Move attempted to`, targetX, targetZ);
         if (!match || currentState !== GameState.PLAYER_TURN || config.autoBattler) return;
 
         const sharedBoard = match.sharedBoard;
@@ -100,6 +101,7 @@ export class RogueActionHandler {
 
         this.gameLoop.isAnimating = true;
         setTimeout(() => {
+            console.log(`[${new Date().toISOString()}] RogueActionHandler: Move completed`);
             this.gameLoop.isAnimating = false;
             this.advanceRogueShipTurn();
         }, animDuration);
@@ -111,6 +113,7 @@ export class RogueActionHandler {
         while (this.gameLoop.activeRogueShipIndex < this.gameLoop.rogueShipOrder.length) {
             const ship = this.gameLoop.rogueShipOrder[this.gameLoop.activeRogueShipIndex];
             if (!ship.isSunk()) {
+                console.log(`[${new Date().toISOString()}] RogueActionHandler: Active ship changed`, ship.id);
                 eventBus.emit(GameEventType.ACTIVE_SHIP_CHANGED, { ship, index: this.gameLoop.activeRogueShipIndex });
                 return;
             }

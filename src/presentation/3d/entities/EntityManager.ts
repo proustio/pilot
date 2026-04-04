@@ -396,7 +396,13 @@ export class EntityManager {
         this.projectileManager.updateProjectiles(this.addRipple.bind(this), this.waterManager.getUniformsForBoard(true), this.waterManager.getUniformsForBoard(false));
 
         const currentBusy = this.isBusy();
-        if (this.wasBusy && !currentBusy) eventBus.emit(GameEventType.GAME_ANIMATIONS_COMPLETE, undefined as any);
+        if (!this.wasBusy && currentBusy) {
+            console.log(`[${new Date().toISOString()}] EntityManager: Board animations started`);
+        }
+        if (this.wasBusy && !currentBusy) {
+            console.log(`[${new Date().toISOString()}] EntityManager: Board animations completed`);
+            eventBus.emit(GameEventType.GAME_ANIMATIONS_COMPLETE, undefined as any);
+        }
         this.wasBusy = currentBusy;
 
         this.shipAnimator.update(this.time, this.activeRogueShipId, this.isPlayerTurn, this.isSetupPhase);

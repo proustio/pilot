@@ -14,6 +14,7 @@ import { NetworkManager } from './infrastructure/network/NetworkManager';
 
 const init = () => {
     try {
+        console.log(`[${new Date().toISOString()}] App: Initializing...`);
         Config.loadConfig();
         NetworkManager.init(Config.network.serverUrl);
         
@@ -262,8 +263,7 @@ const init = () => {
         );
 
         gameRunner.start();
-        console.log('App successfully initialized, loop running.');
-
+        console.log(`[${new Date().toISOString()}] App: Running.`);
     } catch (error) {
         console.error('Failed to initialize application:', error);
     }

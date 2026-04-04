@@ -40,6 +40,7 @@ export class MatchSetup {
      * auto-placing the player's fleet when Auto-Battler is active.
      */
     public startNewMatch(match: Match): void {
+        console.log(`[${new Date().toISOString()}] MatchSetup: Initializing match`);
         this.state.match = match;
         this.state.aiEngine.reset();
         this.state.playerAIEngine.reset();
@@ -112,6 +113,7 @@ export class MatchSetup {
                 attempts++;
             }
         }
+        console.log(`[${new Date().toISOString()}] MatchSetup: Fleets generated`);
 
         if (this.state.playerShipsToPlace.length === 0) {
             this.state.transitionTo(GameState.PLAYER_TURN);

@@ -132,6 +132,7 @@ export class MainMenu extends BaseUIComponent {
         updateCard(selectedMode);
 
         newGameBtn.addEventListener('click', () => {
+            console.log(`[${new Date().toISOString()}] MainMenu: Engage clicked, mode:`, selectedMode);
             Config.saveConfig();
 
             let matchMode = MatchMode.Classic;
@@ -158,6 +159,7 @@ export class MainMenu extends BaseUIComponent {
 
                 Storage.clearSession(); // Ensure no auto-load on refresh
                 sessionStorage.setItem('battleships_new_match_mode', matchMode);
+                console.log(`[${new Date().toISOString()}] MainMenu: Reloading for mode transition`);
                 window.location.reload();
                 return;
             }

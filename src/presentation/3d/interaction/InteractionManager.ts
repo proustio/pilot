@@ -65,6 +65,7 @@ export class InteractionManager {
   private setupGlobalListeners() {
     eventBus.on(GameEventType.SET_INTERACTION_ENABLED, (payload) => {
       this.interactionEnabled = payload.enabled;
+      console.log(`[${new Date().toISOString()}] InteractionManager: Interaction enabled:`, this.interactionEnabled);
       this.clickHandler.setInteractionEnabled(payload.enabled);
       if (!this.interactionEnabled) {
         this.feedbackHandler.hoverCursor.visible = false;
