@@ -12,6 +12,7 @@ import { eventBus, GameEventType } from '../../../application/events/GameEventBu
 import { SonarEffect } from './SonarEffect';
 import { ShipAnimator } from './ShipAnimator';
 import { TurretInstanceManager } from './TurretInstanceManager';
+import { AnimationStateTracker } from './AnimationStateTracker';
 
 export class EntityManager {
     private scene: THREE.Scene;
@@ -33,8 +34,6 @@ export class EntityManager {
     private time: number = 0;
     private wasBusy: boolean = false;
 
-    private activeSonarEffects: SonarEffect[] = [];
-
     // Sub-managers
     private particleSystem: ParticleSystem;
     private fogManager: FogManager;
@@ -42,6 +41,7 @@ export class EntityManager {
     private waterManager: WaterShaderManager;
     private visibilityManager: VesselVisibilityManager;
     private shipAnimator: ShipAnimator;
+    private animationTracker: AnimationStateTracker;
 
     private activeRogueShipId: string | null = null;
     private isPlayerTurn: boolean = false;
@@ -49,20 +49,6 @@ export class EntityManager {
     // Turret instancing managers (one per board side)
     private playerTurretManager: TurretInstanceManager;
     private enemyTurretManager: TurretInstanceManager;
-
-    // LED animation via instanced mesh
-    private ledMesh: THREE.InstancedMesh | null = null;
-    private ledPhases: number[] = [];
-
-    // Camera shake state for ramming impacts
-    private cameraShakeElapsedMs: number = 0;
-    private cameraShakeDurationMs: number = 0;
-    private cameraShakeIntensity: number = 0;
-
-    // Data-Oriented active animation arrays
-    public activelySinkingShips: THREE.Object3D[] = [];
-    public activelyMovingShips: THREE.Object3D[] = [];
-    public activelyRotatingShips: THREE.Object3D[] = [];
 
     constructor(scene: THREE.Scene) {
         this.scene = scene;
@@ -97,9 +83,6 @@ export class EntityManager {
         this.playerRaycastPlanes = buildResult.playerRaycastPlanes;
         this.enemyRaycastPlanes = buildResult.enemyRaycastPlanes;
 
-        this.ledMesh = buildResult.ledMesh;
-        this.ledPhases = buildResult.ledPhases;
-
         this.waterManager = new WaterShaderManager(buildResult.playerWaterUniforms, buildResult.enemyWaterUniforms);
         this.visibilityManager = new VesselVisibilityManager(this.fogManager);
 
@@ -114,6 +97,14 @@ export class EntityManager {
 
         this.playerTurretManager = new TurretInstanceManager(this.playerBoardGroup, true);
         this.enemyTurretManager = new TurretInstanceManager(this.enemyBoardGroup, false);
+
+        this.animationTracker = new AnimationStateTracker(
+            this.playerBoardGroup,
+            this.enemyBoardGroup,
+            this.playerTurretManager,
+            this.enemyTurretManager
+        );
+        this.animationTracker.setLedMesh(buildResult.ledMesh, buildResult.ledPhases);
 
         eventBus.on(GameEventType.ACTIVE_SHIP_CHANGED, (payload) => {
             this.activeRogueShipId = payload.ship?.id || null;
@@ -130,8 +121,8 @@ export class EntityManager {
         });
 
         eventBus.on(GameEventType.SHIP_STARTED_SINKING, (shipGroup: THREE.Object3D) => {
-            if (!this.activelySinkingShips.includes(shipGroup)) {
-                this.activelySinkingShips.push(shipGroup);
+            if (!this.animationTracker.activelySinkingShips.includes(shipGroup)) {
+                this.animationTracker.activelySinkingShips.push(shipGroup);
             }
         });
 
@@ -150,8 +141,8 @@ export class EntityManager {
                     payload.animationDurationMs
                 );
                 // Register for per-frame turret transform updates during the animation
-                if (!this.activelyMovingShips.includes(shipGroup)) {
-                    this.activelyMovingShips.push(shipGroup);
+                if (!this.animationTracker.activelyMovingShips.includes(shipGroup)) {
+                    this.animationTracker.activelyMovingShips.push(shipGroup);
                 }
             }
 
@@ -178,9 +169,7 @@ export class EntityManager {
             this.particleSystem.spawnExplosion(worldX, 0.4, worldZ, this.playerBoardGroup);
 
             // Trigger camera shake
-            this.cameraShakeElapsedMs = 0;
-            this.cameraShakeDurationMs = 300;
-            this.cameraShakeIntensity = 0.15;
+            this.animationTracker.triggerCameraShake(300, 0.15);
 
             // Animate rammer's 90° rotation smoothly
             const rammerGroup = this.shipAnimator.findShipGroup(payload.rammerShipId);
@@ -219,7 +208,7 @@ export class EntityManager {
                 const worldX = targetX - boardOffset + 0.5;
                 const worldZ = targetZ - boardOffset + 0.5;
 
-                this.activeSonarEffects.push(new SonarEffect(worldX, worldZ, 3, this.playerBoardGroup));
+                this.animationTracker.addSonarEffect(new SonarEffect(worldX, worldZ, 3, this.playerBoardGroup));
             }
         });
     }
@@ -373,22 +362,11 @@ export class EntityManager {
     }
 
     public isBusy(): boolean {
-        if (this.projectileManager.hasFallingMarkers()) return true;
-        if (this.particleSystem.hasActiveParticles()) return true;
-        if (this.activeSonarEffects.some(effect => effect.isActive())) return true;
-        if (this.shipAnimator.hasActivePathAnimation()) return true;
-
-        let isAnimating = false;
-        const sinkFloor = Config.visual.sinkingFloor;
-        [this.playerBoardGroup, this.enemyBoardGroup].forEach(group => {
-            group.children.forEach((child: THREE.Object3D) => {
-                if (child.userData.isShip && ((child.userData.isSinking && child.position.y > sinkFloor) ||
-                    (child.userData.targetPosition && child.position.distanceToSquared(child.userData.targetPosition) > 0.001))) {
-                    isAnimating = true;
-                }
-            });
-        });
-        return isAnimating;
+        return this.animationTracker.isBusy(
+            this.projectileManager,
+            this.particleSystem,
+            this.shipAnimator
+        );
     }
 
     public update(camera: THREE.Camera, renderer?: THREE.WebGLRenderer) {
@@ -401,7 +379,6 @@ export class EntityManager {
         this.waterManager.update(this.time, gameSpeed);
         this.visibilityManager.update(this.time);
 
-        this.updateStaticAnimations();
         this.particleSystem.update();
 
         // Draw call budget enforcement (Req 5.1–5.4)
@@ -409,7 +386,6 @@ export class EntityManager {
             const drawCalls = renderer.info.render.calls;
             const budget = Config.particles.drawCallBudget;
             if (drawCalls > budget) {
-                // Scale down proportionally: e.g. 150 calls / 100 budget → scale = 100/150 = 0.67
                 const scale = Math.max(Config.particles.minSpawnRateScale, budget / drawCalls);
                 this.particleSystem.spawnRateScale = scale;
             } else {
@@ -419,149 +395,24 @@ export class EntityManager {
 
         this.projectileManager.updateProjectiles(this.addRipple.bind(this), this.waterManager.getUniformsForBoard(true), this.waterManager.getUniformsForBoard(false));
 
-        const dt = 1 / 60;
-        for (let i = this.activeSonarEffects.length - 1; i >= 0; i--) {
-            if (!this.activeSonarEffects[i].update(dt)) {
-                this.activeSonarEffects.splice(i, 1);
-            }
-        }
-
         const currentBusy = this.isBusy();
         if (this.wasBusy && !currentBusy) eventBus.emit(GameEventType.GAME_ANIMATIONS_COMPLETE, undefined as any);
         this.wasBusy = currentBusy;
 
         this.shipAnimator.update(this.time, this.activeRogueShipId, this.isPlayerTurn, this.isSetupPhase);
 
-        // Update ramming rotation animations on ship groups
-        this.updateRammingRotations();
-
-        // Apply camera shake offset (sinusoidal decay)
-        this.updateCameraShake(camera);
-
-        // Update turret instance transforms for actively animating ships
-        this.updateTurretTransforms();
+        // Delegate animation-state updates (LED, sonar, ramming, shake, turrets)
+        this.animationTracker.update(camera);
     }
 
-    /**
-     * Updates turret instance matrices based on actively animating ships
-     * using the flat active arrays instead of full tree traversal.
-     */
-    private updateTurretTransforms(): void {
-        const sinkFloor = Config.visual.sinkingFloor;
-        const dirtyShips = new Set<THREE.Object3D>();
 
-        for (let i = this.activelySinkingShips.length - 1; i >= 0; i--) {
-            const shipGroup = this.activelySinkingShips[i];
-            if (shipGroup.position.y <= sinkFloor) {
-                this.activelySinkingShips[i] = this.activelySinkingShips[this.activelySinkingShips.length - 1];
-                this.activelySinkingShips.pop();
-            } else {
-                dirtyShips.add(shipGroup);
-            }
-        }
-
-        for (let i = this.activelyMovingShips.length - 1; i >= 0; i--) {
-            const shipGroup = this.activelyMovingShips[i];
-            const hasTargetPos = shipGroup.userData.targetPosition &&
-                shipGroup.position.distanceToSquared(shipGroup.userData.targetPosition) > 0.001;
-            const hasPathAnim = !!shipGroup.userData.pathAnimation;
-            if (!hasTargetPos && !hasPathAnim) {
-                this.activelyMovingShips[i] = this.activelyMovingShips[this.activelyMovingShips.length - 1];
-                this.activelyMovingShips.pop();
-            } else {
-                dirtyShips.add(shipGroup);
-            }
-        }
-
-        for (let i = 0; i < this.activelyRotatingShips.length; i++) {
-             dirtyShips.add(this.activelyRotatingShips[i]);
-        }
-
-        dirtyShips.forEach(child => {
-            const ship = child.userData.ship;
-            if (!ship) return;
-
-            const isPlayer = child.parent === this.playerBoardGroup;
-            const turretManager = isPlayer ? this.playerTurretManager : this.enemyTurretManager;
-
-            child.updateMatrix();
-            turretManager.updateTransform(ship.id, child.matrix);
-        });
-    }
-
-    /**
-     * Updates smooth 90° rotation animations triggered by ramming events.
-     * Uses flat arrays and swap-and-pop for O(1) removal.
-     */
-    private updateRammingRotations(): void {
-        const dtMs = 16.67 * Config.timing.gameSpeedMultiplier;
-
-        for (let i = this.activelyRotatingShips.length - 1; i >= 0; i--) {
-            const child = this.activelyRotatingShips[i];
-            const anim = child.userData.rotationAnim;
-            if (!anim) {
-                this.activelyRotatingShips[i] = this.activelyRotatingShips[this.activelyRotatingShips.length - 1];
-                this.activelyRotatingShips.pop();
-                continue;
-            }
-
-            anim.elapsedMs += dtMs;
-            const t = Math.min(anim.elapsedMs / anim.durationMs, 1.0);
-            const eased = 1 - Math.pow(1 - t, 3);
-
-            let diff = ((anim.targetRotY - anim.startRotY) % (Math.PI * 2) + Math.PI * 3) % (Math.PI * 2) - Math.PI;
-            child.rotation.y = anim.startRotY + diff * eased;
-
-            if (t >= 1.0) {
-                child.rotation.y = anim.targetRotY;
-                child.userData.rotationAnim = null;
-                this.activelyRotatingShips[i] = this.activelyRotatingShips[this.activelyRotatingShips.length - 1];
-                this.activelyRotatingShips.pop();
-            }
-        }
-    }
-
-    /**
-     * Applies sinusoidal camera shake that decays over time.
-     */
-    private updateCameraShake(camera: THREE.Camera): void {
-        if (this.cameraShakeDurationMs <= 0) return;
-
-        const dtMs = 16.67 * Config.timing.gameSpeedMultiplier;
-        this.cameraShakeElapsedMs += dtMs;
-
-        if (this.cameraShakeElapsedMs >= this.cameraShakeDurationMs) {
-            this.cameraShakeDurationMs = 0;
-            return;
-        }
-
-        const progress = this.cameraShakeElapsedMs / this.cameraShakeDurationMs;
-        const decay = 1 - progress;
-        const frequency = 30;
-        const offsetY = Math.sin(progress * frequency) * this.cameraShakeIntensity * decay;
-        const offsetX = Math.cos(progress * frequency * 0.7) * this.cameraShakeIntensity * decay * 0.5;
-        camera.position.y += offsetY;
-        camera.position.x += offsetX;
-    }
-
-    private updateStaticAnimations() {
-        if (!this.ledMesh || this.ledPhases.length === 0) return;
-        const ledColor = new THREE.Color(0x4169E1);
-        for (let i = 0; i < this.ledPhases.length; i++) {
-            this.ledPhases[i] += 0.05;
-            const opacity = 0.3 + (0.5 + Math.sin(this.ledPhases[i]) * 0.5) * 0.7;
-            // Modulate color brightness to simulate opacity on MeshBasicMaterial
-            ledColor.setHex(0x4169E1);
-            ledColor.multiplyScalar(opacity);
-            this.ledMesh.setColorAt(i, ledColor);
-        }
-        this.ledMesh.instanceColor!.needsUpdate = true;
-    }
 
     private isSetupPhase: boolean = false;
     public setSetupPhase(isSetup: boolean) {
         this.isSetupPhase = isSetup;
         this.fogManager.setSetupPhase(isSetup);
+        this.animationTracker.setSetupPhase(isSetup);
+        this.visibilityManager.setSetupPhase(isSetup);
     }
 
     private addRipple(worldX: number, worldZ: number, isPlayerBoard: boolean) {
@@ -600,5 +451,6 @@ export class EntityManager {
         this.enemyTurretManager.dispose();
         this.playerTurretManager = new TurretInstanceManager(this.playerBoardGroup, true);
         this.enemyTurretManager = new TurretInstanceManager(this.enemyBoardGroup, false);
+        this.animationTracker.setTurretManagers(this.playerTurretManager, this.enemyTurretManager);
     }
 }

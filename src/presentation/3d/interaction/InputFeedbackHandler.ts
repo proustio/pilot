@@ -14,6 +14,11 @@ export class InputFeedbackHandler {
     private readonly VOXEL_COUNT = 120;
     private readonly MAX_GHOST_SIZE = 5; // Max standard ship size
 
+    // Reusable objects to avoid per-frame allocation
+    private readonly _ghostWorldPos = new THREE.Vector3();
+    private readonly _localOffset = new THREE.Vector3();
+    private lastTornadoUpdateTime: number = 0;
+
     // Expose highlight groups via delegation
     public get moveHighlightGroup(): THREE.Group { return this.rangeHighlighter.moveHighlightGroup; }
     public get visionHighlightGroup(): THREE.Group { return this.rangeHighlighter.visionHighlightGroup; }
@@ -87,6 +92,10 @@ export class InputFeedbackHandler {
     private updateTornado(mesh: THREE.InstancedMesh, group: THREE.Group, time: number, isEnemy: boolean) {
         if (!mesh || !group.visible) return;
 
+        // Skip updates if less than 16ms passed (~60fps cap for this visual effect)
+        if (time - this.lastTornadoUpdateTime < 16) return;
+        this.lastTornadoUpdateTime = time;
+
         const totalHeight = 2.5;
         const speed = isEnemy ? -0.007 : 0.005;
         const tightness = Math.PI * 4;
@@ -158,17 +167,16 @@ export class InputFeedbackHandler {
             }
         });
 
-        const ghostWorldPos = new THREE.Vector3();
         if (x !== undefined && z !== undefined) {
-            const localOffset = new THREE.Vector3(x - Config.board.width / 2 + 0.5, 0, z - Config.board.width / 2 + 0.5);
+            this._localOffset.set(x - Config.board.width / 2 + 0.5, 0, z - Config.board.width / 2 + 0.5);
             const boardGrp = pickedTile.parent || pickedTile;
-            boardGrp.localToWorld(localOffset);
-            ghostWorldPos.copy(localOffset);
+            boardGrp.localToWorld(this._localOffset);
+            this._ghostWorldPos.copy(this._localOffset);
         } else {
-            pickedTile.getWorldPosition(ghostWorldPos);
+            pickedTile.getWorldPosition(this._ghostWorldPos);
         }
 
-        this.ghostGroup.position.copy(ghostWorldPos);
+        this.ghostGroup.position.copy(this._ghostWorldPos);
         this.ghostGroup.position.y += 0.45;
         this.ghostGroup.quaternion.copy(pickedTile.parent!.quaternion);
         this.ghostGroup.visible = true;

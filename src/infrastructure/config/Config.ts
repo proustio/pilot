@@ -39,7 +39,8 @@ export const Config = {
         sinkingFloor: -0.08,
         sinkingMaxAngle: 0.25,
         shadowsEnabled: true,
-        antialias: typeof navigator !== 'undefined' ? !/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) : true
+        antialias: typeof navigator !== 'undefined' ? !/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) : true,
+        fogVoxelsPerCell: 100, // Amount of voxels per cell in Classic/Russian modes
     },
 
     particles: {
@@ -56,6 +57,7 @@ export const Config = {
 
     rogue: {
         fogRadius: 7,  // cells of personal fog halo around each ship
+        voxelsPerCell: 400, // Amount of voxels per cell in Rogue mode
     },
     rogueMode: false,
 

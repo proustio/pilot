@@ -133,7 +133,7 @@ export class ShipAnimator {
      * Runs all ship animation updates for the current frame.
      */
     public update(time: number, activeRogueShipId: string | null, isPlayerTurn: boolean, isSetupPhase: boolean): void {
-        this.updateShipAnimations(time);
+        this.updateShipAnimations(time, isSetupPhase);
         this.updateShipHighlighting(time, activeRogueShipId, isPlayerTurn);
         this.updatePlacementHighlight(time, isSetupPhase);
     }
@@ -142,7 +142,9 @@ export class ShipAnimator {
      * Animates ship sinking descent, single-target movement lerp, and
      * multi-waypoint path animations for all ships on both boards.
      */
-    private updateShipAnimations(time: number): void {
+    private updateShipAnimations(time: number, isSetupPhase: boolean): void {
+        if (isSetupPhase) return;
+
         const descentRate = 0.001 * Config.timing.gameSpeedMultiplier;
         const sinkFloor = Config.visual.sinkingFloor;
         const moveLerpFactor = 0.1 * Config.timing.gameSpeedMultiplier;
@@ -266,24 +268,40 @@ export class ShipAnimator {
         }
     }
 
+    // Reusable colors — hoisted to avoid per-frame allocation
+    private static readonly HIGHLIGHT_COLOR = new THREE.Color(0xffff00);
+    private static readonly DEFAULT_COLOR = new THREE.Color(0x000000);
+
     /**
      * Pulses emissive highlight on the active Rogue-mode ship.
      * Resets emissive to black on non-active ships.
      */
     private updateShipHighlighting(time: number, activeRogueShipId: string | null, isPlayerTurn: boolean): void {
         const shouldHighlight = Config.rogueMode && isPlayerTurn && activeRogueShipId;
+        if (!shouldHighlight) {
+            // Quick pass: reset any previously highlighted ships then bail
+            for (const child of this.playerBoardGroup.children) {
+                if (child.userData.isShip) {
+                    const instancedMesh = child.userData.instancedMesh as THREE.InstancedMesh;
+                    if (instancedMesh?.material instanceof THREE.MeshStandardMaterial && instancedMesh.material.emissiveIntensity > 0) {
+                        instancedMesh.material.emissive.copy(ShipAnimator.DEFAULT_COLOR);
+                        instancedMesh.material.emissiveIntensity = 0;
+                    }
+                }
+            }
+            return;
+        }
         const currentIntensity = 0.2 + ((Math.sin(time * 5) + 1) / 2) * 0.6;
-        const highlightColor = new THREE.Color(0xffff00), defaultColor = new THREE.Color(0x000000);
 
         this.playerBoardGroup.children.forEach(child => {
             if (child.userData.isShip) {
                 const instancedMesh = child.userData.instancedMesh as THREE.InstancedMesh;
                 if (instancedMesh?.material instanceof THREE.MeshStandardMaterial) {
-                    if (shouldHighlight && child.userData.ship?.id === activeRogueShipId) {
-                        instancedMesh.material.emissive.copy(highlightColor);
+                    if (child.userData.ship?.id === activeRogueShipId) {
+                        instancedMesh.material.emissive.copy(ShipAnimator.HIGHLIGHT_COLOR);
                         instancedMesh.material.emissiveIntensity = currentIntensity;
                     } else if (instancedMesh.material.emissiveIntensity > 0) {
-                        instancedMesh.material.emissive.copy(defaultColor);
+                        instancedMesh.material.emissive.copy(ShipAnimator.DEFAULT_COLOR);
                         instancedMesh.material.emissiveIntensity = 0;
                     }
                 }

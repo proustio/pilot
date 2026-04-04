@@ -7,9 +7,15 @@ export class VesselVisibilityManager {
     public allShips: Ship[] = [];
     private shipMap: Map<Ship, THREE.Group> = new Map();
 
+    private isSetupPhase: boolean = false;
+
     constructor(
         private fogManager: FogManager
     ) { }
+
+    public setSetupPhase(isSetup: boolean): void {
+        this.isSetupPhase = isSetup;
+    }
 
     public trackShip(ship: Ship, group: THREE.Group) {
         if (!this.allShips.includes(ship)) {
@@ -23,7 +29,7 @@ export class VesselVisibilityManager {
         this.fogManager.updateRogueFog(this.allShips);
 
         // Update enemy ship visibility based on fog/sink status (Throttled)
-        if (Math.floor(time * 60) % 5 === 0) { // Every 5 frames (~12fps)
+        if (!this.isSetupPhase && Math.floor(time * 60) % 5 === 0) { // Every 5 frames (~12fps)
             this.updateEnemyShipVisibility();
         }
     }

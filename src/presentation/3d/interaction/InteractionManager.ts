@@ -22,6 +22,7 @@ export class InteractionManager {
   private isShiftDown: boolean = false;
 
   public hoveredCell: { x: number, z: number } | null = null;
+  private lastEmittedCell: { x: number, z: number, isPlayerSide: boolean } | null = null;
   private uiHoveredCell: { x: number, z: number, isPlayerSide: boolean } | null = null;
   public interactionEnabled: boolean = true;
 
@@ -30,6 +31,15 @@ export class InteractionManager {
   private lastMoveShipZ: number = -1;
   private lastMoveAction: string | null = null;
   private lastMovesRemaining: number = -1;
+
+  private lastInteractionState: {
+    x: number,
+    z: number,
+    isPlayerSide: boolean,
+    gameState: string,
+    orientation: Orientation | null,
+    shipId: string | null
+  } | null = null;
 
   private ghostCheckCache: {
     time: number;
@@ -83,7 +93,12 @@ export class InteractionManager {
 
   private handleCellLeave() {
     this.feedbackHandler.hoverCursor.visible = false;
-    if (!this.uiHoveredCell) eventBus.emit(GameEventType.MOUSE_CELL_HOVER, null);
+    if (!this.uiHoveredCell) {
+      if (this.lastEmittedCell !== null) {
+        eventBus.emit(GameEventType.MOUSE_CELL_HOVER, null);
+        this.lastEmittedCell = null;
+      }
+    }
   }
 
   public setGameLoop(gameLoop: any) {
@@ -109,27 +124,56 @@ export class InteractionManager {
     const pickedIntersection = this.raycastService.getPickedIntersection();
     const pickedTile = pickedIntersection ? pickedIntersection.object : null;
 
+    const gameState = this.gameLoop ? this.gameLoop.currentState : 'unknown';
+    const orientation = this.gameLoop ? this.gameLoop.currentPlacementOrientation : null;
+    const activeShip = (this.gameLoop && this.gameLoop.playerShipsToPlace.length > 0) ? this.gameLoop.playerShipsToPlace[0] : null;
+    const shipId = activeShip ? activeShip.id : null;
+
     const isStateBlocked = InteractivityGuard.isBlocked() ||
       !this.interactionEnabled ||
       this.isShiftDown ||
-      (this.gameLoop && (this.gameLoop.isAnimating || this.gameLoop.currentState === GameState.GAME_OVER));
+      (this.gameLoop && (this.gameLoop.isAnimating || gameState === GameState.GAME_OVER));
 
     const isPointerOverUI = InteractivityGuard.isPointerOverUI(this.lastMouseClientX, this.lastMouseClientY);
     const isInteractionBlocked = isStateBlocked || isPointerOverUI;
 
+    // Determine current cell early for comparison
+    let currentX = -1, currentZ = -1, isPlayerSide = false;
     if (pickedTile && pickedIntersection && !isInteractionBlocked) {
-      let hoverX, hoverZ;
       if (pickedTile.userData.isRaycastPlane) {
         const localPoint = pickedTile.worldToLocal(pickedIntersection.point.clone());
-        hoverX = Math.floor(localPoint.x + Config.board.width / 2);
-        hoverZ = Math.floor(localPoint.z + Config.board.width / 2);
-        hoverX = Math.max(0, Math.min(Config.board.width - 1, hoverX));
-        hoverZ = Math.max(0, Math.min(Config.board.width - 1, hoverZ));
+        currentX = Math.floor(localPoint.x + Config.board.width / 2);
+        currentZ = Math.floor(localPoint.z + Config.board.width / 2);
       } else {
         const isInstanced = pickedTile.userData.isInstancedGrid;
-        hoverX = isInstanced && pickedIntersection.instanceId !== undefined ? pickedIntersection.instanceId % Config.board.width : pickedTile.userData.cellX;
-        hoverZ = isInstanced && pickedIntersection.instanceId !== undefined ? Math.floor(pickedIntersection.instanceId / Config.board.width) : pickedTile.userData.cellZ;
+        currentX = isInstanced && pickedIntersection.instanceId !== undefined ? pickedIntersection.instanceId % Config.board.width : pickedTile.userData.cellX;
+        currentZ = isInstanced && pickedIntersection.instanceId !== undefined ? Math.floor(pickedIntersection.instanceId / Config.board.width) : pickedTile.userData.cellZ;
       }
+      currentX = Math.max(0, Math.min(Config.board.width - 1, currentX));
+      currentZ = Math.max(0, Math.min(Config.board.width - 1, currentZ));
+      isPlayerSide = pickedTile.userData.isPlayerSide;
+    }
+
+    // SKIP REMAINDER OF UPDATE IF NOTHING CHANGED
+    if (this.lastInteractionState &&
+        this.lastInteractionState.x === currentX &&
+        this.lastInteractionState.z === currentZ &&
+        this.lastInteractionState.isPlayerSide === isPlayerSide &&
+        this.lastInteractionState.gameState === gameState &&
+        this.lastInteractionState.orientation === orientation &&
+        this.lastInteractionState.shipId === shipId) {
+      
+      // Still need to update highlights for turn-based state (moves remaining, etc.)
+      this.updateMoveHighlight();
+      this.updateRangeHighlights();
+      return;
+    }
+
+    this.lastInteractionState = { x: currentX, z: currentZ, isPlayerSide, gameState, orientation, shipId };
+
+    if (pickedTile && pickedIntersection && !isInteractionBlocked) {
+      const hoverX = currentX;
+      const hoverZ = currentZ;
 
       if (this.gameLoop && this.gameLoop.currentState === GameState.SETUP_BOARD && this.gameLoop.playerShipsToPlace.length > 0) {
         this.feedbackHandler.hoverCursor.visible = false;
@@ -219,15 +263,25 @@ export class InteractionManager {
       }
 
       this.hoveredCell = { x: hoverX, z: hoverZ };
+      const isPlayerSide = pickedTile.userData.isPlayerSide;
 
-      eventBus.emit(GameEventType.MOUSE_CELL_HOVER, {
-        x: this.hoveredCell.x,
-        z: this.hoveredCell.z,
-        isPlayerSide: pickedTile.userData.isPlayerSide,
-        source: '3d',
-        clientX: this.lastMouseClientX,
-        clientY: this.lastMouseClientY
-      });
+      // Throttle event emission to only when the cell/side changes
+      const cellChanged = !this.lastEmittedCell ||
+        this.lastEmittedCell.x !== hoverX ||
+        this.lastEmittedCell.z !== hoverZ ||
+        this.lastEmittedCell.isPlayerSide !== isPlayerSide;
+
+      if (cellChanged) {
+        this.lastEmittedCell = { x: hoverX, z: hoverZ, isPlayerSide };
+        eventBus.emit(GameEventType.MOUSE_CELL_HOVER, {
+          x: hoverX,
+          z: hoverZ,
+          isPlayerSide,
+          source: '3d',
+          clientX: this.lastMouseClientX,
+          clientY: this.lastMouseClientY
+        });
+      }
 
     } else {
       this.feedbackHandler.ghostGroup.visible = false;

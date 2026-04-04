@@ -16,7 +16,7 @@ export class FogManager {
     // Phase 2: Consolidated fog mesh fields
     private consolidatedFogMesh: THREE.InstancedMesh | null = null;
     private consolidatedFogParent: THREE.Group | null = null;
-    private rogueVoxelsPerCell: number = 60;
+    private rogueVoxelsPerCell: number = Config.rogue.voxelsPerCell;
     private maxFogCapacity: number = 0;
 
     constructor(enemyBoardGroup: THREE.Group, rogueMode: boolean = false) {
@@ -223,11 +223,11 @@ export class FogManager {
         const offset = boardWidth / 2;
         const worldX = x - offset + 0.5;
         const worldZ = z - offset + 0.5;
-
-        const numVoxels = 250;
+ 
+        const numVoxels = Config.visual.fogVoxelsPerCell;
         let mat = this.fogMatProto;
         let ownsMaterial = false;
-
+ 
         if (this.rogueMode) {
             mat = this.fogMatProto.clone();
             mat.transparent = true;
@@ -235,7 +235,7 @@ export class FogManager {
             if (this.fogMatProto.onBeforeCompile) mat.onBeforeCompile = this.fogMatProto.onBeforeCompile;
             ownsMaterial = true;
         }
-
+ 
         const fogMesh = new THREE.InstancedMesh(this.fogGeo, mat, numVoxels);
         fogMesh.position.set(worldX, 0.0, worldZ);
 
