@@ -145,9 +145,6 @@ export class Settings extends BaseUIComponent {
         const optionsContainer = dropdown.querySelector('.custom-dropdown-options') as HTMLElement;
         const options = dropdown.querySelectorAll('.custom-dropdown-option');
 
-        // Store original parent so we can return the node on close
-        const originalParent = optionsContainer.parentElement!;
-
         const closeAllDropdowns = () => {
             // Collect all portaled options and return them home
             document.querySelectorAll('.settings-dropdown-portal').forEach(el => {
