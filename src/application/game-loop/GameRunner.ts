@@ -42,7 +42,7 @@ export class GameRunner {
         this.gameLoop = gameLoop;
         this.uiManager = uiManager;
 
-        this.frameInterval = 1000 / (Config.visual.fpsCap || 60);
+        this.frameInterval = 1000 / Config.visual.fpsCap;
 
         eventBus.on(GameEventType.SET_FPS_CAP, (payload: { fpsCap: number }) => {
             if (payload && payload.fpsCap) {
@@ -95,8 +95,8 @@ export class GameRunner {
         const frameEnd = performance.now();
         this.totalJsTimeInWindow += (frameEnd - frameStart);
 
-        // Stats update every 1s
-        if (time - this.lastFpsUpdateTime >= 1000) {
+        // Stats update
+        if (time - this.lastFpsUpdateTime >= Config.timing.interactionTimeout) {
             this.updateStats(time);
         }
     }
@@ -138,18 +138,7 @@ export class GameRunner {
         const avgFrameTime = windowDuration / this.framesInWindow;
         let vsyncStatus = 'OFF';
 
-        // Potential lock targets (standard monitor refresh rates and their halves)
-        const commonLocks = [30, 48, 60, 72, 75, 90, 120, 144, 240];
-
-        if (Config.visual.fpsCap > fpsValue + 5 && cpuLoad < 40) {
-            const nearestLock = commonLocks.find(lock => Math.abs(fpsValue - lock) <= 2);
-            if (nearestLock) {
-                vsyncStatus = `${nearestLock}Hz LOCK`;
-            }
-        }
-
         const emitterStats = this.entityManager.getEmitterStats();
-
         eventBus.emit(GameEventType.UPDATE_GEEK_STATS, {
             fps: fpsValue,
             vsync: vsyncStatus,

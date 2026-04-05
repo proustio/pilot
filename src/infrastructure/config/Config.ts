@@ -19,7 +19,8 @@ export const Config = {
         cameraLerpSpeed: 0.07,
         boardFlipWaitMs: 100,
         rogueMoveDurationMs: 600,
-        rogueTurnDurationMs: 400
+        rogueTurnDurationMs: 400,
+        interactionTimeout: 300 // debounce timeout for UI events and stats updates
     },
     visual: {
         isDayMode: new Date().getHours() >= 6 && new Date().getHours() < 18,

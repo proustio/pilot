@@ -271,6 +271,7 @@ export class EntityManager {
         }
 
         this.visibilityManager.trackShip(ship, shipGroup);
+        this.shipAnimator.registerShipMesh(shipGroup);
 
         const boardOffset = Config.board.width / 2;
         let cx = x, cz = z;
@@ -346,11 +347,13 @@ export class EntityManager {
             const turretManager = isPlayer ? this.playerTurretManager : this.enemyTurretManager;
             // Remove old turret instances before recreating
             turretManager.removeTurrets(ship.id);
+            this.shipAnimator.unregisterShipMesh(targetGroup);
             parentGroup.remove(targetGroup);
             const newShipGroup = ShipFactory.createShip(ship, ship.headX, ship.headZ, orientation, isPlayer, parentGroup, turretManager);
             newShipGroup.position.copy(targetGroup.position);
             targetGroup = newShipGroup;
             this.visibilityManager.trackShip(ship, targetGroup);
+            this.shipAnimator.registerShipMesh(targetGroup);
         }
 
         const boardOffset = Config.board.width / 2;
@@ -451,6 +454,7 @@ export class EntityManager {
         this.particleSystem.clear();
         this.projectileManager.clear();
         this.fogManager.reset();
+        this.shipAnimator.clearShipMeshes();
 
         // Dispose and recreate turret managers for the new match
         this.playerTurretManager.dispose();

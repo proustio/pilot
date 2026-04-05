@@ -38,7 +38,7 @@ export class AnimationStateTracker {
 
     constructor(
         private playerBoardGroup: THREE.Group,
-        private enemyBoardGroup: THREE.Group,
+        _enemyBoardGroup: THREE.Group,
         private playerTurretManager: TurretInstanceManager,
         private enemyTurretManager: TurretInstanceManager
     ) {}
@@ -98,15 +98,14 @@ export class AnimationStateTracker {
         if (shipAnimator.hasActivePathAnimation()) return true;
 
         const sinkFloor = Config.visual.sinkingFloor;
-        for (const group of [this.playerBoardGroup, this.enemyBoardGroup]) {
-            for (const child of group.children) {
-                if (child.userData.isShip && (
-                    (child.userData.isSinking && child.position.y > sinkFloor) ||
-                    (child.userData.targetPosition &&
-                        child.position.distanceToSquared(child.userData.targetPosition) > 0.001)
-                )) {
-                    return true;
-                }
+        for (const child of this.activelySinkingShips) {
+            if (child.position.y > sinkFloor) return true;
+        }
+
+        for (const child of this.activelyMovingShips) {
+            if (child.userData.targetPosition &&
+                child.position.distanceToSquared(child.userData.targetPosition) > 0.001) {
+                return true;
             }
         }
         return false;

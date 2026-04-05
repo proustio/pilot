@@ -33,13 +33,39 @@ interface PathAnimationState {
  */
 export class ShipAnimator {
     private playerBoardGroup: THREE.Group;
-    private enemyBoardGroup: THREE.Group;
 
     private placementHighlightMesh?: THREE.Mesh;
+    private shipMeshes: THREE.Object3D[] = [];
 
-    constructor(playerBoardGroup: THREE.Group, enemyBoardGroup: THREE.Group) {
+    constructor(playerBoardGroup: THREE.Group, _enemyBoardGroup: THREE.Group) {
         this.playerBoardGroup = playerBoardGroup;
-        this.enemyBoardGroup = enemyBoardGroup;
+    }
+
+    /**
+     * Registers a ship mesh for animation tracking, avoiding scene graph traversal.
+     */
+    public registerShipMesh(mesh: THREE.Object3D): void {
+        if (!this.shipMeshes.includes(mesh)) {
+            this.shipMeshes.push(mesh);
+        }
+    }
+
+    /**
+     * Unregisters a ship mesh.
+     */
+    public unregisterShipMesh(mesh: THREE.Object3D): void {
+        const idx = this.shipMeshes.indexOf(mesh);
+        if (idx !== -1) {
+            this.shipMeshes[idx] = this.shipMeshes[this.shipMeshes.length - 1];
+            this.shipMeshes.pop();
+        }
+    }
+
+    /**
+     * Clears all registered ship meshes (used on match reset).
+     */
+    public clearShipMeshes(): void {
+        this.shipMeshes.length = 0;
     }
 
     /**
@@ -47,10 +73,8 @@ export class ShipAnimator {
      * Used by EntityManager.isBusy() to block turn progression during movement.
      */
     public hasActivePathAnimation(): boolean {
-        for (const group of [this.playerBoardGroup, this.enemyBoardGroup]) {
-            for (const child of group.children) {
-                if (child.userData.isShip && child.userData.pathAnimation) return true;
-            }
+        for (const child of this.shipMeshes) {
+            if (child.userData.pathAnimation) return true;
         }
         return false;
     }
@@ -59,11 +83,9 @@ export class ShipAnimator {
      * Finds a ship mesh group by ship ID across both board groups.
      */
     public findShipGroup(shipId: string): THREE.Group | null {
-        for (const boardGroup of [this.playerBoardGroup, this.enemyBoardGroup]) {
-            for (const child of boardGroup.children) {
-                if (child.userData.isShip && child.userData.ship?.id === shipId) {
-                    return child as THREE.Group;
-                }
+        for (const child of this.shipMeshes) {
+            if (child.userData.ship?.id === shipId) {
+                return child as THREE.Group;
             }
         }
         return null;
@@ -155,70 +177,56 @@ export class ShipAnimator {
             : 16;
         this.lastUpdateTime = time;
 
-        [this.playerBoardGroup, this.enemyBoardGroup].forEach(group => {
-            group.children.forEach((child: THREE.Object3D) => {
-                if (!child.userData.isShip) return;
+        for (let i = this.shipMeshes.length - 1; i >= 0; i--) {
+            const child = this.shipMeshes[i];
+            if (child.userData.ship.isSunk() && !child.userData.isSinking) {
+                child.userData.isSinking = true;
+                child.userData.sinkAngleZ = (Math.random() - 0.5) * 0.3;
+                child.userData.sinkAngleX = (Math.random() - 0.5) * 0.3;
+            }
 
-                // Sync sinking state from domain
-                if (child.userData.ship.isSunk() && !child.userData.isSinking) {
-                    child.userData.isSinking = true;
-                    child.userData.sinkAngleZ = (Math.random() - 0.5) * 0.3;
-                    child.userData.sinkAngleX = (Math.random() - 0.5) * 0.3;
-
-                    // The sync handles cases where domain state sunk without startSinkingShip call.
-                    // We must push it into the active animation array here to ensure it animates.
-                    // Instead of tightly coupling ShipAnimator to EntityManager's flat arrays directly,
-                    // we'll rely on the EntityManager to collect sinking ships on `isBusy`, but since we
-                    // are refactoring EntityManager to NOT traverse the tree on `update`, we must ensure
-                    // it gets added. We'll emit an event to EntityManager to register it.
-                    // But actually, we can just process it here since we are iterating them anyway.
-                    // Wait, the review said the regression was "the agent forgot to populate these arrays".
-                    // That refers to EntityManager.ts where the flat arrays exist.
-                    // Let's just process the animations directly here for now as they were.
+            if (child.userData.isSinking) {
+                // Rule: Mines disappear immediately, ships/sonars sink
+                if (child.userData.ship.specialType === 'mine') {
+                    if (child.parent) child.parent.remove(child);
+                    this.unregisterShipMesh(child);
+                    continue;
                 }
 
-                if (child.userData.isSinking) {
-                    // Rule: Mines disappear immediately, ships/sonars sink
-                    if (child.userData.ship.specialType === 'mine') {
-                        group.remove(child);
-                        return;
-                    }
+                if (child.position.y > sinkFloor) {
+                    child.position.y -= descentRate;
+                    const sinkProgress = Math.min(1.0, -child.position.y / Math.abs(sinkFloor));
+                    child.rotation.z = sinkProgress * (child.userData.sinkAngleZ ?? 0.15);
+                    child.rotation.x = sinkProgress * (child.userData.sinkAngleX ?? 0.08);
 
-                    if (child.position.y > sinkFloor) {
-                        child.position.y -= descentRate;
-                        const sinkProgress = Math.min(1.0, -child.position.y / Math.abs(sinkFloor));
-                        child.rotation.z = sinkProgress * (child.userData.sinkAngleZ ?? 0.15);
-                        child.rotation.x = sinkProgress * (child.userData.sinkAngleX ?? 0.08);
-
-                        if (child.userData.isBroken && child.userData.halfA && child.userData.halfB) {
-                            const breakAngle = sinkProgress * 0.4;
-                            if (child.userData.shipOrientation === Orientation.Horizontal) {
-                                child.userData.halfA.rotation.z = breakAngle;
-                                child.userData.halfB.rotation.z = -breakAngle;
-                            } else {
-                                child.userData.halfA.rotation.x = -breakAngle;
-                                child.userData.halfB.rotation.x = breakAngle;
-                            }
+                    if (child.userData.isBroken && child.userData.halfA && child.userData.halfB) {
+                        const breakAngle = sinkProgress * 0.4;
+                        if (child.userData.shipOrientation === Orientation.Horizontal) {
+                            child.userData.halfA.rotation.z = breakAngle;
+                            child.userData.halfB.rotation.z = -breakAngle;
+                        } else {
+                            child.userData.halfA.rotation.x = -breakAngle;
+                            child.userData.halfB.rotation.x = breakAngle;
                         }
                     }
                 }
+            }
 
-                // Multi-waypoint path animation (takes priority over single-target lerp)
-                const anim = child.userData.pathAnimation as PathAnimationState | undefined;
-                if (anim) {
-                    this.updatePathAnimation(child, anim, dtMs);
-                    return; // skip single-target lerp while path animation is active
-                }
+            // Multi-waypoint path animation (takes priority over single-target lerp)
+            const anim = child.userData.pathAnimation as PathAnimationState | undefined;
+            if (anim) {
+                this.updatePathAnimation(child, anim, dtMs);
+                continue; // skip single-target lerp while path animation is active
+            }
 
-                if (child.userData.targetPosition) {
-                    child.position.lerp(child.userData.targetPosition, moveLerpFactor);
-                    if (child.position.distanceToSquared(child.userData.targetPosition) < 0.001) {
-                        child.position.copy(child.userData.targetPosition);
-                        child.userData.targetPosition = null;
-                    }
+            if (child.userData.targetPosition) {
+                child.position.lerp(child.userData.targetPosition, moveLerpFactor);
+                if (child.position.distanceToSquared(child.userData.targetPosition) < 0.001) {
+                    child.position.copy(child.userData.targetPosition);
+                    child.userData.targetPosition = null;
                 }
-            });
-        });
+            }
+        }
     }
 
     /**
@@ -280,33 +288,29 @@ export class ShipAnimator {
         const shouldHighlight = Config.rogueMode && isPlayerTurn && activeRogueShipId;
         if (!shouldHighlight) {
             // Quick pass: reset any previously highlighted ships then bail
-            for (const child of this.playerBoardGroup.children) {
-                if (child.userData.isShip) {
-                    const instancedMesh = child.userData.instancedMesh as THREE.InstancedMesh;
-                    if (instancedMesh?.material instanceof THREE.MeshStandardMaterial && instancedMesh.material.emissiveIntensity > 0) {
-                        instancedMesh.material.emissive.copy(ShipAnimator.DEFAULT_COLOR);
-                        instancedMesh.material.emissiveIntensity = 0;
-                    }
+            for (const child of this.shipMeshes) {
+                const instancedMesh = child.userData.instancedMesh as THREE.InstancedMesh;
+                if (instancedMesh?.material instanceof THREE.MeshStandardMaterial && instancedMesh.material.emissiveIntensity > 0) {
+                    instancedMesh.material.emissive.copy(ShipAnimator.DEFAULT_COLOR);
+                    instancedMesh.material.emissiveIntensity = 0;
                 }
             }
             return;
         }
         const currentIntensity = 0.2 + ((Math.sin(time * 5) + 1) / 2) * 0.6;
 
-        this.playerBoardGroup.children.forEach(child => {
-            if (child.userData.isShip) {
-                const instancedMesh = child.userData.instancedMesh as THREE.InstancedMesh;
-                if (instancedMesh?.material instanceof THREE.MeshStandardMaterial) {
-                    if (child.userData.ship?.id === activeRogueShipId) {
-                        instancedMesh.material.emissive.copy(ShipAnimator.HIGHLIGHT_COLOR);
-                        instancedMesh.material.emissiveIntensity = currentIntensity;
-                    } else if (instancedMesh.material.emissiveIntensity > 0) {
-                        instancedMesh.material.emissive.copy(ShipAnimator.DEFAULT_COLOR);
-                        instancedMesh.material.emissiveIntensity = 0;
-                    }
+        for (const child of this.shipMeshes) {
+            const instancedMesh = child.userData.instancedMesh as THREE.InstancedMesh;
+            if (instancedMesh?.material instanceof THREE.MeshStandardMaterial) {
+                if (child.userData.ship?.id === activeRogueShipId) {
+                    instancedMesh.material.emissive.copy(ShipAnimator.HIGHLIGHT_COLOR);
+                    instancedMesh.material.emissiveIntensity = currentIntensity;
+                } else if (instancedMesh.material.emissiveIntensity > 0) {
+                    instancedMesh.material.emissive.copy(ShipAnimator.DEFAULT_COLOR);
+                    instancedMesh.material.emissiveIntensity = 0;
                 }
             }
-        });
+        }
     }
 
     /**

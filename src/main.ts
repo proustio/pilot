@@ -12,10 +12,13 @@ import { GameRunner } from './application/game-loop/GameRunner';
 import { eventBus, GameEventType } from './application/events/GameEventBus';
 import { NetworkManager } from './infrastructure/network/NetworkManager';
 
+import { InteractionDebouncer } from './presentation/ui/utils/InteractionDebouncer';
+
 const init = () => {
     try {
         console.log(`[${new Date().toISOString()}] App: Initializing...`);
         Config.loadConfig();
+        InteractionDebouncer.enable();
         NetworkManager.init(Config.network.serverUrl);
         
         ThemeManager.getInstance().applyToDOM();
