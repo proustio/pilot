@@ -25,6 +25,14 @@ export class AIEngine {
      */
     public reset() {
         this.huntStack = [];
+        this.targeting.initWorker();
+    }
+
+    /**
+     * Terminates any running worker in AITargeting.
+     */
+    public dispose() {
+        this.targeting.terminateWorker();
     }
 
     /**

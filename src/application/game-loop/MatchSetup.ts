@@ -40,6 +40,12 @@ export class MatchSetup {
      * auto-placing the player's fleet when Auto-Battler is active.
      */
     public startNewMatch(match: Match): void {
+        // Ensure old workers are terminated when starting a new match
+        if (this.state.match) {
+            this.state.aiEngine.dispose();
+            this.state.playerAIEngine.dispose();
+        }
+
         this.state.match = match;
         this.state.aiEngine.reset();
         this.state.playerAIEngine.reset();
@@ -130,6 +136,12 @@ export class MatchSetup {
         activeRogueShipIndex?: number,
         activeEnemyRogueShipIndex?: number
     ): void {
+        // Ensure old workers are terminated when loading a match
+        if (this.state.match) {
+            this.state.aiEngine.dispose();
+            this.state.playerAIEngine.dispose();
+        }
+
         this.state.match = match;
 
         // Restore global resources if available

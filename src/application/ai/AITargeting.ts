@@ -13,6 +13,44 @@ export class AITargeting {
     /**
      * Computes the next coordinate to attack based on difficulty.
      */
+    private worker: Worker | null = null;
+    private workerCallbacks = new Map<number, (result: any) => void>();
+    private workerMessageId = 0;
+
+    constructor() {
+        this.initWorker();
+    }
+
+    public initWorker() {
+        if (typeof Worker !== 'undefined' && !this.worker) {
+            this.worker = new Worker(new URL('./ai.worker.ts', import.meta.url), { type: 'module' });
+            this.worker.onmessage = (e: MessageEvent) => {
+                const { id, heatMap } = e.data;
+                const callback = this.workerCallbacks.get(id);
+                if (callback) {
+                    callback(heatMap);
+                    this.workerCallbacks.delete(id);
+                }
+            };
+            this.worker.onerror = (e) => {
+                console.error("AI Worker Error:", e);
+                // On error, we'll just clear pending callbacks so they don't hang
+                for (const callback of this.workerCallbacks.values()) {
+                    callback(null); // signal failure
+                }
+                this.workerCallbacks.clear();
+            };
+        }
+    }
+
+    public terminateWorker() {
+        if (this.worker) {
+            this.worker.terminate();
+            this.worker = null;
+        }
+        this.workerCallbacks.clear();
+    }
+
     public async computeNextMove(
         playerBoard: Board,
         match: Match,
@@ -110,12 +148,13 @@ export class AITargeting {
                 return resolve(this.computeEasyMove(board));
             }
 
-            if (typeof Worker !== 'undefined') {
-                const worker = new Worker(new URL('./ai.worker.ts', import.meta.url), { type: 'module' });
-
-                worker.onmessage = (e: MessageEvent) => {
-                    const heatMap: Uint32Array = e.data.heatMap;
-                    worker.terminate();
+            if (this.worker) {
+                const messageId = this.workerMessageId++;
+                this.workerCallbacks.set(messageId, (heatMap: Uint32Array | null) => {
+                    if (!heatMap) {
+                        resolve(this.computeEasyMove(board));
+                        return;
+                    }
 
                     const width = board.width;
                     const height = board.height;
@@ -145,17 +184,12 @@ export class AITargeting {
                     } else {
                         resolve(bestTarget);
                     }
-                };
-
-                worker.onerror = (e) => {
-                    console.error("AI Worker Error:", e);
-                    worker.terminate();
-                    resolve(this.computeEasyMove(board));
-                };
+                });
 
                 const shipData = aliveShips.map(s => ({ size: s.size, isEnemy: s.isEnemy }));
 
-                worker.postMessage({
+                this.worker.postMessage({
+                    id: messageId,
                     width: board.width,
                     height: board.height,
                     gridState: board.gridState,

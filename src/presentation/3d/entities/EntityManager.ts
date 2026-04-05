@@ -398,7 +398,7 @@ export class EntityManager {
         this.visibilityManager.update(this.time);
 
         this.updateStaticAnimations();
-        this.particleSystem.update();
+        this.particleSystem.update(this.time);
 
         // Draw call budget enforcement (Req 5.1–5.4)
         if (renderer) {

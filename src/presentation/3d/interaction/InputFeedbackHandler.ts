@@ -4,15 +4,18 @@ import { Orientation } from '../../../domain/fleet/Ship';
 import { ThemeManager } from '../../theme/ThemeManager';
 import { eventBus, GameEventType } from '../../../application/events/GameEventBus';
 import { RangeHighlighter } from './RangeHighlighter';
+import TornadoVert from '../shaders/Tornado.vert?raw';
+import TornadoFrag from '../shaders/Tornado.frag?raw';
 
 export class InputFeedbackHandler {
     public hoverCursor: THREE.Group;
     public ghostGroup: THREE.Group;
     private rangeHighlighter: RangeHighlighter;
     private hoverCursorVoxels!: THREE.InstancedMesh;
-    private dummy: THREE.Object3D = new THREE.Object3D();
+    private tornadoMaterial!: THREE.ShaderMaterial;
     private readonly VOXEL_COUNT = 120;
     private readonly MAX_GHOST_SIZE = 5; // Max standard ship size
+    private isEnemyCursor: boolean = false;
 
     // Expose highlight groups via delegation
     public get moveHighlightGroup(): THREE.Group { return this.rangeHighlighter.moveHighlightGroup; }
@@ -42,9 +45,6 @@ export class InputFeedbackHandler {
     private updateVoxelTheme() {
         if (!this.hoverCursorVoxels) return;
         const color = ThemeManager.getInstance().getPlayerShipColor();
-        const mat = this.hoverCursorVoxels.material as THREE.MeshStandardMaterial;
-        mat.color.copy(color);
-        mat.emissive.copy(color).multiplyScalar(0.5);
 
         for (let i = 0; i < this.VOXEL_COUNT; i++) {
             this.hoverCursorVoxels.setColorAt(i, color);
@@ -55,23 +55,36 @@ export class InputFeedbackHandler {
     }
 
     private createHoverCursor(isEnemy: boolean): THREE.Group {
+        this.isEnemyCursor = isEnemy;
         const voxelSize = 0.1;
         const geometry = new THREE.BoxGeometry(voxelSize, voxelSize, voxelSize);
         const color = isEnemy ? new THREE.Color(0xFF0000) : ThemeManager.getInstance().getPlayerShipColor();
 
-        const material = new THREE.MeshStandardMaterial({
-            color: color,
-            emissive: color,
-            emissiveIntensity: 0.5,
+        const indices = new Float32Array(this.VOXEL_COUNT);
+        for (let i = 0; i < this.VOXEL_COUNT; i++) {
+            indices[i] = i;
+        }
+        geometry.setAttribute('voxelIndex', new THREE.InstancedBufferAttribute(indices, 1));
+
+        this.tornadoMaterial = new THREE.ShaderMaterial({
+            vertexShader: TornadoVert,
+            fragmentShader: TornadoFrag,
+            uniforms: {
+                time: { value: 0 }
+            },
             transparent: true,
-            opacity: 0.8,
-            metalness: 0.8,
-            roughness: 0.2
+            depthWrite: false
         });
 
-        const instMesh = new THREE.InstancedMesh(geometry, material, this.VOXEL_COUNT);
+        const instMesh = new THREE.InstancedMesh(geometry, this.tornadoMaterial, this.VOXEL_COUNT);
         instMesh.renderOrder = 999;
         instMesh.frustumCulled = false;
+
+        const identity = new THREE.Matrix4();
+        for (let i = 0; i < this.VOXEL_COUNT; i++) {
+            instMesh.setMatrixAt(i, identity);
+            instMesh.setColorAt(i, color);
+        }
 
         this.hoverCursorVoxels = instMesh;
 
@@ -81,52 +94,10 @@ export class InputFeedbackHandler {
     }
 
     public update(time: number) {
-        this.updateTornado(this.hoverCursorVoxels, this.hoverCursor, time, false);
-    }
+        if (!this.hoverCursorVoxels || !this.hoverCursor.visible) return;
 
-    private updateTornado(mesh: THREE.InstancedMesh, group: THREE.Group, time: number, isEnemy: boolean) {
-        if (!mesh || !group.visible) return;
-
-        const totalHeight = 2.5;
-        const speed = isEnemy ? -0.007 : 0.005;
-        const tightness = Math.PI * 4;
-        const baseRadius = 0.05;
-        const topRadius = 0.7;
-
-        const spiralCount = 6;
-        const voxelsPerSpiral = this.VOXEL_COUNT / spiralCount;
-
-        const pulse = Math.sin(time * 0.004) * 0.15;
-
-        for (let i = 0; i < this.VOXEL_COUNT; i++) {
-            const spiralIndex = i % spiralCount;
-            const stepInSpiral = Math.floor(i / spiralCount);
-            const t = stepInSpiral / voxelsPerSpiral;
-
-            // Tornado extends upward from y=0 (group origin sits at water level)
-            const y = t * totalHeight;
-
-            const angleOffset = (spiralIndex / spiralCount) * Math.PI * 2;
-            const angle = (time * speed) + (t * tightness) + angleOffset;
-
-            const r = (baseRadius + (t * (topRadius - baseRadius))) * (1.0 + pulse * t);
-
-            const x = Math.cos(angle) * r;
-            const z = Math.sin(angle) * r;
-
-            this.dummy.position.set(x, y, z);
-
-            const individualPulse = Math.sin(time * 0.01 + t * 10.0) * 0.1;
-            const scale = (0.7 + individualPulse) * (0.5 + t * 0.5);
-            this.dummy.scale.setScalar(scale);
-
-            this.dummy.rotation.set(angle, t * Math.PI, 0);
-
-            this.dummy.updateMatrix();
-            mesh.setMatrixAt(i, this.dummy.matrix);
-        }
-
-        mesh.instanceMatrix.needsUpdate = true;
+        const speed = this.isEnemyCursor ? -0.007 : 0.005;
+        this.tornadoMaterial.uniforms.time.value = time * speed;
     }
 
     public updateGhost(ship: any, orientation: Orientation, pickedTile: THREE.Object3D, isValid: boolean, x?: number, z?: number) {

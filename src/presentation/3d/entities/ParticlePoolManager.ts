@@ -2,6 +2,8 @@ import * as THREE from 'three';
 import { ParticlePoolType, InstancePool, PARTICLE_POOL_CONFIG, InstancedParticle, _white } from './ParticleTypes';
 import { ThemeManager } from '../../theme/ThemeManager';
 import { eventBus, GameEventType } from '../../../application/events/GameEventBus';
+import ParticleVert from '../shaders/Particle.vert?raw';
+import ParticleFrag from '../shaders/Particle.frag?raw';
 
 export class ParticlePoolManager {
     public pools = new Map<ParticlePoolType, InstancePool>();
@@ -16,7 +18,7 @@ export class ParticlePoolManager {
     public splashGeo = new THREE.BoxGeometry(PARTICLE_POOL_CONFIG.splash.size, PARTICLE_POOL_CONFIG.splash.size, PARTICLE_POOL_CONFIG.splash.size);
     public fogGeo = new THREE.BoxGeometry(PARTICLE_POOL_CONFIG.fog.size, PARTICLE_POOL_CONFIG.fog.size, PARTICLE_POOL_CONFIG.fog.size);
 
-    // Shared materials (allocated once, never cloned during gameplay)
+    // Provide standard materials for backwards compatibility or fallback where needed
     public fireMat = new THREE.MeshStandardMaterial({ color: 0xff4500, emissive: 0xff0000, roughness: 0.4 });
     public secondaryFireMat = new THREE.MeshStandardMaterial({ color: 0xffa500, emissive: 0xff8c00, roughness: 0.4 });
     public greySmokeMat = new THREE.MeshStandardMaterial({ color: 0xa0a0a0, transparent: true, opacity: 0.8 });
@@ -26,7 +28,21 @@ export class ParticlePoolManager {
     public shipVoxelMat = new THREE.MeshStandardMaterial({ color: 0x888888, roughness: 0.7 });
     public fogMat = new THREE.MeshStandardMaterial({ color: 0xcccccc, transparent: true, opacity: 0.6 });
 
+    // The shared shader material used for the GPU particles
+    public particleShaderMaterial: THREE.ShaderMaterial;
+
     constructor() {
+        this.particleShaderMaterial = new THREE.ShaderMaterial({
+            vertexShader: ParticleVert,
+            fragmentShader: ParticleFrag,
+            uniforms: {
+                time: { value: 0 },
+                gameSpeed: { value: 1.0 }
+            },
+            transparent: true,
+            depthWrite: false
+        });
+
         const updateParticleTheme = () => {
             const tm = ThemeManager.getInstance();
             const wc = tm.getWaterColors();
@@ -40,22 +56,42 @@ export class ParticlePoolManager {
         if (this.poolsInitialized) return;
         this.poolParent = parentGroup;
 
-        const poolDefs: { type: ParticlePoolType; geo: THREE.BufferGeometry; mat: THREE.Material }[] = [
-            { type: 'fire', geo: this.fireGeo, mat: this.fireMat },
-            { type: 'smoke', geo: this.smokeGeo, mat: this.greySmokeMat },
-            { type: 'explosion', geo: this.explosionGeo, mat: this.shipVoxelMat },
-            { type: 'splash', geo: this.splashGeo, mat: this.splashMatBlue },
-            { type: 'fog', geo: this.fogGeo, mat: this.fogMat },
+        const poolDefs: { type: ParticlePoolType; geo: THREE.BufferGeometry; mat: THREE.Material; pType: number }[] = [
+            { type: 'fire', geo: this.fireGeo, mat: this.particleShaderMaterial, pType: 0 },
+            { type: 'smoke', geo: this.smokeGeo, mat: this.particleShaderMaterial, pType: 1 },
+            { type: 'explosion', geo: this.explosionGeo, mat: this.particleShaderMaterial, pType: 2 },
+            { type: 'splash', geo: this.splashGeo, mat: this.particleShaderMaterial, pType: 3 },
+            { type: 'fog', geo: this.fogGeo, mat: this.particleShaderMaterial, pType: 5 },
         ];
 
         for (const def of poolDefs) {
             const capacity = PARTICLE_POOL_CONFIG[def.type].capacity;
+
+            // Setup custom attributes for the shader
+            const instanceVelocity = new Float32Array(capacity * 3);
+            const spawnTime = new Float32Array(capacity);
+            const maxLife = new Float32Array(capacity);
+            const particleType = new Float32Array(capacity);
+
+            // Initialize attributes to 0
+            for (let i = 0; i < capacity; i++) {
+                particleType[i] = def.pType;
+            }
+
+            def.geo.setAttribute('instanceVelocity', new THREE.InstancedBufferAttribute(instanceVelocity, 3));
+            def.geo.setAttribute('spawnTime', new THREE.InstancedBufferAttribute(spawnTime, 1));
+            def.geo.setAttribute('maxLife', new THREE.InstancedBufferAttribute(maxLife, 1));
+            def.geo.setAttribute('particleType', new THREE.InstancedBufferAttribute(particleType, 1));
+
+            // Create InstancedMesh using the shared shader material
             const mesh = new THREE.InstancedMesh(def.geo, def.mat, capacity);
             mesh.frustumCulled = false;
 
             // Force instanceColor buffer creation
             mesh.setColorAt(0, _white);
-            mesh.setColorAt(0, new THREE.Color(0, 0, 0));
+            for (let i = 0; i < capacity; i++) {
+                mesh.setColorAt(i, _white);
+            }
 
             // Initialize all instances to zero-scale (hidden)
             for (let i = 0; i < capacity; i++) {
@@ -151,11 +187,7 @@ export class ParticlePoolManager {
         this.clear(particlesArray);
         for (const [, pool] of this.pools) {
             pool.mesh.geometry.dispose();
-            if (Array.isArray(pool.mesh.material)) {
-                pool.mesh.material.forEach(m => m.dispose());
-            } else {
-                pool.mesh.material.dispose();
-            }
+            // The shader material is shared, don't dispose per pool
             pool.mesh.dispose();
         }
         this.pools.clear();
@@ -177,5 +209,6 @@ export class ParticlePoolManager {
         this.splashMatBlue.dispose();
         this.shipVoxelMat.dispose();
         this.fogMat.dispose();
+        this.particleShaderMaterial.dispose();
     }
 }

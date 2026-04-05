@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { Config } from '../../../infrastructure/config/Config';
 import { EmitterManager, EmitterSpawnCallback } from './EmitterManager';
-import { ParticlePoolType, InstancedParticle, _tempMatrix, _tempQuaternion, _tempScale, _tempColor, _tempPos } from './ParticleTypes';
+import { InstancedParticle, _tempMatrix, _tempQuaternion, _tempScale, _tempColor, _tempPos, ParticlePoolType } from './ParticleTypes';
 import { ParticlePoolManager } from './ParticlePoolManager';
 import { ParticleSpawner } from './ParticleSpawner';
 
@@ -73,58 +73,51 @@ export class ParticleSystem {
 
     // ── Update loop ──────────────────────────────────────────────
 
-    public update(): void {
+    public update(time?: number): void {
         // Delegate emitter spawn scheduling
         this.emitterManager.updateEmitters(this as unknown as EmitterSpawnCallback);
 
         const speed = Config.timing.gameSpeedMultiplier;
-        const poolsWithActivity = new Set<ParticlePoolType>();
+
+        // Update global shader uniforms
+        if (time !== undefined) {
+            this.poolManager.particleShaderMaterial.uniforms.time.value = time;
+            this.poolManager.particleShaderMaterial.uniforms.gameSpeed.value = speed;
+        }
+
+        const needsMatrixUpdate = new Set<ParticlePoolType>();
 
         for (let i = this.particles.length - 1; i >= 0; i--) {
             const p = this.particles[i];
-            this.updateParticleBehavior(p, speed);
+
+            p.life -= 0.016 * speed; // Keep logical life tracked for cleanup
 
             if (this.isParticleExpired(p)) {
                 this.removeParticle(i, p);
             } else {
-                this.updateParticleTransform(p);
-                this.updateParticleColor(p);
+                // Update matrix to track moving objects correctly
+                const pool = this.poolManager.pools.get(p.poolType);
+                if (pool) {
+                    _tempPos.copy(p.position);
+                    p.group.localToWorld(_tempPos);
+
+                    if (this.poolManager.poolParent) {
+                        this.poolManager.poolParent.worldToLocal(_tempPos);
+                    }
+
+                    _tempMatrix.makeScale(p.scale, p.scale, p.scale);
+                    _tempMatrix.setPosition(_tempPos);
+                    pool.mesh.setMatrixAt(p.slotIndex, _tempMatrix);
+                    needsMatrixUpdate.add(p.poolType);
+                }
             }
-            poolsWithActivity.add(p.poolType);
         }
 
-        this.flushPoolUpdates(poolsWithActivity);
-    }
-
-    private updateParticleBehavior(p: InstancedParticle, speed: number): void {
-        // Apply velocity
-        p.position.addScaledVector(p.velocity, speed);
-
-        if (p.isSmoke) {
-            // Smoke expands, drifts, fades
-            p.scale += 0.005 * speed;
-            p.velocity.x += (Math.random() - 0.5) * 0.001 * speed;
-            p.velocity.z += (Math.random() - 0.5) * 0.001 * speed;
-            p.opacity = (p.life / p.maxLife) * 0.8;
-        } else if (p.isFire) {
-            // Fire shrinks and flickers
-            p.scale *= Math.pow(0.96, speed);
-            p.velocity.x += (Math.random() - 0.5) * 0.005 * speed;
-            p.velocity.z += (Math.random() - 0.5) * 0.005 * speed;
-        } else if (p.poolType !== 'fog') {
-            // Gravity for explosion/splash
-            p.velocity.y -= 0.005 * speed;
-        }
-
-        // Rotation
-        p.rotation.x += 0.05 * speed;
-        p.rotation.y += 0.05 * speed;
-
-        p.life -= 0.016 * speed;
-
-        // Scale down at end of life
-        if (p.life < p.maxLife * 0.3 && p.poolType !== 'fog') {
-            p.scale *= 0.9;
+        for (const poolType of needsMatrixUpdate) {
+            const pool = this.poolManager.pools.get(poolType);
+            if (pool) {
+                pool.mesh.instanceMatrix.needsUpdate = true;
+            }
         }
     }
 
@@ -144,6 +137,10 @@ export class ParticleSystem {
         const pool = this.poolManager.pools.get(p.poolType)!;
         this.poolManager.releaseSlot(pool, p.slotIndex);
 
+        // Reset GPU instance so it doesn't render from an old position
+        pool.mesh.setMatrixAt(p.slotIndex, this.poolManager.zeroMatrix);
+        pool.mesh.instanceMatrix.needsUpdate = true;
+
         // Swap-and-pop
         const lastIdx = this.particles.length - 1;
         if (index !== lastIdx) {
@@ -153,62 +150,6 @@ export class ParticleSystem {
             movedPool.slotToParticleIndex.set(movedP.slotIndex, index);
         }
         this.particles.pop();
-    }
-
-    private updateParticleTransform(p: InstancedParticle): void {
-        // Write instance matrix
-        // p.position is in the particle's group local space.
-        // Pool meshes live under poolParent (playerBoardGroup), so we must
-        // transform from group-local → world → poolParent-local.
-        const pool = this.poolManager.pools.get(p.poolType)!;
-        _tempPos.copy(p.position);
-        if (p.group !== this.poolManager.poolParent && this.poolManager.poolParent) {
-            p.group.localToWorld(_tempPos);
-            this.poolManager.poolParent.worldToLocal(_tempPos);
-        }
-        _tempQuaternion.setFromEuler(p.rotation);
-        _tempScale.setScalar(p.scale);
-        _tempMatrix.compose(_tempPos, _tempQuaternion, _tempScale);
-        pool.mesh.setMatrixAt(p.slotIndex, _tempMatrix);
-    }
-
-    private updateParticleColor(p: InstancedParticle): void {
-        // Write per-instance color for types that need it
-        if (!p.isSmoke && !p.isFire) return;
-
-        const pool = this.poolManager.pools.get(p.poolType)!;
-        
-        if (p.isSmoke) {
-            // Modulate color alpha via brightness to simulate opacity fade
-            // InstancedMesh doesn't support per-instance opacity, so we darken toward black
-            pool.mesh.getColorAt(p.slotIndex, _tempColor);
-            // Scale RGB by opacity ratio to simulate transparency
-            const opacityFactor = Math.max(0, p.opacity);
-            _tempColor.multiplyScalar(opacityFactor / Math.max(opacityFactor + 0.01, _tempColor.r, _tempColor.g, _tempColor.b));
-            pool.mesh.setColorAt(p.slotIndex, _tempColor);
-        } else if (p.isFire) {
-            // Fire flicker via color intensity variation
-            const flicker = 1.0 + Math.random() * 2.0;
-            pool.mesh.getColorAt(p.slotIndex, _tempColor);
-            // Boost brightness for flicker effect
-            _tempColor.setRGB(
-                Math.min(1, _tempColor.r * flicker * 0.5),
-                Math.min(1, _tempColor.g * flicker * 0.3),
-                Math.min(1, _tempColor.b * flicker * 0.1)
-            );
-            pool.mesh.setColorAt(p.slotIndex, _tempColor);
-        }
-    }
-
-    private flushPoolUpdates(poolsWithActivity: Set<ParticlePoolType>): void {
-        // Set needsUpdate flags only on pools that had activity
-        for (const type of poolsWithActivity) {
-            const pool = this.poolManager.pools.get(type)!;
-            pool.mesh.instanceMatrix.needsUpdate = true;
-            if (pool.mesh.instanceColor) {
-                pool.mesh.instanceColor.needsUpdate = true;
-            }
-        }
     }
 
     // ── Clear and dispose ────────────────────────────────────────

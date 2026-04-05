@@ -26,6 +26,11 @@ vi.mock('three', () => {
         copy() { return this; }
     }
 
+    class MockEuler {
+        x = 0; y = 0; z = 0;
+        constructor(x = 0, y = 0, z = 0) { this.x = x; this.y = y; this.z = z; }
+    }
+
     class MockMatrix4 { }
 
     class MockBufferGeometry { }
@@ -58,6 +63,8 @@ vi.mock('three', () => {
         userData: any = {};
         visible = true;
         parent: any = null;
+        matrix = {};
+        updateMatrix = vi.fn();
         add(child: any) {
             child.parent = this;
             this.children.push(child);
@@ -148,6 +155,7 @@ vi.mock('three', () => {
         MeshBasicMaterial: MockMeshBasicMaterial,
         Object3D: MockObject3D,
         Vector3: MockVector3,
+        Euler: MockEuler,
         Color: MockColor
     };
 });
@@ -376,7 +384,15 @@ describe('Phase 2 Bug Condition: Per-Cell InstancedMesh Architecture and Wirefra
 
         createdInstancedMeshes.length = 0;
 
-        ShipFactory.createShip(ship, 5, 5, Orientation.Horizontal, true, targetGroup);
+        // Mock a TurretInstanceManager
+        const mockTurretManager = {
+            addTurrets: vi.fn(),
+            removeTurrets: vi.fn(),
+            updateTransform: vi.fn(),
+            dispose: vi.fn()
+        } as any;
+
+        ShipFactory.createShip(ship, 5, 5, Orientation.Horizontal, true, targetGroup, mockTurretManager);
 
         // Find the ship group that was added to targetGroup
         const shipGroup = (targetGroup as any).children.find(

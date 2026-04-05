@@ -19,19 +19,22 @@ export class ParticleSpawner {
         const scale = 0.6 + intensity * 0.6;
         const life = 0.5 + Math.random() * 0.25;
 
+        const pos = new THREE.Vector3(
+            x + (Math.random() - 0.5) * 0.2,
+            y,
+            z + (Math.random() - 0.5) * 0.2
+        );
+        const vel = new THREE.Vector3(
+            (Math.random() - 0.5) * 0.02,
+            0.04 + Math.random() * 0.04,
+            (Math.random() - 0.5) * 0.02
+        );
+
         const particle: InstancedParticle = {
             poolType: 'fire',
             slotIndex: slot,
-            position: new THREE.Vector3(
-                x + (Math.random() - 0.5) * 0.2,
-                y,
-                z + (Math.random() - 0.5) * 0.2
-            ),
-            velocity: new THREE.Vector3(
-                (Math.random() - 0.5) * 0.02,
-                0.04 + Math.random() * 0.04,
-                (Math.random() - 0.5) * 0.02
-            ),
+            position: pos,
+            velocity: vel,
             rotation: new THREE.Euler(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI),
             scale,
             opacity: 1.0,
@@ -48,9 +51,26 @@ export class ParticleSpawner {
         this.particles.push(particle);
         pool.slotToParticleIndex.set(slot, idx);
 
-        // Write initial color (fire or secondary fire color)
         const color = isSecondary ? this.poolManager.secondaryFireMat.color : this.poolManager.fireMat.color;
+
+        // Write GPU attributes
         pool.mesh.setColorAt(slot, color);
+        if (pool.mesh.instanceColor) pool.mesh.instanceColor.needsUpdate = true;
+
+            // the initial matrix will be set in ParticleSystem.update
+
+        const geo = pool.mesh.geometry;
+        const iv = geo.attributes.instanceVelocity as THREE.InstancedBufferAttribute;
+        iv.setXYZ(slot, vel.x, vel.y, vel.z);
+        iv.needsUpdate = true;
+
+        const st = geo.attributes.spawnTime as THREE.InstancedBufferAttribute;
+        st.setX(slot, this.poolManager.particleShaderMaterial.uniforms.time.value);
+        st.needsUpdate = true;
+
+        const ml = geo.attributes.maxLife as THREE.InstancedBufferAttribute;
+        ml.setX(slot, life);
+        ml.needsUpdate = true;
     }
 
     public spawnSmoke(x: number, y: number, z: number, color: string, group: THREE.Object3D, intensity: number = 1.0, spawnRateScale: number = 1.0): void {
@@ -64,19 +84,22 @@ export class ParticleSpawner {
         const scale = 0.8 + intensity * 0.4;
         const life = 1.0 + Math.random() * 0.5;
 
+        const pos = new THREE.Vector3(
+            x + (Math.random() - 0.5) * 0.7,
+            y,
+            z + (Math.random() - 0.5) * 0.7
+        );
+        const vel = new THREE.Vector3(
+            (Math.random() - 0.5) * 0.005,
+            0.02 + Math.random() * 0.02,
+            (Math.random() - 0.5) * 0.005
+        );
+
         const particle: InstancedParticle = {
             poolType: 'smoke',
             slotIndex: slot,
-            position: new THREE.Vector3(
-                x + (Math.random() - 0.5) * 0.7,
-                y,
-                z + (Math.random() - 0.5) * 0.7
-            ),
-            velocity: new THREE.Vector3(
-                (Math.random() - 0.5) * 0.005,
-                0.02 + Math.random() * 0.02,
-                (Math.random() - 0.5) * 0.005
-            ),
+            position: pos,
+            velocity: vel,
             rotation: new THREE.Euler(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI),
             scale,
             opacity: 0.8,
@@ -93,9 +116,24 @@ export class ParticleSpawner {
         this.particles.push(particle);
         pool.slotToParticleIndex.set(slot, idx);
 
-        // Write smoke color (no material.clone() — shared material, per-instance color)
         _tempColor.set(color);
         pool.mesh.setColorAt(slot, _tempColor);
+        if (pool.mesh.instanceColor) pool.mesh.instanceColor.needsUpdate = true;
+
+        // the initial matrix will be set in ParticleSystem.update
+
+        const geo = pool.mesh.geometry;
+        const iv = geo.attributes.instanceVelocity as THREE.InstancedBufferAttribute;
+        iv.setXYZ(slot, vel.x, vel.y, vel.z);
+        iv.needsUpdate = true;
+
+        const st = geo.attributes.spawnTime as THREE.InstancedBufferAttribute;
+        st.setX(slot, this.poolManager.particleShaderMaterial.uniforms.time.value);
+        st.needsUpdate = true;
+
+        const ml = geo.attributes.maxLife as THREE.InstancedBufferAttribute;
+        ml.setX(slot, life);
+        ml.needsUpdate = true;
     }
 
     public spawnExplosion(x: number, y: number, z: number, group: THREE.Object3D, spawnRateScale: number = 1.0): void {
@@ -111,19 +149,22 @@ export class ParticleSpawner {
             const isFire = Math.random() > 0.5;
             const life = 1.0;
 
+            const pos = new THREE.Vector3(
+                x + (Math.random() - 0.5) * 0.5,
+                y + Math.random() * 0.5,
+                z + (Math.random() - 0.5) * 0.5
+            );
+            const vel = new THREE.Vector3(
+                (Math.random() - 0.5) * 0.05,
+                Math.random() * 0.1 + 0.05,
+                (Math.random() - 0.5) * 0.05
+            );
+
             const particle: InstancedParticle = {
                 poolType: 'explosion',
                 slotIndex: slot,
-                position: new THREE.Vector3(
-                    x + (Math.random() - 0.5) * 0.5,
-                    y + Math.random() * 0.5,
-                    z + (Math.random() - 0.5) * 0.5
-                ),
-                velocity: new THREE.Vector3(
-                    (Math.random() - 0.5) * 0.05,
-                    Math.random() * 0.1 + 0.05,
-                    (Math.random() - 0.5) * 0.05
-                ),
+                position: pos,
+                velocity: vel,
                 rotation: new THREE.Euler(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI),
                 scale: 1.0,
                 opacity: 1.0,
@@ -140,9 +181,24 @@ export class ParticleSpawner {
             this.particles.push(particle);
             pool.slotToParticleIndex.set(slot, idx);
 
-            // Color: fire orange or grey smoke
             const color = isFire ? this.poolManager.fireMat.color : this.poolManager.greySmokeMat.color;
             pool.mesh.setColorAt(slot, color);
+            if (pool.mesh.instanceColor) pool.mesh.instanceColor.needsUpdate = true;
+
+            // the initial matrix will be set in ParticleSystem.update
+
+            const geo = pool.mesh.geometry;
+            const iv = geo.attributes.instanceVelocity as THREE.InstancedBufferAttribute;
+            iv.setXYZ(slot, vel.x, vel.y, vel.z);
+            iv.needsUpdate = true;
+
+            const st = geo.attributes.spawnTime as THREE.InstancedBufferAttribute;
+            st.setX(slot, this.poolManager.particleShaderMaterial.uniforms.time.value);
+            st.needsUpdate = true;
+
+            const ml = geo.attributes.maxLife as THREE.InstancedBufferAttribute;
+            ml.setX(slot, life);
+            ml.needsUpdate = true;
         }
     }
 
@@ -159,19 +215,22 @@ export class ParticleSpawner {
             const isWhite = Math.random() > 0.6;
             const life = 0.6 + Math.random() * 0.4;
 
+            const pos = new THREE.Vector3(
+                x + (Math.random() - 0.5) * 0.4,
+                y,
+                z + (Math.random() - 0.5) * 0.4
+            );
+            const vel = new THREE.Vector3(
+                (Math.random() - 0.5) * 0.04,
+                Math.random() * 0.15 + 0.05,
+                (Math.random() - 0.5) * 0.04
+            );
+
             const particle: InstancedParticle = {
                 poolType: 'splash',
                 slotIndex: slot,
-                position: new THREE.Vector3(
-                    x + (Math.random() - 0.5) * 0.4,
-                    y,
-                    z + (Math.random() - 0.5) * 0.4
-                ),
-                velocity: new THREE.Vector3(
-                    (Math.random() - 0.5) * 0.04,
-                    Math.random() * 0.15 + 0.05,
-                    (Math.random() - 0.5) * 0.04
-                ),
+                position: pos,
+                velocity: vel,
                 rotation: new THREE.Euler(0, 0, 0),
                 scale: 1.0,
                 opacity: isWhite ? 0.7 : 0.8,
@@ -190,6 +249,22 @@ export class ParticleSpawner {
 
             const color = isWhite ? this.poolManager.splashMatWhite.color : this.poolManager.splashMatBlue.color;
             pool.mesh.setColorAt(slot, color);
+            if (pool.mesh.instanceColor) pool.mesh.instanceColor.needsUpdate = true;
+
+            // the initial matrix will be set in ParticleSystem.update
+
+            const geo = pool.mesh.geometry;
+            const iv = geo.attributes.instanceVelocity as THREE.InstancedBufferAttribute;
+            iv.setXYZ(slot, vel.x, vel.y, vel.z);
+            iv.needsUpdate = true;
+
+            const st = geo.attributes.spawnTime as THREE.InstancedBufferAttribute;
+            st.setX(slot, this.poolManager.particleShaderMaterial.uniforms.time.value);
+            st.needsUpdate = true;
+
+            const ml = geo.attributes.maxLife as THREE.InstancedBufferAttribute;
+            ml.setX(slot, life);
+            ml.needsUpdate = true;
         }
     }
 
@@ -204,19 +279,22 @@ export class ParticleSpawner {
             const slot = this.poolManager.allocateSlot(pool, this.particles);
             const life = 1.5 + Math.random() * 0.5;
 
+            const pos = new THREE.Vector3(
+                x + (Math.random() - 0.5) * 0.5,
+                y + Math.random() * 0.5,
+                z + (Math.random() - 0.5) * 0.5
+            );
+            const vel = new THREE.Vector3(
+                (Math.random() - 0.5) * 0.15,
+                Math.random() * 0.15 + 0.05,
+                (Math.random() - 0.5) * 0.15
+            );
+
             const particle: InstancedParticle = {
                 poolType: 'explosion',
                 slotIndex: slot,
-                position: new THREE.Vector3(
-                    x + (Math.random() - 0.5) * 0.5,
-                    y + Math.random() * 0.5,
-                    z + (Math.random() - 0.5) * 0.5
-                ),
-                velocity: new THREE.Vector3(
-                    (Math.random() - 0.5) * 0.15,
-                    Math.random() * 0.15 + 0.05,
-                    (Math.random() - 0.5) * 0.15
-                ),
+                position: pos,
+                velocity: vel,
                 rotation: new THREE.Euler(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI),
                 scale: 0.67, // 0.1/0.15 ratio to match original voxel size vs explosion geo
                 opacity: 1.0,
@@ -234,6 +312,27 @@ export class ParticleSpawner {
             pool.slotToParticleIndex.set(slot, idx);
 
             pool.mesh.setColorAt(slot, this.poolManager.shipVoxelMat.color);
+            if (pool.mesh.instanceColor) pool.mesh.instanceColor.needsUpdate = true;
+
+            // the initial matrix will be set in ParticleSystem.update
+
+            const geo = pool.mesh.geometry;
+            const iv = geo.attributes.instanceVelocity as THREE.InstancedBufferAttribute;
+            iv.setXYZ(slot, vel.x, vel.y, vel.z);
+            iv.needsUpdate = true;
+
+            const st = geo.attributes.spawnTime as THREE.InstancedBufferAttribute;
+            st.setX(slot, this.poolManager.particleShaderMaterial.uniforms.time.value);
+            st.needsUpdate = true;
+
+            const ml = geo.attributes.maxLife as THREE.InstancedBufferAttribute;
+            ml.setX(slot, life);
+            ml.needsUpdate = true;
+
+            // Mark as voxel explosion to differentiate from regular explosion if needed
+            const pt = geo.attributes.particleType as THREE.InstancedBufferAttribute;
+            pt.setX(slot, 4); // 4 = voxelExplosion
+            pt.needsUpdate = true;
         }
     }
 
@@ -244,10 +343,12 @@ export class ParticleSpawner {
         const slot = this.poolManager.allocateSlot(pool, this.particles);
         const life = 999; // Fog particles are long-lived, managed externally
 
+        const pos = new THREE.Vector3(x, y, z);
+
         const particle: InstancedParticle = {
             poolType: 'fog',
             slotIndex: slot,
-            position: new THREE.Vector3(x, y, z),
+            position: pos,
             velocity: new THREE.Vector3(0, 0, 0),
             rotation: new THREE.Euler(0, 0, 0),
             scale: 1.0,
@@ -266,5 +367,26 @@ export class ParticleSpawner {
         pool.slotToParticleIndex.set(slot, idx);
 
         pool.mesh.setColorAt(slot, this.poolManager.fogMat.color);
+        if (pool.mesh.instanceColor) pool.mesh.instanceColor.needsUpdate = true;
+
+        // the initial matrix will be set in ParticleSystem.update
+
+        const geo = pool.mesh.geometry;
+        const iv = geo.attributes.instanceVelocity as THREE.InstancedBufferAttribute;
+        iv.setXYZ(slot, 0, 0, 0);
+        iv.needsUpdate = true;
+
+        const st = geo.attributes.spawnTime as THREE.InstancedBufferAttribute;
+        st.setX(slot, this.poolManager.particleShaderMaterial.uniforms.time.value);
+        st.needsUpdate = true;
+
+        const ml = geo.attributes.maxLife as THREE.InstancedBufferAttribute;
+        ml.setX(slot, life);
+        ml.needsUpdate = true;
+
+        // Ensure particleType is 5 (fog)
+        const pt = geo.attributes.particleType as THREE.InstancedBufferAttribute;
+        pt.setX(slot, 5);
+        pt.needsUpdate = true;
     }
 }

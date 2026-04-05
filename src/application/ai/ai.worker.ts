@@ -8,7 +8,7 @@ interface ShipData {
 }
 
 self.onmessage = (e: MessageEvent) => {
-    const { width, height, gridState, mode, aliveShips, ITERATIONS } = e.data;
+    const { id, width, height, gridState, mode, aliveShips, ITERATIONS } = e.data;
 
     const heatMap = new Uint32Array(width * height);
 
@@ -29,7 +29,7 @@ self.onmessage = (e: MessageEvent) => {
         }
     }
 
-    self.postMessage({ heatMap });
+    self.postMessage({ id, heatMap });
 };
 
 function canFitShipExperimentally(
