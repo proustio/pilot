@@ -11,7 +11,7 @@ export class InputFeedbackHandler {
     private rangeHighlighter: RangeHighlighter;
     private hoverCursorVoxels!: THREE.InstancedMesh;
     private dummy: THREE.Object3D = new THREE.Object3D();
-    private readonly VOXEL_COUNT = 120;
+    private readonly VOXEL_COUNT = 64; // Reduced from 120 to 64 for 2x performance
     private readonly MAX_GHOST_SIZE = 5; // Max standard ship size
 
     // Reusable objects to avoid per-frame allocation
@@ -92,8 +92,8 @@ export class InputFeedbackHandler {
     private updateTornado(mesh: THREE.InstancedMesh, group: THREE.Group, time: number, isEnemy: boolean) {
         if (!mesh || !group.visible) return;
 
-        // Skip updates if less than 16ms passed (~60fps cap for this visual effect)
-        if (time - this.lastTornadoUpdateTime < 16) return;
+        // Skip updates if less than 32ms passed (~30fps cap for this visual effect)
+        if (time - this.lastTornadoUpdateTime < 32) return;
         this.lastTornadoUpdateTime = time;
 
         const totalHeight = 2.5;

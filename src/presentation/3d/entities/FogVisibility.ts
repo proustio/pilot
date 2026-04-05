@@ -14,12 +14,14 @@ export class FogVisibility {
     private isSetupPhase: boolean = false;
     public rogueMode: boolean;
 
-    // O(1) Cache for visibility
-    private visibilityCache: Uint8Array;
+    private width: number;
+    private height: number;
 
     constructor(rogueMode: boolean) {
         this.rogueMode = rogueMode;
-        const totalCells = Config.board.width * Config.board.height;
+        this.width = rogueMode ? Config.board.rogueWidth : Config.board.width;
+        this.height = rogueMode ? Config.board.rogueHeight : Config.board.height;
+        const totalCells = this.width * this.height;
         this.visibilityCache = new Uint8Array(totalCells);
     }
 
@@ -46,17 +48,19 @@ export class FogVisibility {
     }
 
     public revealCellTemporarily(x: number, z: number, duration: number = 2): void {
-        const boardWidth = Config.board.width;
-        const index = z * boardWidth + x;
-        this.temporarilyRevealedCells.set(index, duration);
-        this.rebuildCache();
+        const index = z * this.width + x;
+        if (index >= 0 && index < this.visibilityCache.length) {
+            this.temporarilyRevealedCells.set(index, duration);
+            this.rebuildCache();
+        }
     }
 
     public revealCellPermanently(x: number, z: number): void {
-        const boardWidth = Config.board.width;
-        const index = z * boardWidth + x;
-        this.permanentlyRevealedCells.add(index);
-        this.rebuildCache();
+        const index = z * this.width + x;
+        if (index >= 0 && index < this.visibilityCache.length) {
+            this.permanentlyRevealedCells.add(index);
+            this.rebuildCache();
+        }
     }
 
     public onTurnChange(): void {
@@ -78,8 +82,7 @@ export class FogVisibility {
         if (!this.rogueMode) return;
 
         this.visibilityCache.fill(0); // 0 = fogged, 1 = revealed
-        const boardWidth = Config.board.width;
-        const totalCells = boardWidth * Config.board.height;
+        const totalCells = this.width * this.height;
 
         // 1. Permanent and Temporary reveals
         for (const index of this.permanentlyRevealedCells) {
@@ -89,11 +92,12 @@ export class FogVisibility {
             if (index >= 0 && index < totalCells) this.visibilityCache[index] = 1;
         }
 
-        // 2. Setup Phase reveal (player quadrant)
+        // 2. Setup Phase reveal (player quadrant: (0-6, 0-6))
         if (this.isSetupPhase) {
             for (let z = 0; z < 7; z++) {
+                const zOff = z * this.width;
                 for (let x = 0; x < 7; x++) {
-                    const idx = z * boardWidth + x;
+                    const idx = zOff + x;
                     if (idx < totalCells) this.visibilityCache[idx] = 1;
                 }
             }
@@ -105,19 +109,18 @@ export class FogVisibility {
         for (const ship of this.lastShipsOnBoard) {
             if (ship.isEnemy || ship.isSunk()) continue;
             const coords = ship.getOccupiedCoordinates();
+            const radius = ship.visionRadius;
             for (const c of coords) {
-                const startX = Math.max(0, c.x - ship.visionRadius);
-                const endX = Math.min(boardWidth - 1, c.x + ship.visionRadius);
-                const startZ = Math.max(0, c.z - ship.visionRadius);
-                const endZ = Math.min(Config.board.height - 1, c.z + ship.visionRadius);
+                const startX = Math.max(0, c.x - radius);
+                const endX = Math.min(this.width - 1, c.x + radius);
+                const startZ = Math.max(0, c.z - radius);
+                const endZ = Math.min(this.height - 1, c.z + radius);
 
                 for (let z = startZ; z <= endZ; z++) {
+                    const zOff = z * this.width;
                     for (let x = startX; x <= endX; x++) {
-                        const dx = Math.abs(c.x - x);
-                        const dz = Math.abs(c.z - z);
-                        if (Math.max(dx, dz) <= ship.visionRadius) {
-                            this.visibilityCache[z * boardWidth + x] = 1;
-                        }
+                        // Math.max(dx, dz) <= radius is already covered by loop bounds
+                        this.visibilityCache[zOff + x] = 1;
                     }
                 }
             }
@@ -129,8 +132,8 @@ export class FogVisibility {
             for (let i = 0; i < coords.length; i++) {
                 if (ship.isSunk() || ship.segments[i] === false) {
                     const c = coords[i];
-                    if (c.x >= 0 && c.x < boardWidth && c.z >= 0 && c.z < Config.board.height) {
-                        this.visibilityCache[c.z * boardWidth + c.x] = 1;
+                    if (c.x >= 0 && c.x < this.width && c.z >= 0 && c.z < this.height) {
+                        this.visibilityCache[c.z * this.width + c.x] = 1;
                     }
                 }
             }
@@ -172,8 +175,7 @@ export class FogVisibility {
     }
 
     public isCellRevealed(x: number, z: number): boolean {
-        const boardWidth = Config.board.width;
-        const fogIdx = z * boardWidth + x;
+        const fogIdx = z * this.width + x;
 
         // Permanent and temporary reveals apply to all modes
         if (this.permanentlyRevealedCells.has(fogIdx)) return true;

@@ -40,8 +40,8 @@ export class FogManager {
 
         this.consolidatedFogParent = parentGroup;
 
-        const boardWidth = Config.board.width;
-        const boardHeight = Config.board.height;
+        const boardWidth = this.rogueMode ? Config.board.rogueWidth : Config.board.width;
+        const boardHeight = this.rogueMode ? Config.board.rogueHeight : Config.board.height;
         this.maxFogCapacity = boardWidth * boardHeight * this.rogueVoxelsPerCell;
 
         const consolidatedGeo = this.fogGeo.clone();
@@ -173,8 +173,8 @@ export class FogManager {
         if (!this.fogDirty) return;
         this.visibility.setInitialized(true);
 
-        const boardWidth = Config.board.width;
-        const boardHeight = Config.board.height;
+        const boardWidth = this.rogueMode ? Config.board.rogueWidth : Config.board.width;
+        const boardHeight = this.rogueMode ? Config.board.rogueHeight : Config.board.height;
         const offset = boardWidth / 2;
 
         // Update ship vision for isCellRevealed queries
@@ -185,17 +185,18 @@ export class FogManager {
         let instanceIdx = 0;
 
         for (let z = 0; z < boardHeight; z++) {
+            const zOff = z * boardWidth;
+            const worldZ = z - offset + 0.5;
             for (let x = 0; x < boardWidth; x++) {
-                const fogIdx = z * boardWidth + x;
+                const fogIdx = zOff + x;
                 const targetOpacity = this.visibility.computeCellOpacity(x, z, fogIdx);
 
                 // For consolidated mesh: include voxels for fogged cells only
                 if (this.consolidatedFogMesh && targetOpacity > 0.01) {
                     const worldX = x - offset + 0.5;
-                    const worldZ = z - offset + 0.5;
 
+                    mat4.makeTranslation(worldX, 0, worldZ);
                     for (let j = 0; j < this.rogueVoxelsPerCell; j++) {
-                        mat4.makeTranslation(worldX, 0, worldZ);
                         this.consolidatedFogMesh.setMatrixAt(instanceIdx, mat4);
                         instanceIdx++;
                     }

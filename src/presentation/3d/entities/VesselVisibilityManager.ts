@@ -25,11 +25,15 @@ export class VesselVisibilityManager {
     }
 
     public update(time: number) {
-        // Dynamic fog and enemy visibility
-        this.fogManager.updateRogueFog(this.allShips);
+        const frameCount = Math.floor(time * 60);
 
-        // Update enemy ship visibility based on fog/sink status (Throttled)
-        if (!this.isSetupPhase && Math.floor(time * 60) % 5 === 0) { // Every 5 frames (~12fps)
+        // Dynamic fog and enemy visibility (Throttled to ~30fps even when dirty)
+        if (frameCount % 2 === 0) {
+            this.fogManager.updateRogueFog(this.allShips);
+        }
+
+        // Update enemy ship visibility based on fog/sink status (Throttled to ~12fps)
+        if (!this.isSetupPhase && frameCount % 5 === 0) {
             this.updateEnemyShipVisibility();
         }
     }

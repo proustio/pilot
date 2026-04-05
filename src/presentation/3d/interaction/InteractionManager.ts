@@ -156,17 +156,19 @@ export class InteractionManager {
     }
 
     // SKIP REMAINDER OF UPDATE IF NOTHING CHANGED
-    if (this.lastInteractionState &&
-        this.lastInteractionState.x === currentX &&
-        this.lastInteractionState.z === currentZ &&
-        this.lastInteractionState.isPlayerSide === isPlayerSide &&
-        this.lastInteractionState.gameState === gameState &&
-        this.lastInteractionState.orientation === orientation &&
-        this.lastInteractionState.shipId === shipId) {
-      
-      // Still need to update highlights for turn-based state (moves remaining, etc.)
-      this.updateMoveHighlight();
-      this.updateRangeHighlights();
+    // This is the core optimization to avoid redundant per-frame highlight mesh rebuilding
+    const stateHasChanged = !this.lastInteractionState ||
+        this.lastInteractionState.x !== currentX ||
+        this.lastInteractionState.z !== currentZ ||
+        this.lastInteractionState.isPlayerSide !== isPlayerSide ||
+        this.lastInteractionState.gameState !== gameState ||
+        this.lastInteractionState.orientation !== orientation ||
+        this.lastInteractionState.shipId !== shipId;
+
+    if (!stateHasChanged) {
+      // Still need to update range highlights occasionally if turn state changed, 
+      // but only if a ship exists and it's player turn. 
+      // Moved inside updateMoveHighlight's internal check for deeper efficiency.
       return;
     }
 

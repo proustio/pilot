@@ -27,6 +27,10 @@ export class RangeHighlighter {
         new THREE.Euler(-Math.PI / 2, 0, 0)
     );
 
+    // State tracking to avoid redundant O(N^2) rebuilds
+    private lastMoveData: { id: string, x: number, z: number, moves: number } | null = null;
+    private lastRangeData: { id: string, x: number, z: number, vision: number } | null = null;
+
     constructor(highlightParent: THREE.Object3D) {
         this.maxCells = Config.board.width * Config.board.height;
         this.zeroMatrix = new THREE.Matrix4().makeScale(0, 0, 0);
@@ -100,8 +104,18 @@ export class RangeHighlighter {
     }
 
     public rebuildMoveHighlight(ship: any, board: any): void {
-        const boardOffset = Config.board.width / 2;
         const moves = ship.movesRemaining;
+        const currentData = { id: ship.id, x: ship.headX, z: ship.headZ, moves };
+        
+        if (this.lastMoveData && 
+            this.lastMoveData.id === currentData.id && 
+            this.lastMoveData.x === currentData.x && 
+            this.lastMoveData.z === currentData.z && 
+            this.lastMoveData.moves === currentData.moves) {
+            return;
+        }
+
+        const boardOffset = Config.board.width / 2;
         let slotIndex = 0;
 
         for (let x = 0; x < board.width; x++) {
@@ -122,22 +136,31 @@ export class RangeHighlighter {
             }
         }
 
-        // Zero remaining slots
-        for (let i = slotIndex; i < this.maxCells; i++) {
-            this.moveInstancedMesh.setMatrixAt(i, this.zeroMatrix);
-        }
+        this.moveInstancedMesh.count = slotIndex;
         this.moveInstancedMesh.instanceMatrix.needsUpdate = true;
+        this.lastMoveData = currentData;
     }
 
     public rebuildRangeHighlights(ship: any, board: any): void {
         if (!ship || !ship.isPlaced) {
-            this.clearPool(this.visionInstancedMesh);
-            this.clearPool(this.attackInstancedMesh);
+            this.visionInstancedMesh.count = 0;
+            this.attackInstancedMesh.count = 0;
+            this.lastRangeData = null;
+            return;
+        }
+
+        const visionRadius = ship.visionRadius || 5;
+        const currentData = { id: ship.id, x: ship.headX, z: ship.headZ, vision: visionRadius };
+
+        if (this.lastRangeData &&
+            this.lastRangeData.id === currentData.id &&
+            this.lastRangeData.x === currentData.x &&
+            this.lastRangeData.z === currentData.z &&
+            this.lastRangeData.vision === currentData.vision) {
             return;
         }
 
         const boardOffset = Config.board.width / 2;
-        const visionRadius = ship.visionRadius || 5;
         const attackRadius = visionRadius * 2;
 
         let visionSlot = 0;
@@ -167,16 +190,11 @@ export class RangeHighlighter {
             }
         }
 
-        // Zero remaining slots
-        for (let i = visionSlot; i < this.maxCells; i++) {
-            this.visionInstancedMesh.setMatrixAt(i, this.zeroMatrix);
-        }
-        for (let i = attackSlot; i < this.maxCells; i++) {
-            this.attackInstancedMesh.setMatrixAt(i, this.zeroMatrix);
-        }
-
+        this.visionInstancedMesh.count = visionSlot;
+        this.attackInstancedMesh.count = attackSlot;
         this.visionInstancedMesh.instanceMatrix.needsUpdate = true;
         this.attackInstancedMesh.instanceMatrix.needsUpdate = true;
+        this.lastRangeData = currentData;
     }
 
     public hideAll(): void {
@@ -192,9 +210,7 @@ export class RangeHighlighter {
     }
 
     private clearPool(mesh: THREE.InstancedMesh): void {
-        for (let i = 0; i < mesh.count; i++) {
-            mesh.setMatrixAt(i, this.zeroMatrix);
-        }
+        mesh.count = 0;
         mesh.instanceMatrix.needsUpdate = true;
     }
 
