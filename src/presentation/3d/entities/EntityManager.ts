@@ -2,25 +2,26 @@ import * as THREE from 'three';
 import { Ship, Orientation } from '../../../domain/fleet/Ship';
 import { Config } from '../../../infrastructure/config/Config';
 import { BoardBuilder } from './BoardBuilder';
-import { ShipFactory } from './ShipFactory';
 import { ProjectileManager } from './ProjectileManager';
 import { FogManager } from './FogManager';
 import { ParticleSystem } from './ParticleSystem';
 import { WaterShaderManager } from './WaterShaderManager';
 import { VesselVisibilityManager } from './VesselVisibilityManager';
 import { eventBus, GameEventType } from '../../../application/events/GameEventBus';
-import { SonarEffect } from './SonarEffect';
 import { ShipAnimator } from './ShipAnimator';
 import { TurretInstanceManager } from './TurretInstanceManager';
 import { AnimationStateTracker } from './AnimationStateTracker';
+import { ShipPlacementCoordinator } from './ShipPlacementCoordinator';
+import { EntityEventCoordinator } from './EntityEventCoordinator';
+import { AttackMarkerManager } from './AttackMarkerManager';
 
 export class EntityManager {
     private scene: THREE.Scene;
 
     public masterBoardGroup: THREE.Group;
     private staticGroup: THREE.Group;
-    private playerBoardGroup: THREE.Group;
-    private enemyBoardGroup: THREE.Group;
+    public playerBoardGroup: THREE.Group;
+    public enemyBoardGroup: THREE.Group;
 
     private targetRotationX: number = 0;
 
@@ -35,20 +36,24 @@ export class EntityManager {
     private wasBusy: boolean = false;
 
     // Sub-managers
-    private particleSystem: ParticleSystem;
-    private fogManager: FogManager;
+    public particleSystem: ParticleSystem;
+    public fogManager: FogManager;
     private projectileManager: ProjectileManager;
-    private waterManager: WaterShaderManager;
-    private visibilityManager: VesselVisibilityManager;
-    private shipAnimator: ShipAnimator;
-    private animationTracker: AnimationStateTracker;
+    public waterManager: WaterShaderManager;
+    public visibilityManager: VesselVisibilityManager;
+    public shipAnimator: ShipAnimator;
+    public animationTracker: AnimationStateTracker;
 
-    private activeRogueShipId: string | null = null;
+    public activeRogueShipId: string | null = null;
     private isPlayerTurn: boolean = false;
 
     // Turret instancing managers (one per board side)
     private playerTurretManager: TurretInstanceManager;
     private enemyTurretManager: TurretInstanceManager;
+
+    // Coordinators
+    public shipPlacementCoordinator: ShipPlacementCoordinator;
+    public attackMarkerManager: AttackMarkerManager;
 
     constructor(scene: THREE.Scene) {
         this.scene = scene;
@@ -106,111 +111,26 @@ export class EntityManager {
         );
         this.animationTracker.setLedMesh(buildResult.ledMesh, buildResult.ledPhases);
 
-        eventBus.on(GameEventType.ACTIVE_SHIP_CHANGED, (payload) => {
-            this.activeRogueShipId = payload.ship?.id || null;
-        });
+        this.shipPlacementCoordinator = new ShipPlacementCoordinator(
+            this.playerBoardGroup,
+            this.enemyBoardGroup,
+            this.playerTurretManager,
+            this.enemyTurretManager,
+            this.visibilityManager,
+            this.shipAnimator,
+            this.addRipple.bind(this)
+        );
 
-        eventBus.on(GameEventType.RESUME_GAME, () => {
-            if (!this.isBusy()) {
-                eventBus.emit(GameEventType.GAME_ANIMATIONS_COMPLETE, undefined as any);
-            }
-        });
+        this.attackMarkerManager = new AttackMarkerManager(
+            this.playerBoardGroup,
+            this.enemyBoardGroup,
+            this.projectileManager,
+            this.fogManager,
+            this.visibilityManager,
+            this.addRipple.bind(this)
+        );
 
-        eventBus.on(GameEventType.REQUEST_MARKER_CLEANUP, () => {
-            this.clearTransientMarkers();
-        });
-
-        eventBus.on(GameEventType.SHIP_STARTED_SINKING, (shipGroup: THREE.Object3D) => {
-            if (!this.animationTracker.activelySinkingShips.includes(shipGroup)) {
-                this.animationTracker.activelySinkingShips.push(shipGroup);
-            }
-        });
-
-        eventBus.on(GameEventType.ROGUE_MOVE_SHIP, () => {
-            this.fogManager.markFogDirty();
-            this.visibilityManager.forceUpdate();
-        });
-
-        eventBus.on(GameEventType.ROGUE_PATH_MOVE, (payload) => {
-            const shipGroup = this.shipAnimator.findShipGroup(payload.shipId);
-            if (shipGroup) {
-                this.shipAnimator.animateAlongPath(
-                    shipGroup,
-                    payload.path,
-                    payload.finalOrientation,
-                    payload.animationDurationMs
-                );
-                // Register for per-frame turret transform updates during the animation
-                if (!this.animationTracker.activelyMovingShips.includes(shipGroup)) {
-                    this.animationTracker.activelyMovingShips.push(shipGroup);
-                }
-            }
-
-            // Spawn water ripples evenly spaced across the animation duration
-            if (payload.path.length > 0) {
-                const boardOffset = Config.board.width / 2;
-                const interval = payload.animationDurationMs / payload.path.length;
-                payload.path.forEach((cell, i) => {
-                    setTimeout(() => {
-                        const worldX = cell.x - boardOffset + 0.5;
-                        const worldZ = cell.z - boardOffset + 0.5;
-                        this.waterManager.addRipple(worldX, worldZ, true);
-                    }, interval * i);
-                });
-            }
-        });
-
-        eventBus.on(GameEventType.ROGUE_SHIP_RAMMED, (payload) => {
-            const boardOffset = Config.board.width / 2;
-            const worldX = payload.contactX - boardOffset + 0.5;
-            const worldZ = payload.contactZ - boardOffset + 0.5;
-
-            // Spawn reduced-intensity collision particle burst at contact point
-            this.particleSystem.spawnExplosion(worldX, 0.4, worldZ, this.playerBoardGroup);
-
-            // Trigger camera shake
-            this.animationTracker.triggerCameraShake(300, 0.15);
-
-            // Animate rammer's 90° rotation smoothly
-            const rammerGroup = this.shipAnimator.findShipGroup(payload.rammerShipId);
-            if (rammerGroup) {
-                const targetRotY = ShipAnimator.orientationToRotationY(payload.rammerNewOrientation);
-                const turnDuration = Config.timing.rogueTurnDurationMs * Config.timing.gameSpeedMultiplier;
-                rammerGroup.userData.rotationAnim = {
-                    startRotY: rammerGroup.rotation.y,
-                    targetRotY,
-                    elapsedMs: 0,
-                    durationMs: turnDuration,
-                };
-            }
-        });
-
-        eventBus.on(GameEventType.MINE_PLACED, (payload) => {
-            const ship = this.visibilityManager.allShips.find(s => s.specialType === 'mine' && s.headX === payload.x && s.headZ === payload.z);
-            if (ship) this.addShip(ship, payload.x, payload.z, Orientation.Horizontal, payload.isPlayer);
-        });
-
-        eventBus.on(GameEventType.SONAR_PLACED, (payload) => {
-            const ship = this.visibilityManager.allShips.find(s => s.specialType === 'sonar' && s.headX === payload.x && s.headZ === payload.z);
-            if (ship) this.addShip(ship, payload.x, payload.z, Orientation.Horizontal, payload.isPlayer);
-        });
-
-        eventBus.on(GameEventType.SONAR_RESULTS, (payload) => {
-            const { hits } = payload;
-            hits.forEach((h: any) => {
-                this.fogManager.revealCellTemporarily(h.x, h.z, 2);
-            });
-
-            if (hits.length > 0) {
-                const targetX = hits[0].x;
-                const targetZ = hits[0].z;
-                const boardOffset = Config.board.width / 2;
-                const worldX = targetX - boardOffset + 0.5;
-                const worldZ = targetZ - boardOffset + 0.5;
-
-                this.animationTracker.addSonarEffect(new SonarEffect(worldX, worldZ, 3, this.playerBoardGroup));
-            }
-        });
+        new EntityEventCoordinator(this);
     }
 
     public setPlayerTurn(isPlayerTurn: boolean) {
@@ -241,46 +161,7 @@ export class EntityManager {
     }
 
     public addShip(ship: Ship, x: number, z: number, orientation: Orientation, isPlayer: boolean) {
-        const isRogue = Config.rogueMode;
-        const targetGroup = isRogue ? this.playerBoardGroup : (isPlayer ? this.playerBoardGroup : this.enemyBoardGroup);
-
-        let shipGroup: THREE.Group;
-        if (ship.specialType === 'sonar') {
-            shipGroup = ShipFactory.createSonarBuoy(isPlayer);
-            const boardOffset = Config.board.width / 2;
-            shipGroup.position.set(x - boardOffset + 0.5, 0, z - boardOffset + 0.5);
-            shipGroup.userData = { isShip: true, ship, shipOrientation: orientation };
-            targetGroup.add(shipGroup);
-        } else if (ship.specialType === 'mine') {
-            shipGroup = ShipFactory.createMine(isPlayer);
-            const boardOffset = Config.board.width / 2;
-            shipGroup.position.set(x - boardOffset + 0.5, 0.4, z - boardOffset + 0.5);
-            shipGroup.userData = { isShip: true, ship, shipOrientation: orientation };
-            targetGroup.add(shipGroup);
-        } else {
-            const turretManager = isRogue ? this.playerTurretManager : (isPlayer ? this.playerTurretManager : this.enemyTurretManager);
-            shipGroup = ShipFactory.createShip(ship, x, z, orientation, isPlayer, targetGroup, turretManager);
-        }
-
-        if (!isPlayer) shipGroup.visible = false;
-
-        // Prevent ghosting: remove old group if it exists
-        const oldGroup = this.visibilityManager.getGroupForShip(ship);
-        if (oldGroup && oldGroup.parent) {
-            oldGroup.parent.remove(oldGroup);
-        }
-
-        this.visibilityManager.trackShip(ship, shipGroup);
-        this.shipAnimator.registerShipMesh(shipGroup);
-
-        const boardOffset = Config.board.width / 2;
-        let cx = x, cz = z;
-        if (orientation === Orientation.Horizontal) cx += Math.floor(ship.size / 2);
-        else if (orientation === Orientation.Vertical) cz += Math.floor(ship.size / 2);
-        else if (orientation === Orientation.Left) cx -= Math.floor(ship.size / 2);
-        else if (orientation === Orientation.Up) cz -= Math.floor(ship.size / 2);
-
-        this.addRipple(cx - boardOffset + 0.5, cz - boardOffset + 0.5, isPlayer);
+        this.shipPlacementCoordinator.addShip(ship, x, z, orientation, isPlayer);
     }
 
     public onTurnChange() {
@@ -288,76 +169,15 @@ export class EntityManager {
     }
 
     public addAttackMarker(x: number, z: number, result: string, isPlayer: boolean, isReplay: boolean = false) {
-        if (isPlayer && Config.rogueMode) {
-            this.fogManager.revealCellTemporarily(x, z);
-            if (result === 'sunk') this.revealSunkShip(x, z);
-        }
-        this.projectileManager.addAttackMarker(x, z, result, isPlayer, isReplay, this.addRipple.bind(this));
+        this.attackMarkerManager.addAttackMarker(x, z, result, isPlayer, isReplay);
     }
 
     public clearTransientMarkers() {
-        const clearFromGroup = (group: THREE.Group) => {
-            for (let i = group.children.length - 1; i >= 0; i--) {
-                const child = group.children[i];
-                if (child.userData.isAttackMarker && child.userData.result !== 'sunk' && child.userData.result !== 'hit') {
-                    if (child.userData.dispose) child.userData.dispose();
-                    group.remove(child);
-                }
-            }
-        };
-
-        clearFromGroup(this.playerBoardGroup);
-        clearFromGroup(this.enemyBoardGroup);
-    }
-
-    private revealSunkShip(x: number, z: number) {
-        const sunkShip = this.visibilityManager.allShips.find(s => s.isEnemy && s.getOccupiedCoordinates().some(c => c.x === x && c.z === z));
-        if (sunkShip) {
-            sunkShip.getOccupiedCoordinates().forEach((c: { x: number, z: number }) => {
-                this.fogManager.revealCellPermanently(c.x, c.z);
-                for (let dx = -1; dx <= 1; dx++) {
-                    for (let dz = -1; dz <= 1; dz++) {
-                        const rx = c.x + dx, rz = c.z + dz;
-                        if (rx >= 0 && rx < Config.board.width && rz >= 0 && rz < Config.board.height) {
-                            this.fogManager.revealCellPermanently(rx, rz);
-                        }
-                    }
-                }
-            });
-        }
+        this.attackMarkerManager.clearTransientMarkers();
     }
 
     public moveShip3D(ship: Ship, x: number, z: number, orientation: Orientation) {
-        let targetGroup: THREE.Group | undefined;
-        let parentGroup: THREE.Group | undefined;
-
-        [this.playerBoardGroup, this.enemyBoardGroup].forEach(boardGroup => {
-            boardGroup.children.forEach((child: THREE.Object3D) => {
-                if (child.userData.isShip && child.userData.ship?.id === ship.id) {
-                    targetGroup = child as THREE.Group;
-                    parentGroup = boardGroup;
-                }
-            });
-        });
-
-        if (!targetGroup || !parentGroup) return;
-
-        if (targetGroup.userData.shipOrientation !== orientation) {
-            const isPlayer = !ship.isEnemy;
-            const turretManager = isPlayer ? this.playerTurretManager : this.enemyTurretManager;
-            // Remove old turret instances before recreating
-            turretManager.removeTurrets(ship.id);
-            this.shipAnimator.unregisterShipMesh(targetGroup);
-            parentGroup.remove(targetGroup);
-            const newShipGroup = ShipFactory.createShip(ship, ship.headX, ship.headZ, orientation, isPlayer, parentGroup, turretManager);
-            newShipGroup.position.copy(targetGroup.position);
-            targetGroup = newShipGroup;
-            this.visibilityManager.trackShip(ship, targetGroup);
-            this.shipAnimator.registerShipMesh(targetGroup);
-        }
-
-        const boardOffset = Config.board.width / 2;
-        targetGroup.userData.targetPosition = new THREE.Vector3(x - boardOffset + 0.5, 0, z - boardOffset + 0.5);
+        this.shipPlacementCoordinator.moveShip3D(ship, x, z, orientation);
     }
 
     public getEmitterStats(): { emitterCount: number; throttleFactor: number } {

@@ -165,6 +165,6 @@ export class GameEventManager {
     }
     
     private handleRogueUseWeapon(detail: any): void {
-        this.gameLoop.handleRogueUseWeapon(detail);
+        this.gameLoop.getRogueActionHandler().handleRogueUseWeapon(detail);
     }
 }

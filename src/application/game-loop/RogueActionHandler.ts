@@ -1,6 +1,7 @@
 import { GameLoop, GameState } from './GameLoop';
 import { Ship, Orientation } from '../../domain/fleet/Ship';
-import { Board, CellState } from '../../domain/board/Board';
+import { Board, CellState, WeaponType } from '../../domain/board/Board';
+import { MatchMode } from '../../domain/match/Match';
 import { getIndex } from '../../domain/board/BoardUtils';
 import { PathResolver } from '../../domain/board/PathResolver';
 import { eventBus, GameEventType } from '../events/GameEventBus';
@@ -281,5 +282,88 @@ export class RogueActionHandler {
                 }
             }
         }
+    }
+
+    public handleRogueUseWeapon(detail: any): void {
+        console.log(`[${new Date().toISOString()}] RogueActionHandler: handleRogueUseWeapon`, detail.weaponType);
+        const { weaponType, targetX, targetZ, directionX, directionZ } = detail;
+        const gl = this.gameLoop;
+        if (!gl.match || gl.currentState !== GameState.PLAYER_TURN || gl.getConfig().autoBattler) {
+            console.log(`[${new Date().toISOString()}] RogueActionHandler: Exiting handleRogueUseWeapon (blocked)`);
+            return;
+        }
+
+        const targetBoard = gl.match.mode === MatchMode.Rogue ? gl.match.sharedBoard : gl.match.enemyBoard;
+        let turnHandledAsync = false;
+
+        if (weaponType === WeaponType.Mine) {
+            const placed = targetBoard.placeMine(targetX, targetZ);
+            if (!placed) {
+                console.log(`[${new Date().toISOString()}] RogueActionHandler: Exiting handleRogueUseWeapon (mine placement failed)`);
+                return;
+            }
+            eventBus.emit(GameEventType.MINE_PLACED, { x: targetX, z: targetZ, isPlayer: true });
+            gl.requestAutoSave();
+        } else if (weaponType === WeaponType.Sonar) {
+            const placed = targetBoard.placeSonar(targetX, targetZ);
+            if (!placed) {
+                console.log(`[${new Date().toISOString()}] RogueActionHandler: Exiting handleRogueUseWeapon (sonar placement failed)`);
+                return;
+            }
+            eventBus.emit(GameEventType.SONAR_PLACED, { x: targetX, z: targetZ, isPlayer: true });
+            gl.requestAutoSave();
+        } else if (weaponType === WeaponType.Cannon || (weaponType as any) === 'normal' || (weaponType as any) === 'cannon') {
+            const result = targetBoard.receiveAttack(targetX, targetZ);
+            if (result !== 'invalid') {
+                gl.onAttackResultInvoke(targetX, targetZ, result.toString(), true, false);
+                gl.requestAutoSave();
+            } else {
+                console.log(`[${new Date().toISOString()}] RogueActionHandler: Exiting handleRogueUseWeapon (invalid cannon target)`);
+                return;
+            }
+        } else if (weaponType === WeaponType.AirStrike) {
+            if (Ship.resources.airStrikes <= 0) {
+                console.log(`[${new Date().toISOString()}] RogueActionHandler: Exiting handleRogueUseWeapon (no air strikes left)`);
+                return;
+            }
+            Ship.resources.airStrikes--;
+            
+            const dx = (directionX !== undefined ? directionX : 1) as -1 | 0 | 1;
+            const dz = (directionZ !== undefined ? directionZ : 0) as -1 | 0 | 1;
+            const length = 10;
+            const startX = targetX - dx * 4;
+            const startZ = targetZ - dz * 4;
+            
+            const results = targetBoard.dispatchAirStrike(startX, startZ, dx, dz, length);
+            gl.isAnimating = true;
+            turnHandledAsync = true;
+            
+            results.forEach((res: any) => {
+                if (res.result !== 'invalid') gl.onAttackResultInvoke(res.x, res.z, res.result, true, false);
+            });
+            gl.requestAutoSave();
+            
+            gl.onAnimationsComplete = () => {
+                console.log(`[${new Date().toISOString()}] RogueActionHandler: AirStrike animations complete callback`);
+                const status = gl.match!.checkGameEnd();
+                gl.isAnimating = false;
+                if (status !== 'ongoing') gl.transitionTo(GameState.GAME_OVER);
+                else {
+                    if (gl.match!.mode === MatchMode.Rogue) this.advanceRogueShipTurn();
+                    else gl.transitionTo(GameState.ENEMY_TURN);
+                }
+            };
+        }
+
+        if (!turnHandledAsync) {
+            const ship = gl.match.mode === MatchMode.Rogue ? gl.rogueShipOrder[gl.activeRogueShipIndex] : null;
+            if (ship) {
+                ship.hasActedThisTurn = true;
+                ship.movesRemaining = 0;
+            }
+            if (gl.match.mode === MatchMode.Rogue) this.advanceRogueShipTurn();
+            else gl.transitionTo(GameState.ENEMY_TURN);
+        }
+        console.log(`[${new Date().toISOString()}] RogueActionHandler: Exiting handleRogueUseWeapon`);
     }
 }

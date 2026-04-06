@@ -9,6 +9,7 @@ import { eventBus, GameEventType } from '../../../application/events/GameEventBu
 import { RaycastService } from './RaycastService';
 import { InputFeedbackHandler } from './InputFeedbackHandler';
 import { ClickHandler } from './ClickHandler';
+import { InteractionStateTracker } from './InteractionStateTracker';
 
 export class InteractionManager {
   private gameLoop: any = null;
@@ -16,6 +17,7 @@ export class InteractionManager {
   private raycastService: RaycastService;
   private feedbackHandler: InputFeedbackHandler;
   private clickHandler: ClickHandler;
+  private stateTracker: InteractionStateTracker;
 
   private lastMouseClientX: number = 0;
   private lastMouseClientY: number = 0;
@@ -26,34 +28,13 @@ export class InteractionManager {
   private uiHoveredCell: { x: number, z: number, isPlayerSide: boolean } | null = null;
   public interactionEnabled: boolean = true;
 
-  private lastMoveShipId: string | null = null;
-  private lastMoveShipX: number = -1;
-  private lastMoveShipZ: number = -1;
-  private lastMoveAction: string | null = null;
-  private lastMovesRemaining: number = -1;
 
-  private lastInteractionState: {
-    x: number,
-    z: number,
-    isPlayerSide: boolean,
-    gameState: string,
-    orientation: Orientation | null,
-    shipId: string | null
-  } | null = null;
-
-  private ghostCheckCache: {
-    time: number;
-    x: number;
-    z: number;
-    orientation: Orientation | null;
-    shipId: string | null;
-    isValid: boolean;
-  } = { time: 0, x: -1, z: -1, orientation: null, shipId: null, isValid: false };
 
   constructor(scene: THREE.Scene, camera: THREE.PerspectiveCamera, entityManager: any) {
     this.raycastService = new RaycastService(camera, entityManager);
     this.feedbackHandler = new InputFeedbackHandler(scene, entityManager);
     this.clickHandler = new ClickHandler(this.raycastService, entityManager);
+    this.stateTracker = new InteractionStateTracker();
 
     window.addEventListener('mousemove', this.onMouseMove.bind(this));
     window.addEventListener('keydown', (e) => { if (e.key === 'Shift') this.isShiftDown = true; });
@@ -161,24 +142,13 @@ export class InteractionManager {
       isPlayerSide = pickedTile.userData.isPlayerSide;
     }
 
-    // SKIP REMAINDER OF UPDATE IF NOTHING CHANGED
-    // This is the core optimization to avoid redundant per-frame highlight mesh rebuilding
-    const stateHasChanged = !this.lastInteractionState ||
-        this.lastInteractionState.x !== currentX ||
-        this.lastInteractionState.z !== currentZ ||
-        this.lastInteractionState.isPlayerSide !== isPlayerSide ||
-        this.lastInteractionState.gameState !== gameState ||
-        this.lastInteractionState.orientation !== orientation ||
-        this.lastInteractionState.shipId !== shipId;
+    const stateHasChanged = this.stateTracker.hasStateChanged(
+        currentX, currentZ, isPlayerSide, gameState, orientation, shipId
+    );
 
     if (!stateHasChanged) {
-      // Still need to update range highlights occasionally if turn state changed, 
-      // but only if a ship exists and it's player turn. 
-      // Moved inside updateMoveHighlight's internal check for deeper efficiency.
       return;
     }
-
-    this.lastInteractionState = { x: currentX, z: currentZ, isPlayerSide, gameState, orientation, shipId };
 
     if (pickedTile && pickedIntersection && !isInteractionBlocked) {
       const hoverX = currentX;
@@ -197,9 +167,7 @@ export class InteractionManager {
           this.feedbackHandler.ghostGroup.visible = false;
         } else {
           const now = performance.now();
-          const cache = this.ghostCheckCache;
-          const isSameState = cache.x === x && cache.z === z && cache.orientation === orientation && cache.shipId === ship.id;
-          const isCacheValid = isSameState && (now - cache.time < 300);
+          const isCacheValid = this.stateTracker.isGhostCacheValid(now, x, z, orientation, ship.id);
 
           if (!isCacheValid) {
             const targetBoard = Config.rogueMode ? this.gameLoop.match.sharedBoard : this.gameLoop.match.playerBoard;
@@ -213,12 +181,7 @@ export class InteractionManager {
             const isValid = this.gameLoop.match.validatePlacement(targetBoard, ship, headX, headZ, orientation);
             this.feedbackHandler.updateGhost(ship, orientation, pickedTile, isValid, x, z);
 
-            cache.time = now;
-            cache.x = x;
-            cache.z = z;
-            cache.orientation = orientation;
-            cache.shipId = ship.id;
-            cache.isValid = isValid;
+            this.stateTracker.updateGhostCache(now, x, z, orientation, ship.id, isValid);
           }
         }
 
@@ -313,8 +276,7 @@ export class InteractionManager {
       }
     }
 
-    this.updateMoveHighlight();
-    this.updateRangeHighlights();
+    this.feedbackHandler.updateHighlighters(this.gameLoop);
     (window as any).isHoveringBattlefield = this.hoveredCell !== null;
   }
 
@@ -328,64 +290,5 @@ export class InteractionManager {
       }
     }
     return { scaleX, scaleZ };
-  }
-
-  private updateMoveHighlight() {
-    if (!this.gameLoop || this.gameLoop.currentState !== GameState.PLAYER_TURN || !this.gameLoop.match || this.gameLoop.match.mode !== MatchMode.Rogue) {
-      this.feedbackHandler.moveHighlightGroup.visible = false;
-      return;
-    }
-    const action = (window as any).selectedRogueAction || 'move';
-    if (action !== 'move') {
-      this.feedbackHandler.moveHighlightGroup.visible = false;
-      this.lastMoveAction = action;
-      return;
-    }
-
-    const order = this.gameLoop.rogueShipOrder;
-    const index = this.gameLoop.activeRogueShipIndex;
-    const activeShip = order && index >= 0 && index < order.length ? order[index] : null;
-
-    if (!activeShip || activeShip.hasActedThisTurn || activeShip.movesRemaining <= 0) {
-      this.feedbackHandler.moveHighlightGroup.visible = false;
-      return;
-    }
-
-    this.feedbackHandler.moveHighlightGroup.visible = true;
-
-    if (this.lastMoveShipId !== activeShip.id || this.lastMoveAction !== action || this.lastMovesRemaining !== activeShip.movesRemaining) {
-      this.feedbackHandler.rebuildMoveHighlight(activeShip, this.gameLoop.match.sharedBoard);
-      this.lastMoveShipId = activeShip.id;
-      this.lastMoveAction = action;
-      this.lastMovesRemaining = activeShip.movesRemaining;
-    }
-  }
-
-  private updateRangeHighlights() {
-    if (!this.gameLoop || !this.gameLoop.match || this.gameLoop.match.mode !== MatchMode.Rogue) {
-      this.feedbackHandler.visionHighlightGroup.visible = false;
-      this.feedbackHandler.attackHighlightGroup.visible = false;
-      return;
-    }
-
-    const order = this.gameLoop.rogueShipOrder;
-    const index = this.gameLoop.activeRogueShipIndex;
-    const activeShip = order && index >= 0 && index < order.length ? order[index] : null;
-
-    if (!activeShip || this.gameLoop.currentState !== GameState.PLAYER_TURN) {
-      this.feedbackHandler.visionHighlightGroup.visible = false;
-      this.feedbackHandler.attackHighlightGroup.visible = false;
-      return;
-    }
-
-    this.feedbackHandler.visionHighlightGroup.visible = true;
-    this.feedbackHandler.attackHighlightGroup.visible = true;
-
-    if (this.lastMoveShipId !== activeShip.id || this.lastMoveShipX !== activeShip.headX || this.lastMoveShipZ !== activeShip.headZ) {
-      this.feedbackHandler.rebuildRangeHighlights(activeShip, this.gameLoop.match.sharedBoard);
-      this.lastMoveShipId = activeShip.id;
-      this.lastMoveShipX = activeShip.headX;
-      this.lastMoveShipZ = activeShip.headZ;
-    }
   }
 }

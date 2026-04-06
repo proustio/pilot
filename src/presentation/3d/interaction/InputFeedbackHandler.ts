@@ -4,11 +4,13 @@ import { Orientation } from '../../../domain/fleet/Ship';
 import { ThemeManager } from '../../theme/ThemeManager';
 import { eventBus, GameEventType } from '../../../application/events/GameEventBus';
 import { RangeHighlighter } from './RangeHighlighter';
+import { MoveHighlighter } from './MoveHighlighter';
 
 export class InputFeedbackHandler {
     public hoverCursor: THREE.Group;
     public ghostGroup: THREE.Group;
     private rangeHighlighter: RangeHighlighter;
+    private moveHighlighter: MoveHighlighter;
     private hoverCursorVoxels!: THREE.InstancedMesh;
     private dummy: THREE.Object3D = new THREE.Object3D();
     private readonly VOXEL_COUNT = 64; // Reduced from 120 to 64 for 2x performance
@@ -20,7 +22,7 @@ export class InputFeedbackHandler {
     private lastTornadoUpdateTime: number = 0;
 
     // Expose highlight groups via delegation
-    public get moveHighlightGroup(): THREE.Group { return this.rangeHighlighter.moveHighlightGroup; }
+    public get moveHighlightGroup(): THREE.Group { return this.moveHighlighter.moveHighlightGroup; }
     public get visionHighlightGroup(): THREE.Group { return this.rangeHighlighter.visionHighlightGroup; }
     public get attackHighlightGroup(): THREE.Group { return this.rangeHighlighter.attackHighlightGroup; }
 
@@ -34,6 +36,7 @@ export class InputFeedbackHandler {
         // 2. Range highlighting (move, vision, attack)
         const highlightParent = entityManager.playerBoardGroup;
         this.rangeHighlighter = new RangeHighlighter(highlightParent);
+        this.moveHighlighter = new MoveHighlighter(highlightParent);
 
         // 3. Hover Cursor (Voxel Tornado)
         this.hoverCursor = this.createHoverCursor(false);
@@ -204,13 +207,9 @@ export class InputFeedbackHandler {
         this.hoverCursor.visible = true;
     }
 
-    // Delegate range highlighting to RangeHighlighter
-    public rebuildMoveHighlight(ship: any, board: any): void {
-        this.rangeHighlighter.rebuildMoveHighlight(ship, board);
-    }
-
-    public rebuildRangeHighlights(ship: any, board: any): void {
-        this.rangeHighlighter.rebuildRangeHighlights(ship, board);
+    public updateHighlighters(gameLoop: any): void {
+        this.moveHighlighter.update(gameLoop);
+        this.rangeHighlighter.update(gameLoop);
     }
 
     private buildGhostPool() {
@@ -235,5 +234,6 @@ export class InputFeedbackHandler {
         this.ghostGroup.visible = false;
         this.hoverCursor.visible = false;
         this.rangeHighlighter.hideAll();
+        this.moveHighlighter.hide();
     }
 }

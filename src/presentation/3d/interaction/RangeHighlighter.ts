@@ -8,14 +8,15 @@ import { Config } from '../../../infrastructure/config/Config';
  * Uses pre-allocated InstancedMesh pools (one per highlight type) to
  * minimize draw calls. Unused instances are hidden via zero-scale matrices.
  */
+import { GameState } from '../../../application/game-loop/GameLoop';
+import { MatchMode } from '../../../domain/match/Match';
+
 export class RangeHighlighter {
-    public moveHighlightGroup: THREE.Group;
     public visionHighlightGroup: THREE.Group;
     public attackHighlightGroup: THREE.Group;
 
     private readonly maxCells: number;
 
-    private moveInstancedMesh: THREE.InstancedMesh;
     private visionInstancedMesh: THREE.InstancedMesh;
     private attackInstancedMesh: THREE.InstancedMesh;
 
@@ -28,34 +29,14 @@ export class RangeHighlighter {
     );
 
     // State tracking to avoid redundant O(N^2) rebuilds
-    private lastMoveData: { id: string, x: number, z: number, moves: number } | null = null;
+
     private lastRangeData: { id: string, x: number, z: number, vision: number } | null = null;
 
     constructor(highlightParent: THREE.Object3D) {
         this.maxCells = Config.board.width * Config.board.height;
         this.zeroMatrix = new THREE.Matrix4().makeScale(0, 0, 0);
 
-        // --- Move highlight pool ---
-        this.moveHighlightGroup = new THREE.Group();
-        this.moveHighlightGroup.renderOrder = 998;
-        this.moveHighlightGroup.visible = false;
-        highlightParent.add(this.moveHighlightGroup);
 
-        const moveMat = new THREE.MeshBasicMaterial({
-            color: 0x00ffff,
-            transparent: true,
-            opacity: 0.5,
-            side: THREE.DoubleSide,
-            depthWrite: false,
-            depthTest: false
-        });
-        const moveGeo = new THREE.PlaneGeometry(0.9, 0.9);
-        this.moveInstancedMesh = new THREE.InstancedMesh(
-            moveGeo, moveMat, this.maxCells
-        );
-        this.moveInstancedMesh.renderOrder = 999;
-        this.initPool(this.moveInstancedMesh);
-        this.moveHighlightGroup.add(this.moveInstancedMesh);
 
         // --- Vision highlight pool ---
         this.visionHighlightGroup = new THREE.Group();
@@ -103,42 +84,27 @@ export class RangeHighlighter {
         mesh.instanceMatrix.needsUpdate = true;
     }
 
-    public rebuildMoveHighlight(ship: any, board: any): void {
-        const moves = ship.movesRemaining;
-        const currentData = { id: ship.id, x: ship.headX, z: ship.headZ, moves };
-        
-        if (this.lastMoveData && 
-            this.lastMoveData.id === currentData.id && 
-            this.lastMoveData.x === currentData.x && 
-            this.lastMoveData.z === currentData.z && 
-            this.lastMoveData.moves === currentData.moves) {
+    public update(gameLoop: any): void {
+        if (!gameLoop || !gameLoop.match || gameLoop.match.mode !== MatchMode.Rogue) {
+            this.visionHighlightGroup.visible = false;
+            this.attackHighlightGroup.visible = false;
             return;
         }
 
-        const boardOffset = Config.board.width / 2;
-        let slotIndex = 0;
+        const order = gameLoop.rogueShipOrder;
+        const index = gameLoop.activeRogueShipIndex;
+        const activeShip = order && index >= 0 && index < order.length ? order[index] : null;
 
-        for (let x = 0; x < board.width; x++) {
-            for (let z = 0; z < board.height; z++) {
-                const dx = Math.abs(x - ship.headX);
-                const dz = Math.abs(z - ship.headZ);
-                if (dx + dz > 0 && dx + dz <= moves) {
-                    const targetX = x - boardOffset + 0.5;
-                    const targetZ = z - boardOffset + 0.5;
-                    this._tempMatrix.compose(
-                        new THREE.Vector3(targetX, 0.2, targetZ),
-                        this._tempQuat,
-                        new THREE.Vector3(1, 1, 1)
-                    );
-                    this.moveInstancedMesh.setMatrixAt(slotIndex, this._tempMatrix);
-                    slotIndex++;
-                }
-            }
+        if (!activeShip || gameLoop.currentState !== GameState.PLAYER_TURN) {
+            this.visionHighlightGroup.visible = false;
+            this.attackHighlightGroup.visible = false;
+            return;
         }
 
-        this.moveInstancedMesh.count = slotIndex;
-        this.moveInstancedMesh.instanceMatrix.needsUpdate = true;
-        this.lastMoveData = currentData;
+        this.visionHighlightGroup.visible = true;
+        this.attackHighlightGroup.visible = true;
+
+        this.rebuildRangeHighlights(activeShip, gameLoop.match.sharedBoard);
     }
 
     public rebuildRangeHighlights(ship: any, board: any): void {
@@ -198,13 +164,11 @@ export class RangeHighlighter {
     }
 
     public hideAll(): void {
-        this.moveHighlightGroup.visible = false;
         this.visionHighlightGroup.visible = false;
         this.attackHighlightGroup.visible = false;
     }
 
     public dispose(): void {
-        this.disposeInstancedMesh(this.moveInstancedMesh);
         this.disposeInstancedMesh(this.visionInstancedMesh);
         this.disposeInstancedMesh(this.attackInstancedMesh);
     }

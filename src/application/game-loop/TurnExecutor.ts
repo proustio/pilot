@@ -57,6 +57,50 @@ export class TurnExecutor {
     }
 
     // ─────────────────────────────────────────────────────────────────────────
+    // State Entry
+    // ─────────────────────────────────────────────────────────────────────────
+
+    public onEnterState(newState: GameState): void {
+        if (newState === GameState.PLAYER_TURN) {
+            console.log(`[${new Date().toISOString()}] TurnExecutor: player turn starts`);
+            if (this.s.match && this.s.match.mode === MatchMode.Rogue) {
+                this.s.rogueShipOrder = this.s.match.sharedBoard.ships
+                    .filter(s => !s.isEnemy && !s.isSunk())
+                    .sort((a, b) => a.size - b.size);
+                
+                this.s.rogueShipOrder.forEach(s => s.resetTurnAction());
+                this.s.activeRogueShipIndex = 0;
+
+                if (this.s.rogueShipOrder.length > 0) {
+                    eventBus.emit(GameEventType.ACTIVE_SHIP_CHANGED, { ship: this.s.rogueShipOrder[0], index: 0 });
+                } else if (!this.s.config.autoBattler) {
+                    this.s.transitionTo(GameState.ENEMY_TURN);
+                    console.log(`[${new Date().toISOString()}] TurnExecutor: Exiting onEnterState (auto-transition to enemy turn)`);
+                    return;
+                }
+            }
+        } else if (newState === GameState.ENEMY_TURN) {
+            console.log(`[${new Date().toISOString()}] TurnExecutor: enemy turn starts`);
+            if (this.s.match && this.s.match.mode === MatchMode.Rogue) {
+                this.s.enemyRogueShipOrder = this.s.match.sharedBoard.ships
+                    .filter(s => s.isEnemy && !s.isSunk())
+                    .sort((a, b) => a.size - b.size);
+                
+                this.s.enemyRogueShipOrder.forEach(s => s.resetTurnAction());
+                this.s.activeEnemyRogueShipIndex = 0;
+            }
+        }
+
+        if (newState === GameState.ENEMY_TURN) {
+            console.log(`[${new Date().toISOString()}] TurnExecutor: turn transitions to enemy`);
+            this.handleEnemyTurn();
+        } else if (newState === GameState.PLAYER_TURN && this.s.config.autoBattler) {
+            console.log(`[${new Date().toISOString()}] TurnExecutor: turn transitions to autobattler player move`);
+            this.handleAutoPlayerTurn();
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
     // Enemy Turn — delegated to EnemyTurnHandler
     // ─────────────────────────────────────────────────────────────────────────
 
