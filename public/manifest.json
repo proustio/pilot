@@ -1,5 +1,5 @@
 {
-  "name": "3D Voxel Battleships",
+  "name": "Battleships 3D",
   "short_name": "Battleships",
   "description": "Browser-based Battleships game with a Minecraft-style 3D voxel aesthetic",
   "start_url": "./",
