@@ -1,7 +1,7 @@
 import { Ship, Orientation } from '../../domain/fleet/Ship';
 import { AIEngine } from '../ai/AIEngine';
 import { GameState } from './GameLoop';
-import { MatchMode } from '../../domain/match/Match';
+import { Match, MatchMode } from '../../domain/match/Match';
 import { eventBus, GameEventType } from '../events/GameEventBus';
 import { EnemyTurnHandler } from './EnemyTurnHandler';
 import { SetupBoardHandler } from './SetupBoardHandler';
@@ -14,7 +14,7 @@ type ShipPlacedListener = (ship: Ship, x: number, z: number, orientation: Orient
  * GameLoop passes `this` (cast to this interface) in the constructor.
  */
 export interface TurnExecutorState {
-    match: import('../../domain/match/Match').Match | null;
+    match: Match | null;
     isAnimating: boolean;
     isPaused: boolean;
     playerShipsToPlace: Ship[];

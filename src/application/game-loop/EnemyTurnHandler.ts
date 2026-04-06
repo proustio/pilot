@@ -2,6 +2,7 @@ import { MatchMode } from '../../domain/match/Match';
 import { eventBus, GameEventType } from '../events/GameEventBus';
 import { GameState } from './GameLoop';
 import { TurnExecutorState } from './TurnExecutor';
+import { Board } from '../../domain/board/Board';
 
 /**
  * Handles enemy AI turn execution for both Classic and Rogue modes.
@@ -53,7 +54,7 @@ export class EnemyTurnHandler {
         executeTurn();
     }
 
-    private async executeRogueTurn(targetBoard: import('../../domain/board/Board').Board): Promise<void> {
+    private async executeRogueTurn(targetBoard: Board): Promise<void> {
         const activeIndex = this.s.activeEnemyRogueShipIndex;
         const ship = this.s.enemyRogueShipOrder[activeIndex];
 
@@ -133,7 +134,7 @@ export class EnemyTurnHandler {
         completeAction();
     }
 
-    private async executeClassicTurn(targetBoard: import('../../domain/board/Board').Board): Promise<void> {
+    private async executeClassicTurn(targetBoard: Board): Promise<void> {
         const target = await this.s.aiEngine.computeNextMove(targetBoard, this.s.match!);
         const result = targetBoard.receiveAttack(target.x, target.z);
 

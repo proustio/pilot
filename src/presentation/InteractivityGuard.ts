@@ -10,6 +10,7 @@ export class InteractivityGuard {
     private static cameraTransitioning = false;
     private static gameAnimating = false;
     private static menuOpen = false;
+    private static _isMouseInsideUI = false;
 
     /**
      * Sets whether the user is currently interacting with the camera (e.g., rotating/zooming).
@@ -56,6 +57,23 @@ export class InteractivityGuard {
         this.menuOpen = state;
         this.update();
     }
+    
+    /**
+     * Initializes the UI layer listeners. Call once during app startup.
+     */
+    public static init(uiContainer: HTMLElement) {
+        if (!uiContainer) return;
+        
+        uiContainer.addEventListener('mouseenter', () => {
+            this._isMouseInsideUI = true;
+            this.update();
+        }, { capture: true });
+        
+        uiContainer.addEventListener('mouseleave', () => {
+            this._isMouseInsideUI = false;
+            this.update();
+        }, { capture: true });
+    }
 
     /**
      * Returns true if any interaction should be blocked.
@@ -65,14 +83,13 @@ export class InteractivityGuard {
     }
 
     /**
-     * Returns true if the pointer is currently over a UI element that should block 3D interaction.
+     * Returns true if the pointer is currently over a UI element.
+     * Uses efficient event-driven tracking.
      */
-    public static isPointerOverUI(clientX: number, clientY: number): boolean {
-        const el = document.elementFromPoint(clientX, clientY);
-        if (!el) return false;
-        
-        // If the element is within the UI layer, it should block interaction
-        return !!el.closest('#ui-layer');
+    public static isPointerOverUI(_clientX?: number, _clientY?: number): boolean {
+        // COORDINATE HIT-TESTING IS DEPRECATED FOR PERFORMANCE
+        // Returns the cached state from mouseenter/mouseleave
+        return this._isMouseInsideUI;
     }
 
 

@@ -16,6 +16,7 @@ export class FogVisibility {
 
     private width: number;
     private height: number;
+    private visibilityCache: Uint8Array;
 
     constructor(rogueMode: boolean) {
         this.rogueMode = rogueMode;

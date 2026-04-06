@@ -209,11 +209,6 @@ export class RangeHighlighter {
         this.disposeInstancedMesh(this.attackInstancedMesh);
     }
 
-    private clearPool(mesh: THREE.InstancedMesh): void {
-        mesh.count = 0;
-        mesh.instanceMatrix.needsUpdate = true;
-    }
-
     private disposeInstancedMesh(mesh: THREE.InstancedMesh): void {
         mesh.geometry.dispose();
         if (Array.isArray(mesh.material)) {

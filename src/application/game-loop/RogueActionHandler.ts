@@ -1,6 +1,6 @@
 import { GameLoop, GameState } from './GameLoop';
 import { Ship, Orientation } from '../../domain/fleet/Ship';
-import { CellState } from '../../domain/board/Board';
+import { Board, CellState } from '../../domain/board/Board';
 import { getIndex } from '../../domain/board/BoardUtils';
 import { PathResolver } from '../../domain/board/PathResolver';
 import { eventBus, GameEventType } from '../events/GameEventBus';
@@ -153,7 +153,7 @@ export class RogueActionHandler {
     /**
      * Physically moves a ship on the board by clearing old cells and writing new ones.
      */
-    private relocateShip(board: import('../../domain/board/Board').Board, ship: Ship, newX: number, newZ: number, newOrient: Orientation): void {
+    private relocateShip(board: Board, ship: Ship, newX: number, newZ: number, newOrient: Orientation): void {
         // Clear old cells
         const oldCoords = ship.getOccupiedCoordinates();
         for (const coord of oldCoords) {
@@ -179,7 +179,7 @@ export class RogueActionHandler {
     /**
      * Applies mine detonation damage to both the ship and the mine entity.
      */
-    private applyMineDamage(board: import('../../domain/board/Board').Board, ship: Ship, mineX: number, mineZ: number): void {
+    private applyMineDamage(board: Board, ship: Ship, mineX: number, mineZ: number): void {
         const mineShip = board.getShipAt(mineX, mineZ);
         if (mineShip && mineShip.specialType === 'mine') {
             // Find which segment of the ship overlaps or is nearest to the mine
@@ -211,7 +211,7 @@ export class RogueActionHandler {
     /**
      * Applies ramming damage: front segment of rammer, nearest segment of rammed ship.
      */
-    private applyRammingDamage(board: import('../../domain/board/Board').Board, rammer: Ship, rammed: Ship, collisionCell: { x: number; z: number }): void {
+    private applyRammingDamage(board: Board, rammer: Ship, rammed: Ship, collisionCell: { x: number; z: number }): void {
         // Hit front segment (index 0) of the rammer
         rammer.hitSegment(0);
 
@@ -247,7 +247,7 @@ export class RogueActionHandler {
     /**
      * Syncs board cell states with a ship's segment health (Ship→Hit for damaged segments).
      */
-    private updateShipCellStates(board: import('../../domain/board/Board').Board, ship: Ship): void {
+    private updateShipCellStates(board: Board, ship: Ship): void {
         const coords = ship.getOccupiedCoordinates();
         coords.forEach((coord, i) => {
             const idx = getIndex(coord.x, coord.z, board.width);

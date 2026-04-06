@@ -11,6 +11,7 @@ import { ThemeManager } from './presentation/theme/ThemeManager';
 import { GameRunner } from './application/game-loop/GameRunner';
 import { eventBus, GameEventType } from './application/events/GameEventBus';
 import { NetworkManager } from './infrastructure/network/NetworkManager';
+import { InteractivityGuard } from './presentation/InteractivityGuard';
 
 import { InteractionDebouncer } from './presentation/ui/utils/InteractionDebouncer';
 
@@ -22,6 +23,11 @@ const init = () => {
         NetworkManager.init(Config.network.serverUrl);
         
         ThemeManager.getInstance().applyToDOM();
+        
+        const uiLayer = document.getElementById('ui-layer');
+        if (uiLayer) {
+            InteractivityGuard.init(uiLayer);
+        }
 
         const engine = new Engine3D('app');
 

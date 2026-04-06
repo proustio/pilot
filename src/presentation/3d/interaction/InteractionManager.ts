@@ -114,17 +114,14 @@ export class InteractionManager {
   private onMouseMove(event: MouseEvent) {
     this.isShiftDown = event.shiftKey;
     if (!this.interactionEnabled) return;
+    
     this.raycastService.updateMouse(event.clientX, event.clientY);
     this.lastMouseClientX = event.clientX;
     this.lastMouseClientY = event.clientY;
   }
 
   public update() {
-    this.feedbackHandler.update(performance.now());
-
-    const pickedIntersection = this.raycastService.getPickedIntersection();
-    const pickedTile = pickedIntersection ? pickedIntersection.object : null;
-
+    const now = performance.now();
     const gameState = this.gameLoop ? this.gameLoop.currentState : 'unknown';
     const orientation = this.gameLoop ? this.gameLoop.currentPlacementOrientation : null;
     const activeShip = (this.gameLoop && this.gameLoop.playerShipsToPlace.length > 0) ? this.gameLoop.playerShipsToPlace[0] : null;
@@ -135,12 +132,21 @@ export class InteractionManager {
       this.isShiftDown ||
       (this.gameLoop && (this.gameLoop.isAnimating || gameState === GameState.GAME_OVER));
 
-    const isPointerOverUI = InteractivityGuard.isPointerOverUI(this.lastMouseClientX, this.lastMouseClientY);
-    const isInteractionBlocked = isStateBlocked || isPointerOverUI;
+    // PERFORMANCE: Use event-driven UI hover state from guard (O(1))
+    const isInteractionBlocked = isStateBlocked || InteractivityGuard.isPointerOverUI();
+
+    // Only update feedback animation if hovering and NOT blocked
+    if (!isInteractionBlocked && (this.hoveredCell || this.uiHoveredCell)) {
+        this.feedbackHandler.update(now);
+    }
+
+    // 1. Primary interaction logic - Raycasting
+    const pickedIntersection = !isInteractionBlocked ? this.raycastService.getPickedIntersection() : null;
+    const pickedTile = pickedIntersection ? pickedIntersection.object : null;
 
     // Determine current cell early for comparison
     let currentX = -1, currentZ = -1, isPlayerSide = false;
-    if (pickedTile && pickedIntersection && !isInteractionBlocked) {
+    if (pickedTile && pickedIntersection) {
       if (pickedTile.userData.isRaycastPlane) {
         const localPoint = pickedTile.worldToLocal(pickedIntersection.point.clone());
         currentX = Math.floor(localPoint.x + Config.board.width / 2);
