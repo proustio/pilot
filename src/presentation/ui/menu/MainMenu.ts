@@ -18,7 +18,7 @@ export class MainMenu extends BaseUIComponent {
             features: ['Standard 10x10 Grid', 'US Navy Fleet (5 ships)', 'Classic Placement rules'],
             flavor: '"Old school tactics for a new age of voxel warfare."',
             stats: '😌😌😌',
-            image: '/assets/classic-battleships.png',
+            image: '/pilot/assets/classic-battleships.png',
             class: 'classic'
         },
         'russian': {
@@ -28,7 +28,7 @@ export class MainMenu extends BaseUIComponent {
             features: ['Strict Non-Touching Adjacency', 'Russian Fleet (10 ships)', 'Maximum Tactical Precision'],
             flavor: '"In the cold north, even a single cell of contact is a fatal error."',
             stats: '🥵🥵🥵🥵',
-            image: '/assets/russian-battleships.png',
+            image: '/pilot/assets/russian-battleships.png',
             class: 'russian'
         },
         'rogue': {
@@ -38,7 +38,7 @@ export class MainMenu extends BaseUIComponent {
             features: ['Variable Weaponry', 'Dynamic Moving Targets', 'Permadeath Elements'],
             flavor: '"The rules of engagement have changed. Adapt or be deleted."',
             stats: '☠️☠️☠️☠️☠️',
-            image: '/assets/rogue-battleships.png',
+            image: '/pilot/assets/rogue-battleships.png',
             class: 'rogue'
         }
     };

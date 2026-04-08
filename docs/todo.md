@@ -6,7 +6,6 @@ steering
 
 Here is some stuff we need to do around our codebase in no particular order or preference:
 
-1. translate most of the CSS into tailwind
 1. hovering over minimap should highlight respective cells on the main battle field as if those are being hovered over.
 1. ships should be moving twice the distance they move now
 1. ships should NOT be able to move through other ships - dead or alive
@@ -27,3 +26,20 @@ Here is some stuff we need to do around our codebase in no particular order or p
 1. support ship-specific weapons, per ship type. we should show which weapon systems are available and hide those that aren't
 1. improve ship models: add huge guns to all combat vessels, add flightdeck to aircraft carrier, make submarine go under water (move special to the ship type) etc.
 1. ships should produce visible ripples as they move
+
+consider following files for segregation:
+```
+> part of `./linetree.sh src 300`
+
+    src/ (5034)
+    ├── presentation/ (2516)
+    │   └── 3d/ (2516)
+    │       └── entities/ (2516)
+    │           ├── EntityManager.ts (452)
+    ├── application/ (1049)
+    │   ├── game-loop/ (689)
+    │   │   ├── TurnExecutor.ts (386)
+    │   └── ai/ (360)
+    │       └── AIEngine.ts (360)
+```
+
