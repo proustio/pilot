@@ -10,6 +10,8 @@ import { WaterShaderManager } from './WaterShaderManager';
 import { VesselVisibilityManager } from './VesselVisibilityManager';
 import { eventBus, GameEventType } from '../../../application/events/GameEventBus';
 import { SonarEffect } from './SonarEffect';
+import { ShipAnimator } from './ShipAnimator';
+import { TurretInstanceManager } from './TurretInstanceManager';
 
 export class EntityManager {
     private scene: THREE.Scene;
@@ -21,8 +23,8 @@ export class EntityManager {
 
     private targetRotationX: number = 0;
 
-    private playerGridTiles: THREE.Object3D[] = [];
-    private enemyGridTiles: THREE.Object3D[] = [];
+    private playerRaycastPlanes: THREE.Object3D[] = [];
+    private enemyRaycastPlanes: THREE.Object3D[] = [];
 
     public get boardOrientation(): 'player' | 'enemy' {
         return Math.abs(this.targetRotationX - Math.PI) < 0.1 ? 'enemy' : 'player';
@@ -39,9 +41,28 @@ export class EntityManager {
     private projectileManager: ProjectileManager;
     private waterManager: WaterShaderManager;
     private visibilityManager: VesselVisibilityManager;
+    private shipAnimator: ShipAnimator;
 
     private activeRogueShipId: string | null = null;
     private isPlayerTurn: boolean = false;
+
+    // Turret instancing managers (one per board side)
+    private playerTurretManager: TurretInstanceManager;
+    private enemyTurretManager: TurretInstanceManager;
+
+    // LED animation via instanced mesh
+    private ledMesh: THREE.InstancedMesh | null = null;
+    private ledPhases: number[] = [];
+
+    // Camera shake state for ramming impacts
+    private cameraShakeElapsedMs: number = 0;
+    private cameraShakeDurationMs: number = 0;
+    private cameraShakeIntensity: number = 0;
+
+    // Data-Oriented active animation arrays
+    public activelySinkingShips: THREE.Object3D[] = [];
+    public activelyMovingShips: THREE.Object3D[] = [];
+    public activelyRotatingShips: THREE.Object3D[] = [];
 
     constructor(scene: THREE.Scene) {
         this.scene = scene;
@@ -52,6 +73,7 @@ export class EntityManager {
         this.enemyBoardGroup = new THREE.Group();
 
         this.particleSystem = new ParticleSystem();
+        this.particleSystem.initPools(this.masterBoardGroup);
         this.fogManager = new FogManager(this.enemyBoardGroup, Config.rogueMode);
 
         this.playerBoardGroup.position.y = 1.2;
@@ -72,11 +94,14 @@ export class EntityManager {
             this.fogManager
         );
 
-        this.playerGridTiles = buildResult.playerGridTiles;
-        this.enemyGridTiles = buildResult.enemyGridTiles;
-        
+        this.playerRaycastPlanes = buildResult.playerRaycastPlanes;
+        this.enemyRaycastPlanes = buildResult.enemyRaycastPlanes;
+
+        this.ledMesh = buildResult.ledMesh;
+        this.ledPhases = buildResult.ledPhases;
+
         this.waterManager = new WaterShaderManager(buildResult.playerWaterUniforms, buildResult.enemyWaterUniforms);
-        this.visibilityManager = new VesselVisibilityManager(this.fogManager, this.playerBoardGroup, this.enemyBoardGroup);
+        this.visibilityManager = new VesselVisibilityManager(this.fogManager);
 
         this.projectileManager = new ProjectileManager(
             this.particleSystem,
@@ -84,6 +109,11 @@ export class EntityManager {
             this.playerBoardGroup,
             this.enemyBoardGroup
         );
+
+        this.shipAnimator = new ShipAnimator(this.playerBoardGroup, this.enemyBoardGroup);
+
+        this.playerTurretManager = new TurretInstanceManager(this.playerBoardGroup, true);
+        this.enemyTurretManager = new TurretInstanceManager(this.enemyBoardGroup, false);
 
         eventBus.on(GameEventType.ACTIVE_SHIP_CHANGED, (payload) => {
             this.activeRogueShipId = payload.ship?.id || null;
@@ -97,6 +127,69 @@ export class EntityManager {
 
         eventBus.on(GameEventType.REQUEST_MARKER_CLEANUP, () => {
             this.clearTransientMarkers();
+        });
+
+        eventBus.on(GameEventType.SHIP_STARTED_SINKING, (shipGroup: THREE.Object3D) => {
+            if (!this.activelySinkingShips.includes(shipGroup)) {
+                this.activelySinkingShips.push(shipGroup);
+            }
+        });
+
+        eventBus.on(GameEventType.ROGUE_MOVE_SHIP, () => {
+            this.fogManager.markFogDirty();
+            this.visibilityManager.forceUpdate();
+        });
+
+        eventBus.on(GameEventType.ROGUE_PATH_MOVE, (payload) => {
+            const shipGroup = this.shipAnimator.findShipGroup(payload.shipId);
+            if (shipGroup) {
+                this.shipAnimator.animateAlongPath(
+                    shipGroup,
+                    payload.path,
+                    payload.finalOrientation,
+                    payload.animationDurationMs
+                );
+            }
+
+            // Spawn water ripples evenly spaced across the animation duration
+            if (payload.path.length > 0) {
+                const boardOffset = Config.board.width / 2;
+                const interval = payload.animationDurationMs / payload.path.length;
+                payload.path.forEach((cell, i) => {
+                    setTimeout(() => {
+                        const worldX = cell.x - boardOffset + 0.5;
+                        const worldZ = cell.z - boardOffset + 0.5;
+                        this.waterManager.addRipple(worldX, worldZ, true);
+                    }, interval * i);
+                });
+            }
+        });
+
+        eventBus.on(GameEventType.ROGUE_SHIP_RAMMED, (payload) => {
+            const boardOffset = Config.board.width / 2;
+            const worldX = payload.contactX - boardOffset + 0.5;
+            const worldZ = payload.contactZ - boardOffset + 0.5;
+
+            // Spawn reduced-intensity collision particle burst at contact point
+            this.particleSystem.spawnExplosion(worldX, 0.4, worldZ, this.playerBoardGroup);
+
+            // Trigger camera shake
+            this.cameraShakeElapsedMs = 0;
+            this.cameraShakeDurationMs = 300;
+            this.cameraShakeIntensity = 0.15;
+
+            // Animate rammer's 90° rotation smoothly
+            const rammerGroup = this.shipAnimator.findShipGroup(payload.rammerShipId);
+            if (rammerGroup) {
+                const targetRotY = ShipAnimator.orientationToRotationY(payload.rammerNewOrientation);
+                const turnDuration = Config.timing.rogueTurnDurationMs * Config.timing.gameSpeedMultiplier;
+                rammerGroup.userData.rotationAnim = {
+                    startRotY: rammerGroup.rotation.y,
+                    targetRotY,
+                    elapsedMs: 0,
+                    durationMs: turnDuration,
+                };
+            }
         });
 
         eventBus.on(GameEventType.MINE_PLACED, (payload) => {
@@ -121,7 +214,7 @@ export class EntityManager {
                 const boardOffset = Config.board.width / 2;
                 const worldX = targetX - boardOffset + 0.5;
                 const worldZ = targetZ - boardOffset + 0.5;
-                
+
                 this.activeSonarEffects.push(new SonarEffect(worldX, worldZ, 3, this.playerBoardGroup));
             }
         });
@@ -133,7 +226,7 @@ export class EntityManager {
 
     public getInteractableObjects(): readonly THREE.Object3D[] {
         const isEnemyUp = Math.abs(this.masterBoardGroup.rotation.x - Math.PI) < 0.1;
-        return isEnemyUp ? this.enemyGridTiles : this.playerGridTiles;
+        return isEnemyUp ? this.enemyRaycastPlanes : this.playerRaycastPlanes;
     }
 
     public showPlayerBoard() {
@@ -157,7 +250,7 @@ export class EntityManager {
     public addShip(ship: Ship, x: number, z: number, orientation: Orientation, isPlayer: boolean) {
         const isRogue = Config.rogueMode;
         const targetGroup = isRogue ? this.playerBoardGroup : (isPlayer ? this.playerBoardGroup : this.enemyBoardGroup);
-        
+
         let shipGroup: THREE.Group;
         if (ship.specialType === 'sonar') {
             shipGroup = ShipFactory.createSonarBuoy(isPlayer);
@@ -172,11 +265,19 @@ export class EntityManager {
             shipGroup.userData = { isShip: true, ship, shipOrientation: orientation };
             targetGroup.add(shipGroup);
         } else {
-            shipGroup = ShipFactory.createShip(ship, x, z, orientation, isPlayer, targetGroup);
+            const turretManager = isRogue ? this.playerTurretManager : (isPlayer ? this.playerTurretManager : this.enemyTurretManager);
+            shipGroup = ShipFactory.createShip(ship, x, z, orientation, isPlayer, targetGroup, turretManager);
         }
 
         if (!isPlayer) shipGroup.visible = false;
-        this.visibilityManager.trackShip(ship);
+
+        // Prevent ghosting: remove old group if it exists
+        const oldGroup = this.visibilityManager.getGroupForShip(ship);
+        if (oldGroup && oldGroup.parent) {
+            oldGroup.parent.remove(oldGroup);
+        }
+
+        this.visibilityManager.trackShip(ship, shipGroup);
 
         const boardOffset = Config.board.width / 2;
         let cx = x, cz = z;
@@ -204,7 +305,7 @@ export class EntityManager {
         const clearFromGroup = (group: THREE.Group) => {
             for (let i = group.children.length - 1; i >= 0; i--) {
                 const child = group.children[i];
-                if (child.userData.isAttackMarker && child.userData.result !== 'sunk') {
+                if (child.userData.isAttackMarker && child.userData.result !== 'sunk' && child.userData.result !== 'hit') {
                     if (child.userData.dispose) child.userData.dispose();
                     group.remove(child);
                 }
@@ -218,7 +319,7 @@ export class EntityManager {
     private revealSunkShip(x: number, z: number) {
         const sunkShip = this.visibilityManager.allShips.find(s => s.isEnemy && s.getOccupiedCoordinates().some(c => c.x === x && c.z === z));
         if (sunkShip) {
-            sunkShip.getOccupiedCoordinates().forEach((c: {x: number, z: number}) => {
+            sunkShip.getOccupiedCoordinates().forEach((c: { x: number, z: number }) => {
                 this.fogManager.revealCellPermanently(c.x, c.z);
                 for (let dx = -1; dx <= 1; dx++) {
                     for (let dz = -1; dz <= 1; dz++) {
@@ -235,7 +336,7 @@ export class EntityManager {
     public moveShip3D(ship: Ship, x: number, z: number, orientation: Orientation) {
         let targetGroup: THREE.Group | undefined;
         let parentGroup: THREE.Group | undefined;
-        
+
         [this.playerBoardGroup, this.enemyBoardGroup].forEach(boardGroup => {
             boardGroup.children.forEach((child: THREE.Object3D) => {
                 if (child.userData.isShip && child.userData.ship?.id === ship.id) {
@@ -248,27 +349,36 @@ export class EntityManager {
         if (!targetGroup || !parentGroup) return;
 
         if (targetGroup.userData.shipOrientation !== orientation) {
-            const isPlayer = parentGroup === this.playerBoardGroup;
+            const isPlayer = !ship.isEnemy;
+            const turretManager = isPlayer ? this.playerTurretManager : this.enemyTurretManager;
+            // Remove old turret instances before recreating
+            turretManager.removeTurrets(ship.id);
             parentGroup.remove(targetGroup);
-            const newShipGroup = ShipFactory.createShip(ship, ship.headX, ship.headZ, orientation, isPlayer, parentGroup);
-            newShipGroup.position.copy(targetGroup.position); 
+            const newShipGroup = ShipFactory.createShip(ship, ship.headX, ship.headZ, orientation, isPlayer, parentGroup, turretManager);
+            newShipGroup.position.copy(targetGroup.position);
             targetGroup = newShipGroup;
+            this.visibilityManager.trackShip(ship, targetGroup);
         }
 
         const boardOffset = Config.board.width / 2;
         targetGroup.userData.targetPosition = new THREE.Vector3(x - boardOffset + 0.5, 0, z - boardOffset + 0.5);
     }
 
+    public getEmitterStats(): { emitterCount: number; throttleFactor: number } {
+        return this.particleSystem.getEmitterStats();
+    }
+
     public isBusy(): boolean {
         if (this.projectileManager.hasFallingMarkers()) return true;
         if (this.particleSystem.hasActiveParticles()) return true;
         if (this.activeSonarEffects.some(effect => effect.isActive())) return true;
+        if (this.shipAnimator.hasActivePathAnimation()) return true;
 
         let isAnimating = false;
         const sinkFloor = Config.visual.sinkingFloor;
         [this.playerBoardGroup, this.enemyBoardGroup].forEach(group => {
             group.children.forEach((child: THREE.Object3D) => {
-                if (child.userData.isShip && ((child.userData.isSinking && child.position.y > sinkFloor) || 
+                if (child.userData.isShip && ((child.userData.isSinking && child.position.y > sinkFloor) ||
                     (child.userData.targetPosition && child.position.distanceToSquared(child.userData.targetPosition) > 0.001))) {
                     isAnimating = true;
                 }
@@ -277,22 +387,35 @@ export class EntityManager {
         return isAnimating;
     }
 
-    public update(camera: THREE.Camera) {
+    public update(camera: THREE.Camera, renderer?: THREE.WebGLRenderer) {
         const gameSpeed = Config.timing.gameSpeedMultiplier;
-        
+
         this.masterBoardGroup.rotation.x += (this.targetRotationX - this.masterBoardGroup.rotation.x) * Config.timing.boardFlipSpeed * gameSpeed;
         this.time += 0.016 * gameSpeed;
 
         this.fogManager.updateAnimation(this.time, camera);
         this.waterManager.update(this.time, gameSpeed);
         this.visibilityManager.update(this.time);
-        
+
         this.updateStaticAnimations();
         this.particleSystem.update();
-        
-        this.projectileManager.updateProjectiles(this.addRipple.bind(this), this.waterManager.getUniformsForBoard(true), this.waterManager.getUniformsForBoard(false)); 
 
-        const dt = 1 / 60; 
+        // Draw call budget enforcement (Req 5.1–5.4)
+        if (renderer) {
+            const drawCalls = renderer.info.render.calls;
+            const budget = Config.particles.drawCallBudget;
+            if (drawCalls > budget) {
+                // Scale down proportionally: e.g. 150 calls / 100 budget → scale = 100/150 = 0.67
+                const scale = Math.max(Config.particles.minSpawnRateScale, budget / drawCalls);
+                this.particleSystem.spawnRateScale = scale;
+            } else {
+                this.particleSystem.spawnRateScale = 1.0;
+            }
+        }
+
+        this.projectileManager.updateProjectiles(this.addRipple.bind(this), this.waterManager.getUniformsForBoard(true), this.waterManager.getUniformsForBoard(false));
+
+        const dt = 1 / 60;
         for (let i = this.activeSonarEffects.length - 1; i >= 0; i--) {
             if (!this.activeSonarEffects[i].update(dt)) {
                 this.activeSonarEffects.splice(i, 1);
@@ -303,19 +426,129 @@ export class EntityManager {
         if (this.wasBusy && !currentBusy) eventBus.emit(GameEventType.GAME_ANIMATIONS_COMPLETE, undefined as any);
         this.wasBusy = currentBusy;
 
-        this.updateShipAnimations();
-        this.updateShipHighlighting();
-        this.updatePlacementHighlight();
+        this.shipAnimator.update(this.time, this.activeRogueShipId, this.isPlayerTurn, this.isSetupPhase);
+
+        // Update ramming rotation animations on ship groups
+        this.updateRammingRotations();
+
+        // Apply camera shake offset (sinusoidal decay)
+        this.updateCameraShake(camera);
+
+        // Update turret instance transforms for actively animating ships
+        this.updateTurretTransforms();
+    }
+
+    /**
+     * Updates turret instance matrices based on actively animating ships
+     * using the flat active arrays instead of full tree traversal.
+     */
+    private updateTurretTransforms(): void {
+        const sinkFloor = Config.visual.sinkingFloor;
+        const dirtyShips = new Set<THREE.Object3D>();
+
+        for (let i = this.activelySinkingShips.length - 1; i >= 0; i--) {
+            const shipGroup = this.activelySinkingShips[i];
+            if (shipGroup.position.y <= sinkFloor) {
+                this.activelySinkingShips[i] = this.activelySinkingShips[this.activelySinkingShips.length - 1];
+                this.activelySinkingShips.pop();
+            } else {
+                dirtyShips.add(shipGroup);
+            }
+        }
+
+        for (let i = this.activelyMovingShips.length - 1; i >= 0; i--) {
+            const shipGroup = this.activelyMovingShips[i];
+            if (!shipGroup.userData.targetPosition || shipGroup.position.distanceToSquared(shipGroup.userData.targetPosition) <= 0.001) {
+                this.activelyMovingShips[i] = this.activelyMovingShips[this.activelyMovingShips.length - 1];
+                this.activelyMovingShips.pop();
+            } else {
+                dirtyShips.add(shipGroup);
+            }
+        }
+
+        for (let i = 0; i < this.activelyRotatingShips.length; i++) {
+             dirtyShips.add(this.activelyRotatingShips[i]);
+        }
+
+        dirtyShips.forEach(child => {
+            const ship = child.userData.ship;
+            if (!ship) return;
+
+            const isPlayer = child.parent === this.playerBoardGroup;
+            const turretManager = isPlayer ? this.playerTurretManager : this.enemyTurretManager;
+
+            child.updateMatrix();
+            turretManager.updateTransform(ship.id, child.matrix);
+        });
+    }
+
+    /**
+     * Updates smooth 90° rotation animations triggered by ramming events.
+     * Uses flat arrays and swap-and-pop for O(1) removal.
+     */
+    private updateRammingRotations(): void {
+        const dtMs = 16.67 * Config.timing.gameSpeedMultiplier;
+
+        for (let i = this.activelyRotatingShips.length - 1; i >= 0; i--) {
+            const child = this.activelyRotatingShips[i];
+            const anim = child.userData.rotationAnim;
+            if (!anim) {
+                this.activelyRotatingShips[i] = this.activelyRotatingShips[this.activelyRotatingShips.length - 1];
+                this.activelyRotatingShips.pop();
+                continue;
+            }
+
+            anim.elapsedMs += dtMs;
+            const t = Math.min(anim.elapsedMs / anim.durationMs, 1.0);
+            const eased = 1 - Math.pow(1 - t, 3);
+
+            let diff = ((anim.targetRotY - anim.startRotY) % (Math.PI * 2) + Math.PI * 3) % (Math.PI * 2) - Math.PI;
+            child.rotation.y = anim.startRotY + diff * eased;
+
+            if (t >= 1.0) {
+                child.rotation.y = anim.targetRotY;
+                child.userData.rotationAnim = null;
+                this.activelyRotatingShips[i] = this.activelyRotatingShips[this.activelyRotatingShips.length - 1];
+                this.activelyRotatingShips.pop();
+            }
+        }
+    }
+
+    /**
+     * Applies sinusoidal camera shake that decays over time.
+     */
+    private updateCameraShake(camera: THREE.Camera): void {
+        if (this.cameraShakeDurationMs <= 0) return;
+
+        const dtMs = 16.67 * Config.timing.gameSpeedMultiplier;
+        this.cameraShakeElapsedMs += dtMs;
+
+        if (this.cameraShakeElapsedMs >= this.cameraShakeDurationMs) {
+            this.cameraShakeDurationMs = 0;
+            return;
+        }
+
+        const progress = this.cameraShakeElapsedMs / this.cameraShakeDurationMs;
+        const decay = 1 - progress;
+        const frequency = 30;
+        const offsetY = Math.sin(progress * frequency) * this.cameraShakeIntensity * decay;
+        const offsetX = Math.cos(progress * frequency * 0.7) * this.cameraShakeIntensity * decay * 0.5;
+        camera.position.y += offsetY;
+        camera.position.x += offsetX;
     }
 
     private updateStaticAnimations() {
-        this.staticGroup.children.forEach(child => {
-            if (child.userData.isStatusLED) {
-                const mat = (child as THREE.Mesh).material as THREE.MeshBasicMaterial;
-                child.userData.phase += 0.05;
-                mat.opacity = 0.3 + (0.5 + Math.sin(child.userData.phase) * 0.5) * 0.7;
-            }
-        });
+        if (!this.ledMesh || this.ledPhases.length === 0) return;
+        const ledColor = new THREE.Color(0x4169E1);
+        for (let i = 0; i < this.ledPhases.length; i++) {
+            this.ledPhases[i] += 0.05;
+            const opacity = 0.3 + (0.5 + Math.sin(this.ledPhases[i]) * 0.5) * 0.7;
+            // Modulate color brightness to simulate opacity on MeshBasicMaterial
+            ledColor.setHex(0x4169E1);
+            ledColor.multiplyScalar(opacity);
+            this.ledMesh.setColorAt(i, ledColor);
+        }
+        this.ledMesh.instanceColor!.needsUpdate = true;
     }
 
     private isSetupPhase: boolean = false;
@@ -324,102 +557,8 @@ export class EntityManager {
         this.fogManager.setSetupPhase(isSetup);
     }
 
-    private updatePlacementHighlight() {
-        if (!Config.rogueMode || !this.isSetupPhase) return;
-        const currentIntensity = 0.1 + ((Math.sin(this.time * 5) + 1) / 2) * 0.3;
-        const highlightColor = new THREE.Color(0x00ffff);
-
-        this.playerGridTiles.forEach(tile => {
-            const { cellX, cellZ } = tile.userData;
-            let isInArea = cellX < 7 && cellZ < 7;
-            const mat = (tile as THREE.Mesh).material as THREE.MeshStandardMaterial;
-            if (isInArea) {
-                mat.emissive.copy(highlightColor);
-                mat.emissiveIntensity = currentIntensity;
-                mat.opacity = 0.3;
-            } else {
-                mat.emissiveIntensity = 0;
-                mat.opacity = 0.05;
-            }
-        });
-    }
-
     private addRipple(worldX: number, worldZ: number, isPlayerBoard: boolean) {
         this.waterManager.addRipple(worldX, worldZ, isPlayerBoard);
-    }
-
-    private updateShipAnimations() {
-        const descentRate = 0.001 * Config.timing.gameSpeedMultiplier;
-        const sinkFloor = Config.visual.sinkingFloor;
-        const moveLerpFactor = 0.1 * Config.timing.gameSpeedMultiplier;
-
-        [this.playerBoardGroup, this.enemyBoardGroup].forEach(group => {
-            group.children.forEach((child: THREE.Object3D) => {
-                if (!child.userData.isShip) return;
-
-                // Sync sinking state from domain
-                if (child.userData.ship.isSunk() && !child.userData.isSinking) {
-                    child.userData.isSinking = true;
-                    child.userData.sinkAngleZ = (Math.random() - 0.5) * 0.3;
-                    child.userData.sinkAngleX = (Math.random() - 0.5) * 0.3;
-                }
-
-                if (child.userData.isSinking) {
-                    // Rule: Mines disappear immediately, ships/sonars sink
-                    if (child.userData.ship.specialType === 'mine') {
-                        group.remove(child);
-                        return;
-                    }
-
-                    if (child.position.y > sinkFloor) {
-                        child.position.y -= descentRate;
-                        const sinkProgress = Math.min(1.0, -child.position.y / Math.abs(sinkFloor));
-                        child.rotation.z = sinkProgress * (child.userData.sinkAngleZ ?? 0.15);
-                        child.rotation.x = sinkProgress * (child.userData.sinkAngleX ?? 0.08);
-
-                        if (child.userData.isBroken && child.userData.halfA && child.userData.halfB) {
-                            const breakAngle = sinkProgress * 0.4;
-                            if (child.userData.shipOrientation === Orientation.Horizontal) {
-                                child.userData.halfA.rotation.z = breakAngle;
-                                child.userData.halfB.rotation.z = -breakAngle;
-                            } else {
-                                child.userData.halfA.rotation.x = -breakAngle;
-                                child.userData.halfB.rotation.x = breakAngle;
-                            }
-                        }
-                    }
-                }
-
-                if (child.userData.targetPosition) {
-                    child.position.lerp(child.userData.targetPosition, moveLerpFactor);
-                    if (child.position.distanceToSquared(child.userData.targetPosition) < 0.001) {
-                        child.position.copy(child.userData.targetPosition);
-                        child.userData.targetPosition = null;
-                    }
-                }
-            });
-        });
-    }
-
-    private updateShipHighlighting() {
-        const shouldHighlight = Config.rogueMode && this.isPlayerTurn && this.activeRogueShipId;
-        const currentIntensity = 0.2 + ((Math.sin(this.time * 5) + 1) / 2) * 0.6;
-        const highlightColor = new THREE.Color(0xffff00), defaultColor = new THREE.Color(0x000000);
-
-        this.playerBoardGroup.children.forEach(child => {
-            if (child.userData.isShip) {
-                const instancedMesh = child.userData.instancedMesh as THREE.InstancedMesh;
-                if (instancedMesh?.material instanceof THREE.MeshStandardMaterial) {
-                    if (shouldHighlight && child.userData.ship?.id === this.activeRogueShipId) {
-                        instancedMesh.material.emissive.copy(highlightColor);
-                        instancedMesh.material.emissiveIntensity = currentIntensity;
-                    } else if (instancedMesh.material.emissiveIntensity > 0) {
-                        instancedMesh.material.emissive.copy(defaultColor);
-                        instancedMesh.material.emissiveIntensity = 0;
-                    }
-                }
-            }
-        });
     }
 
     public resetMatch() {
@@ -448,5 +587,11 @@ export class EntityManager {
         this.particleSystem.clear();
         this.projectileManager.clear();
         this.fogManager.reset();
+
+        // Dispose and recreate turret managers for the new match
+        this.playerTurretManager.dispose();
+        this.enemyTurretManager.dispose();
+        this.playerTurretManager = new TurretInstanceManager(this.playerBoardGroup, true);
+        this.enemyTurretManager = new TurretInstanceManager(this.enemyBoardGroup, false);
     }
 }

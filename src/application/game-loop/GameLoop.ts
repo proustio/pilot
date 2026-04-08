@@ -93,6 +93,14 @@ export class GameLoop {
 
     public onShipMovedInvoke(ship: Ship, x: number, z: number, orient: Orientation): void {
         this.shipMovedListeners.forEach(l => l(ship, x, z, orient));
+        if (this.match && this.match.mode === MatchMode.Rogue) {
+            eventBus.emit(GameEventType.ROGUE_MOVE_SHIP, { 
+                shipId: ship.id, 
+                newX: x, 
+                newZ: z, 
+                newOrientation: orient 
+            });
+        }
     }
 
     public onAttackResultInvoke(x: number, z: number, res: string, isP: boolean, isR: boolean): void {
@@ -207,6 +215,15 @@ export class GameLoop {
     public startNewMatch(match: Match): void {
         this.isAnimating = false;
         this.onAnimationsComplete = null;
+
+        // Apply mode-specific speed defaults
+        if (match.mode === MatchMode.Rogue) {
+            this.config.timing.gameSpeedMultiplier = 2.0;
+        } else {
+            this.config.timing.gameSpeedMultiplier = 4.0;
+        }
+        this.config.saveConfig();
+
         this.matchSetup.startNewMatch(match);
     }
 

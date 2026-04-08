@@ -4,6 +4,7 @@ import { CellState } from '../../domain/board/Board';
 import { AIEngine } from '../ai/AIEngine';
 import { getCoords } from '../../domain/board/BoardUtils';
 import { GameState } from './GameLoop';
+import { Config } from '../../infrastructure/config/Config';
 
 type ShipPlacedListener = (ship: Ship, x: number, z: number, orientation: Orientation, isPlayer: boolean) => void;
 type AttackResultListener = (x: number, z: number, result: string, isPlayer: boolean, isReplay: boolean) => void;
@@ -43,22 +44,18 @@ export class MatchSetup {
         this.state.aiEngine.reset();
         this.state.playerAIEngine.reset();
         this.state.playerShipsToPlace = []; // Clear any previous state
-        
+
         // Reset global resources
         Ship.resources = { airStrikes: 1, sonars: 2, mines: 5 };
 
-        this.state.playerShipsToPlace = match.getRequiredFleet().map(s => {
-            s.id = `player-${s.id}`;
-            s.isEnemy = false;
-            return s;
-        });
+        this.state.playerShipsToPlace = match.getRequiredFleet('player-');
+        this.state.playerShipsToPlace.forEach(s => s.isEnemy = false);
 
         if (this.state.config.autoBattler) {
             const isRogue = match.mode === MatchMode.Rogue;
             const playerTargetBoard = isRogue ? match.sharedBoard : match.playerBoard;
-            const playerShips = match.getRequiredFleet();
+            const playerShips = match.getRequiredFleet('player-');
             for (const ship of playerShips) {
-                ship.id = `player-${ship.id}`;
                 ship.isEnemy = false;
                 let placed = false;
                 let attempts = 0;
@@ -89,9 +86,8 @@ export class MatchSetup {
 
         // Always place enemy fleet
         const targetBoard = match.mode === MatchMode.Rogue ? match.sharedBoard : match.enemyBoard;
-        const enemyShips = match.getRequiredFleet();
+        const enemyShips = match.getRequiredFleet('enemy-');
         for (const ship of enemyShips) {
-            ship.id = `enemy-${ship.id}`;
             ship.isEnemy = true;
             let placed = false;
             let attempts = 0;
@@ -161,7 +157,7 @@ export class MatchSetup {
      */
     private replayShips(match: Match): void {
         const boardsToReplay = match.mode === MatchMode.Rogue ? [match.sharedBoard] : [match.playerBoard, match.enemyBoard];
-        
+
         boardsToReplay.forEach(board => {
             const isBoardForPlayer = board === match.playerBoard;
             for (const ship of board.ships) {
@@ -194,8 +190,11 @@ export class MatchSetup {
                     const { x, z } = getCoords(index, match.sharedBoard.width);
                     // In Rogue mode, we use the quadrants to infer isPlayer.
                     // Player territory is 0-6, so attacks on it are AI (isPlayer=false).
-                    // AI territory is 13-19, so attacks on it are Player (isPlayer=true).
-                    const isPlayerShot = x >= 13 && z >= 13;
+                    // AI territory is Config.board.width-7 to Config.board.width, 
+                    // so attacks on it are Player (isPlayer=true).
+                    const enemyOffsetWidth = Config.board.width - 7;
+                    const enemyOffsetHeight = Config.board.height - 7;
+                    const isPlayerShot = x >= enemyOffsetWidth && z >= enemyOffsetHeight;
                     this.state.attackResultListeners.forEach(l => l(x, z, result, isPlayerShot, true));
                 }
             });

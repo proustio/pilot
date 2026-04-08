@@ -1,16 +1,16 @@
-<div class="slot-wrapper" style="display: flex; justify-content: center; width: 100%;">
-    <button class="save-slot voxel-btn ${disabledClass}" data-slot="${i}" ${isDisabled ? 'disabled' : ''} style="flex-grow: 1; max-width: 300px;">
-        <div class="slot-header">Slot ${i}</div>
-        <div class="slot-info">
-            ${isEmpty ? `<span class="slot-empty">— Empty —</span>` : `
-                <span class="slot-mode">${meta.mode.toUpperCase()}</span>
-                <span class="slot-date">${new Date(meta.date).toLocaleString()}</span>
-                <span class="slot-turns">Turns: ${meta.turnCount}</span>
+<div class="flex justify-center w-full">
+    <button class="save-slot bg-btn-bg text-btn-text border border-btn-border rounded shadow-voxel-btn px-6 py-4 my-1 font-mono text-[1.1rem] font-bold uppercase cursor-pointer transition-all duration-200 w-full max-w-[550px] text-shadow-voxel-btn tracking-wider hover:border-theme-primary hover:shadow-[inset_0_0_15px_rgba(255,215,0,0.3)] ${disabledClass}" data-slot="${i}" ${isDisabled ? 'disabled' : ''}>
+        <div class="text-[1rem] font-bold mb-1 text-theme-text shadow-[0_0_5px_var(--color-primary)]">${'Slot ' + i}</div>
+        <div class="flex flex-col text-[0.8rem] gap-[2px]">
+            ${isEmpty ? `<span class="text-slot-empty italic">— Empty —</span>` : `
+                <span class="text-theme-secondary">${meta.mode.toUpperCase()}</span>
+                <span class="text-slot-date">${new Date(meta.date).toLocaleString()}</span>
+                <span class="text-slot-turns">Turns: ${meta.turnCount}</span>
             `}
         </div>
     </button>
     ${!isEmpty ? `
-    <button class="slot-delete-btn voxel-btn danger" data-slot="${i}" title="Delete Save">
+    <button class="slot-delete-btn bg-btn-danger-bg text-theme-danger border border-theme-danger rounded shadow-voxel-btn-danger w-[50px] p-0 my-1 font-mono font-bold uppercase cursor-pointer transition-all duration-200 flex shrink-0 items-center justify-center hover:bg-btn-danger-hover hover:text-white" data-slot="${i}" title="Delete Save">
         <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
             <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
         </svg>

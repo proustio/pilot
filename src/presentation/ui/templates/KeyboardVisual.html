@@ -1,10 +1,9 @@
 ${rows.map(row => `
-    <div style="display: flex; justify-content: center; gap: 5px; margin-bottom: 5px;">
+    <div class="flex justify-center gap-[5px] mb-[5px]">
         ${row.map(key => {
             const isBound = allBinds.includes(key);
             return `
-            <div class="key-cap" 
-                 style="width: 30px; height: 30px; border: 1px solid var(--panel-border); display: flex; align-items: center; justify-content: center; font-size: 0.8em; background: ${isBound ? 'var(--accent-color)' : 'transparent'}; opacity: ${isBound ? '1' : '0.5'};">
+            <div class="w-[30px] h-[30px] border border-panel-border flex items-center justify-center font-mono text-[0.8rem] rounded-sm transition-all duration-150 ${isBound ? 'bg-theme-highlight text-white opacity-100 shadow-[0_0_8px_var(--color-highlight)]' : 'bg-transparent text-theme-text opacity-50'}">
                 ${key}
             </div>`;
         }).join('')}

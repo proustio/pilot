@@ -16,7 +16,7 @@ describe('AIEngine Strategy', () => {
     });
 
     describe('Hard AI Heatmap Strategy', () => {
-        it('avoids known misses in heatmap calculation', () => {
+        it('avoids known misses in heatmap calculation', async () => {
             ai.setDifficulty('hard');
             
             // Place a ship but mark almost everything else as Miss
@@ -26,13 +26,13 @@ describe('AIEngine Strategy', () => {
             // Mark (1,0) as Miss - heat should be 0 there
             board.gridState[1] = CellState.Miss;
 
-            const move = ai.computeNextMove(board, match);
+            const move = await ai.computeNextMove(board, match);
             
             // The move should not be at (1,0)
             expect(move.x === 1 && move.z === 0).toBe(false);
         });
 
-        it('targets areas that can actually fit ships', () => {
+        it('targets areas that can actually fit ships', async () => {
             ai.setDifficulty('hard');
             
             // 3x3 board for simplicity in thought, but we use 10x10.
@@ -47,14 +47,14 @@ describe('AIEngine Strategy', () => {
             const ship = new Ship('target', 2);
             board.ships = [ship]; 
 
-            const move = ai.computeNextMove(board, match);
+            const move = await ai.computeNextMove(board, match);
             expect(move.z).toBe(0);
             expect(move.x).toBeLessThanOrEqual(1);
         });
     });
 
     describe('Rogue Mode Awareness', () => {
-        it('avoids targeting its own ships on the shared board', () => {
+        it('avoids targeting its own ships on the shared board', async () => {
             match = new Match(MatchMode.Rogue, 20, 20);
             const sharedBoard = match.sharedBoard;
             ai.setDifficulty('hard');
@@ -66,13 +66,13 @@ describe('AIEngine Strategy', () => {
 
             // Run move many times to be sure
             for (let i = 0; i < 20; i++) {
-                const move = ai.computeNextMove(sharedBoard, match);
+                const move = await ai.computeNextMove(sharedBoard, match);
                 const isOnEnemyShip = enemyShip.occupies(move.x, move.z);
                 expect(isOnEnemyShip).toBe(false);
             }
         });
 
-        it('respects quadrant restrictions for ship fitting experiments', () => {
+        it('respects quadrant restrictions for ship fitting experiments', async () => {
             match = new Match(MatchMode.Rogue, 20, 20);
             const sharedBoard = match.sharedBoard;
             ai.setDifficulty('hard');
@@ -85,7 +85,7 @@ describe('AIEngine Strategy', () => {
             // Clear board to ensure random seed doesn't bias too much
             for (let i = 0; i < 400; i++) sharedBoard.gridState[i] = CellState.Empty;
             
-            const move = ai.computeNextMove(sharedBoard, match);
+            const move = await ai.computeNextMove(sharedBoard, match);
             
             // The target should be in the player's starting quadrant (0-6, 0-6)
             expect(move.x).toBeLessThan(7);

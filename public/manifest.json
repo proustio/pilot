@@ -8,7 +8,7 @@
   "theme_color": "#050515",
   "icons": [
     {
-      "src": "./assets/classic-battleships.png",
+      "src": "/pilot/assets/classic-battleships.png",
       "sizes": "any",
       "type": "image/png",
       "purpose": "any"

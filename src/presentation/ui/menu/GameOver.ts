@@ -6,7 +6,7 @@ import gameOverTemplate from '../templates/GameOver.html?raw';
 export class GameOver extends BaseUIComponent {
     constructor() {
         super('game-over');
-        this.container.classList.add('voxel-panel');
+        this.container.classList.add('absolute', 'top-1/2', 'left-1/2', '-translate-x-1/2', '-translate-y-1/2', 'bg-[rgba(20,20,20,0.55)]', 'backdrop-blur-[8px]', 'border-4', 'border-[#333]', 'rounded', 'shadow-voxel-panel', 'text-[#eee]', 'p-8', 'pointer-events-auto', 'text-shadow-voxel', 'z-[200]', 'w-[500px]', 'max-w-[90vw]', 'flex', 'flex-col', 'items-center', 'justify-center');
     }
 
     protected render(): void {
@@ -34,11 +34,13 @@ export class GameOver extends BaseUIComponent {
         
         if (status === 'player_wins') {
             title.innerText = 'VICTORY!';
-            title.style.color = 'var(--color-primary)';
+            title.classList.add('text-theme-primary');
+            title.classList.remove('text-theme-danger');
             msg.innerText = 'All enemy ships have been sunk.';
         } else {
             title.innerText = 'DEFEAT!';
-            title.style.color = 'var(--color-danger)';
+            title.classList.add('text-theme-danger');
+            title.classList.remove('text-theme-primary');
             msg.innerText = 'Your fleet was destroyed.';
         }
     }

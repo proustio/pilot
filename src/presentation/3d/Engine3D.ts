@@ -37,11 +37,11 @@ export class Engine3D {
     this.camera.position.set(5.0233, 10.0466, 14.0652);
     this.camera.lookAt(0, 0, 0);
 
-    this.renderer = new THREE.WebGLRenderer({ 
-        antialias: Config.visual.antialias, 
-        alpha: true,
-        powerPreference: 'high-performance',
-        precision: 'highp'
+    this.renderer = new THREE.WebGLRenderer({
+      antialias: Config.visual.antialias,
+      alpha: true,
+      powerPreference: 'high-performance',
+      precision: 'highp'
     });
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
@@ -64,10 +64,10 @@ export class Engine3D {
     this.orbitControls.addEventListener('change', () => {
       if (!this.isTransitioning) {
         this.hasManualMovement = true;
-        
+
         // Debounced camera save
         if (!InteractivityGuard.isCameraMoving()) {
-            this.triggerDebouncedSave();
+          this.triggerDebouncedSave();
         }
       }
     });
@@ -108,15 +108,15 @@ export class Engine3D {
     }, { capture: true });
 
     eventBus.on(GameEventType.TOGGLE_DAY_NIGHT, () => {
-        this.setDayMode(!Config.visual.isDayMode);
+      this.setDayMode(!Config.visual.isDayMode);
     });
 
     eventBus.on(GameEventType.SET_CAMERA_TARGET, (payload: any) => {
-        if (payload && !this.isTransitioning) {
-            this.targetCameraPos.set(payload.x, payload.y, payload.z);
-            this.isTransitioning = true;
-            InteractivityGuard.setCameraTransitioning(true);
-        }
+      if (payload && !this.isTransitioning) {
+        this.targetCameraPos.set(payload.x, payload.y, payload.z);
+        this.isTransitioning = true;
+        InteractivityGuard.setCameraTransitioning(true);
+      }
     });
 
     eventBus.on(GameEventType.THEME_CHANGED, () => {
@@ -131,7 +131,7 @@ export class Engine3D {
     });
 
     eventBus.on(GameEventType.WINDOW_RESIZE, () => {
-        this.onWindowResize();
+      this.onWindowResize();
     });
   }
 
@@ -171,11 +171,11 @@ export class Engine3D {
 
   public updateTheme() {
     const tm = ThemeManager.getInstance();
-    
+
     this.scene.background = tm.getBackgroundColor();
-    
+
     if (this.scene.fog) {
-        this.scene.fog.color = tm.getFogColor();
+      this.scene.fog.color = tm.getFogColor();
     }
 
     this.ambientLight.color.copy(tm.getAmbientLightColor());
@@ -201,24 +201,24 @@ export class Engine3D {
   ) {
     this.targetCameraPos.set(camX, camY, camZ);
     this.targetLookAt.set(tgtX, tgtY, tgtZ);
-    
+
     if (camDist !== undefined) {
-        // If distance is provided, we might want to adjust the targetCameraPos 
-        // to maintain that distance along the vector.
-        // For simplicity, we'll just set the min/max distance or trust the position.
-        this.orbitControls.minDistance = Math.min(this.orbitControls.minDistance, camDist);
-        this.orbitControls.maxDistance = Math.max(this.orbitControls.maxDistance, camDist);
+      // If distance is provided, we might want to adjust the targetCameraPos 
+      // to maintain that distance along the vector.
+      // For simplicity, we'll just set the min/max distance or trust the position.
+      this.orbitControls.minDistance = Math.min(this.orbitControls.minDistance, camDist);
+      this.orbitControls.maxDistance = Math.max(this.orbitControls.maxDistance, camDist);
     }
-    
+
     this.isTransitioning = true;
     InteractivityGuard.setCameraTransitioning(true);
   }
 
   public getCameraState() {
     return {
-        pos: this.camera.position.clone(),
-        tgt: this.orbitControls.target.clone(),
-        dist: this.orbitControls.getDistance()
+      pos: this.camera.position.clone(),
+      tgt: this.orbitControls.target.clone(),
+      dist: this.orbitControls.getDistance()
     };
   }
 
@@ -226,9 +226,9 @@ export class Engine3D {
   private triggerDebouncedSave() {
     if (this.saveTimeout) clearTimeout(this.saveTimeout);
     this.saveTimeout = setTimeout(() => {
-        if (!InteractivityGuard.isCameraMoving() && !this.isTransitioning) {
-            eventBus.emit(GameEventType.TRIGGER_AUTO_SAVE, undefined as any);
-        }
+      if (!InteractivityGuard.isCameraMoving() && !this.isTransitioning) {
+        eventBus.emit(GameEventType.TRIGGER_AUTO_SAVE, undefined as any);
+      }
     }, 1000);
   }
 

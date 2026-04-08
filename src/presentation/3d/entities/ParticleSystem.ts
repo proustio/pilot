@@ -1,348 +1,225 @@
 import * as THREE from 'three';
-import { ThemeManager } from '../../theme/ThemeManager';
-import { eventBus, GameEventType } from '../../../application/events/GameEventBus';
 import { Config } from '../../../infrastructure/config/Config';
-
-interface Particle {
-    mesh: THREE.Mesh;
-    velocity: THREE.Vector3;
-    life: number;
-    maxLife: number;
-    isSmoke: boolean;
-    isFire?: boolean;
-    group: THREE.Object3D;
-}
-
-interface Emitter {
-    id?: string;
-    x: number;
-    y: number;
-    z: number;
-    color: string;
-    hasFire: boolean;
-    nextSpawn: number;
-    intensity: number;
-    group: THREE.Object3D;
-}
+import { EmitterManager, EmitterSpawnCallback } from './EmitterManager';
+import { ParticlePoolType, InstancedParticle, _tempMatrix, _tempQuaternion, _tempScale, _tempColor, _tempPos } from './ParticleTypes';
+import { ParticlePoolManager } from './ParticlePoolManager';
+import { ParticleSpawner } from './ParticleSpawner';
 
 export class ParticleSystem {
-    private particles: Particle[] = [];
-    private emitters: Emitter[] = [];
+    private particles: InstancedParticle[] = [];
+    private emitterManager = new EmitterManager();
+    public poolManager = new ParticlePoolManager();
+    public spawner = new ParticleSpawner(this.poolManager, this.particles);
 
-    private explosionGeo = new THREE.BoxGeometry(0.15, 0.15, 0.15);
-    private smokeGeo = new THREE.BoxGeometry(0.12, 0.12, 0.12);
-    private fireGeo = new THREE.BoxGeometry(0.12, 0.12, 0.12);
+    /** External spawn-rate throttle (0.0–1.0), set by EntityManager draw call budget */
+    public spawnRateScale = 1.0;
+
+    // Materials re-exported to maintain backwards compatibility
+    public get fireMat() { return this.poolManager.fireMat; }
+    public get secondaryFireMat() { return this.poolManager.secondaryFireMat; }
+    public get greySmokeMat() { return this.poolManager.greySmokeMat; }
+    public get blackSmokeMat() { return this.poolManager.blackSmokeMat; }
+
+    // ── Pool initialization ──────────────────────────────────────
+
+    public initPools(parentGroup: THREE.Object3D): void {
+        this.poolManager.initPools(parentGroup);
+    }
+
+    // ── Spawn methods ────────────────────────────────────────────
 
     public hasActiveParticles(): boolean {
-        // Only count explosion/splash/voxel particles, not continuous smoke/fire emitters
         return this.particles.some(p => !p.isSmoke && !p.isFire);
     }
 
-
-    // Materials
-    public fireMat = new THREE.MeshStandardMaterial({ color: 0xff4500, emissive: 0xff0000, roughness: 0.4 });
-    public secondaryFireMat = new THREE.MeshStandardMaterial({ color: 0xffa500, emissive: 0xff8c00, roughness: 0.4 });
-    public greySmokeMat = new THREE.MeshStandardMaterial({ color: 0xa0a0a0, transparent: true, opacity: 0.8 });
-    public blackSmokeMat = new THREE.MeshStandardMaterial({ color: 0x3b3b38, transparent: true, opacity: 0.9 });
-    private splashMatWhite = new THREE.MeshStandardMaterial({ color: 0xffffff, transparent: true, opacity: 0.7, roughness: 0.2 });
-    private splashMatBlue = new THREE.MeshStandardMaterial({ color: 0x4fa4ff, transparent: true, opacity: 0.8, roughness: 0.2 });
-    private shipVoxelMat = new THREE.MeshStandardMaterial({ color: 0x888888, roughness: 0.7 });
-
-    constructor() {
-        const updateParticleTheme = () => {
-            const tm = ThemeManager.getInstance();
-            const wc = tm.getWaterColors();
-            // Splash particles should mirror the water peak color
-            this.splashMatBlue.color.copy(wc.secondary);
-        };
-
-        eventBus.on(GameEventType.THEME_CHANGED, updateParticleTheme);
-        updateParticleTheme(); // Run once to seed values
+    public getEmitterStats(): { emitterCount: number; throttleFactor: number } {
+        return this.emitterManager.getStats();
     }
 
-    public spawnExplosion(x: number, y: number, z: number, group: THREE.Object3D) {
-        // Spawn 10-15 fiery/grey particles bursting outwards
-        const count = 10 + Math.random() * 5;
-        for (let i = 0; i < count; i++) {
-            const isFire = Math.random() > 0.5;
-            const mesh = new THREE.Mesh(this.explosionGeo, isFire ? this.fireMat : this.greySmokeMat);
-
-            // Random position slightly offset from center
-            mesh.position.set(
-                x + (Math.random() - 0.5) * 0.5,
-                y + Math.random() * 0.5,
-                z + (Math.random() - 0.5) * 0.5
-            );
-
-            // Outward velocity
-            const velocity = new THREE.Vector3(
-                (Math.random() - 0.5) * 0.05,
-                Math.random() * 0.1 + 0.05,
-                (Math.random() - 0.5) * 0.05
-            );
-
-            group.add(mesh);
-            this.particles.push({
-                mesh,
-                velocity,
-                life: 1.0,
-                maxLife: 1.0,
-                isSmoke: false,
-                group
-            });
-        }
+    public spawnFire(x: number, y: number, z: number, group: THREE.Object3D, intensity: number = 1.0): void {
+        this.spawner.spawnFire(x, y, z, group, intensity, this.spawnRateScale);
     }
 
-    public spawnSplash(x: number, y: number, z: number, group: THREE.Object3D) {
-        // Spawn 15-25 water particles bursting mainly upwards
-        const count = 15 + Math.random() * 10;
-        for (let i = 0; i < count; i++) {
-            const isWhite = Math.random() > 0.6;
-            const mesh = new THREE.Mesh(this.explosionGeo, isWhite ? this.splashMatWhite : this.splashMatBlue);
-
-            // Random position slightly offset from center
-            mesh.position.set(
-                x + (Math.random() - 0.5) * 0.4,
-                y,
-                z + (Math.random() - 0.5) * 0.4
-            );
-
-            // Upward and slightly outward velocity (fountain shape)
-            const velocity = new THREE.Vector3(
-                (Math.random() - 0.5) * 0.04,
-                Math.random() * 0.15 + 0.05, // Faster upwards
-                (Math.random() - 0.5) * 0.04
-            );
-
-            group.add(mesh);
-            this.particles.push({
-                mesh,
-                velocity,
-                life: 0.6 + Math.random() * 0.4, // Shorter life than fire
-                maxLife: 1.0,
-                isSmoke: false, // Use gravity
-                group
-            });
-        }
+    public spawnSmoke(x: number, y: number, z: number, color: string, group: THREE.Object3D, intensity: number = 1.0): void {
+        this.spawner.spawnSmoke(x, y, z, color, group, intensity, this.spawnRateScale);
     }
 
-    public spawnVoxelExplosion(x: number, y: number, z: number, count: number, group: THREE.Object3D) {
-        const voxelGeo = new THREE.BoxGeometry(0.1, 0.1, 0.1);
-        for (let i = 0; i < count; i++) {
-            const mesh = new THREE.Mesh(voxelGeo, this.shipVoxelMat);
-
-            // Position near impact area
-            mesh.position.set(
-                x + (Math.random() - 0.5) * 0.5,
-                y + Math.random() * 0.5,
-                z + (Math.random() - 0.5) * 0.5
-            );
-
-            // Strong outward/upward blast
-            const velocity = new THREE.Vector3(
-                (Math.random() - 0.5) * 0.15,
-                Math.random() * 0.15 + 0.05,
-                (Math.random() - 0.5) * 0.15
-            );
-
-            // Random slight rotation
-            mesh.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
-
-            group.add(mesh);
-            this.particles.push({
-                mesh,
-                velocity,
-                life: 1.5 + Math.random() * 0.5,
-                maxLife: 2.0,
-                isSmoke: false, // Gravity applies
-                group
-            });
-        }
+    public spawnExplosion(x: number, y: number, z: number, group: THREE.Object3D): void {
+        this.spawner.spawnExplosion(x, y, z, group, this.spawnRateScale);
     }
 
-    public spawnSmoke(x: number, y: number, z: number, color: string, group: THREE.Object3D, intensity: number = 1.0) {
-        // Use blackSmokeMat as base for dark colors to get higher opacity (0.9 vs 0.8)
-        const isDark = color === this.blackSmokeMat.color.getStyle();
-        const mat = (isDark ? this.blackSmokeMat : this.greySmokeMat).clone();
-        mat.color.set(color);
-        const mesh = new THREE.Mesh(this.smokeGeo, mat);
-
-        // Scale smoke based on intensity
-        mesh.scale.setScalar(0.8 + intensity * 0.4);
-        // Wider horizontal spread to stay within cell (1.0) with many small voxels
-        mesh.position.set(
-            x + (Math.random() - 0.5) * 0.7,
-            y,
-            z + (Math.random() - 0.5) * 0.7
-        );
-
-        const velocity = new THREE.Vector3(
-            (Math.random() - 0.5) * 0.005, // Reduced drift
-            0.02 + Math.random() * 0.02,
-            (Math.random() - 0.5) * 0.005  // Reduced drift
-        );
-
-        // Random slight rotation
-        mesh.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
-
-        group.add(mesh);
-
-        // Reduced life: ~1.0-1.5s instead of 2-3s
-        const life = 1.0 + Math.random() * 0.5;
-        this.particles.push({
-            mesh,
-            velocity,
-            life: life,
-            maxLife: life,
-            isSmoke: true,
-            group
-        });
+    public spawnSplash(x: number, y: number, z: number, group: THREE.Object3D): void {
+        this.spawner.spawnSplash(x, y, z, group, this.spawnRateScale);
     }
 
-    public spawnFire(x: number, y: number, z: number, group: THREE.Object3D, intensity: number = 1.0) {
-        const isSecondary = Math.random() > 0.4;
-        const mesh = new THREE.Mesh(this.fireGeo, isSecondary ? this.secondaryFireMat : this.fireMat);
-
-        // Scale fire based on intensity
-        mesh.scale.setScalar(0.6 + intensity * 0.6);
-        mesh.position.set(
-            x + (Math.random() - 0.5) * 0.2,
-            y,
-            z + (Math.random() - 0.5) * 0.2
-        );
-
-        const velocity = new THREE.Vector3(
-            (Math.random() - 0.5) * 0.02,
-            0.04 + Math.random() * 0.04,
-            (Math.random() - 0.5) * 0.02
-        );
-
-        // Random slight rotation
-        mesh.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
-
-        group.add(mesh);
-        
-        // Fire life set to half of smoke (~1.0-1.5s -> ~0.5-0.75s)
-        const life = 0.5 + Math.random() * 0.25;
-        this.particles.push({
-            mesh,
-            velocity,
-            life: life,
-            maxLife: life,
-            isSmoke: false,
-            isFire: true,
-            group
-        });
+    public spawnVoxelExplosion(x: number, y: number, z: number, count: number, group: THREE.Object3D): void {
+        this.spawner.spawnVoxelExplosion(x, y, z, count, group, this.spawnRateScale);
     }
 
-    public addEmitter(x: number, y: number, z: number, hasFire: boolean, group: THREE.Object3D, color?: string, intensity: number = 1.0, id?: string) {
-        const emitterColor = color || this.blackSmokeMat.color.getStyle();
-        // If ID exists and already present, skip to preserve original (user requirement "sections remain as-is")
-        if (id && this.emitters.some(e => e.id === id)) return;
-        this.emitters.push({ x, y, z, color: emitterColor, hasFire, nextSpawn: 0, group, intensity, id });
+    public spawnFog(x: number, y: number, z: number, group: THREE.Object3D): void {
+        this.spawner.spawnFog(x, y, z, group);
     }
 
-    public updateEmittersByIdPrefix(prefix: string, intensity: number) {
-        for (const emitter of this.emitters) {
-            if (emitter.id && emitter.id.startsWith(prefix)) {
-                emitter.intensity = intensity;
-            }
-        }
+    // ── Emitter delegation (unchanged public API) ───────────────────────────
+
+    public addEmitter(x: number, y: number, z: number, hasFire: boolean, group: THREE.Object3D, color?: string, intensity: number = 1.0, id?: string): void {
+        const emitterColor = color || this.poolManager.blackSmokeMat.color.getStyle();
+        this.emitterManager.addEmitter(x, y, z, hasFire, group, emitterColor, intensity, id);
     }
 
-    public update() {
-        const now = Date.now();
+    public updateEmittersByIdPrefix(prefix: string, intensity: number): void {
+        this.emitterManager.updateEmittersByIdPrefix(prefix, intensity);
+    }
+
+    // ── Update loop ──────────────────────────────────────────────
+
+    public update(): void {
+        // Delegate emitter spawn scheduling
+        this.emitterManager.updateEmitters(this as unknown as EmitterSpawnCallback);
+
         const speed = Config.timing.gameSpeedMultiplier;
-        for (const emitter of this.emitters) {
-            if (now > emitter.nextSpawn) {
-                if (emitter.hasFire) {
-                    this.spawnFire(emitter.x, emitter.y, emitter.z, emitter.group, emitter.intensity);
-                    this.spawnSmoke(emitter.x, emitter.y + 0.2, emitter.z, emitter.color, emitter.group, emitter.intensity);
-                    // Spawn frequency scales with intensity and game speed
-                    emitter.nextSpawn = now + (150 / (emitter.intensity * speed));
-                } else {
-                    this.spawnSmoke(emitter.x, emitter.y, emitter.z, emitter.color, emitter.group, emitter.intensity);
-                    emitter.nextSpawn = now + (200 / (emitter.intensity * speed));
-                }
-            }
-        }
+        const poolsWithActivity = new Set<ParticlePoolType>();
 
         for (let i = this.particles.length - 1; i >= 0; i--) {
             const p = this.particles[i];
+            this.updateParticleBehavior(p, speed);
 
-            p.mesh.position.addScaledVector(p.velocity, speed);
-
-            if (p.isSmoke) {
-                // Smoke drifts and expands slightly, and rises
-                p.mesh.scale.addScalar(0.005 * speed); // Slower expansion
-                // add slight wind/wobble
-                p.velocity.x += (Math.random() - 0.5) * 0.001 * speed;
-                p.velocity.z += (Math.random() - 0.5) * 0.001 * speed;
-
-                // Gradual transparency fade
-                if (p.mesh.material instanceof THREE.MeshStandardMaterial) {
-                    p.mesh.material.opacity = (p.life / p.maxLife) * 0.8;
-                }
-            } else if (p.isFire) {
-                // Fire rises and flickers
-                p.mesh.scale.multiplyScalar(Math.pow(0.96, speed));
-                p.velocity.x += (Math.random() - 0.5) * 0.005 * speed;
-                p.velocity.z += (Math.random() - 0.5) * 0.005 * speed;
-
-                // Randomly pulsate emissive intensity for flicker
-                if (p.mesh.material instanceof THREE.MeshStandardMaterial) {
-                    p.mesh.material.emissiveIntensity = 1.0 + Math.random() * 2.0;
-                }
+            if (this.isParticleExpired(p)) {
+                this.removeParticle(i, p);
             } else {
-                // Gravity for explosion/splash pieces
-                p.velocity.y -= 0.005 * speed;
+                this.updateParticleTransform(p);
+                this.updateParticleColor(p);
             }
+            poolsWithActivity.add(p.poolType);
+        }
 
-            // Rotate
-            p.mesh.rotation.x += 0.05 * speed;
-            p.mesh.rotation.y += 0.05 * speed;
+        this.flushPoolUpdates(poolsWithActivity);
+    }
 
-            p.life -= 0.016 * speed;
+    private updateParticleBehavior(p: InstancedParticle, speed: number): void {
+        // Apply velocity
+        p.position.addScaledVector(p.velocity, speed);
 
-            // Scale down at end of life
-            if (p.life < p.maxLife * 0.3) {
-                p.mesh.scale.multiplyScalar(0.9);
-            }
+        if (p.isSmoke) {
+            // Smoke expands, drifts, fades
+            p.scale += 0.005 * speed;
+            p.velocity.x += (Math.random() - 0.5) * 0.001 * speed;
+            p.velocity.z += (Math.random() - 0.5) * 0.001 * speed;
+            p.opacity = (p.life / p.maxLife) * 0.8;
+        } else if (p.isFire) {
+            // Fire shrinks and flickers
+            p.scale *= Math.pow(0.96, speed);
+            p.velocity.x += (Math.random() - 0.5) * 0.005 * speed;
+            p.velocity.z += (Math.random() - 0.5) * 0.005 * speed;
+        } else if (p.poolType !== 'fog') {
+            // Gravity for explosion/splash
+            p.velocity.y -= 0.005 * speed;
+        }
 
-            if (p.life <= 0 || p.mesh.position.y < -3) { // Use -3 to avoid premature removal during sinking
-                p.group.remove(p.mesh);
+        // Rotation
+        p.rotation.x += 0.05 * speed;
+        p.rotation.y += 0.05 * speed;
 
-                // Dispose cloned material for smoke
-                if (p.isSmoke && p.mesh.material instanceof THREE.Material) {
-                    p.mesh.material.dispose();
-                }
+        p.life -= 0.016 * speed;
 
-                // Swap-and-pop instead of splice for performance
-                const lastIndex = this.particles.length - 1;
-                if (i !== lastIndex) {
-                    this.particles[i] = this.particles[lastIndex];
-                }
-                this.particles.pop();
+        // Scale down at end of life
+        if (p.life < p.maxLife * 0.3 && p.poolType !== 'fog') {
+            p.scale *= 0.9;
+        }
+    }
+
+    private isParticleExpired(p: InstancedParticle): boolean {
+        // For particles on non-poolParent groups, check Y in pool-parent space
+        let checkY = p.position.y;
+        if (p.group !== this.poolManager.poolParent && this.poolManager.poolParent) {
+            _tempPos.copy(p.position);
+            p.group.localToWorld(_tempPos);
+            this.poolManager.poolParent.worldToLocal(_tempPos);
+            checkY = _tempPos.y;
+        }
+        return p.life <= 0 || checkY < -3;
+    }
+
+    private removeParticle(index: number, p: InstancedParticle): void {
+        const pool = this.poolManager.pools.get(p.poolType)!;
+        this.poolManager.releaseSlot(pool, p.slotIndex);
+
+        // Swap-and-pop
+        const lastIdx = this.particles.length - 1;
+        if (index !== lastIdx) {
+            this.particles[index] = this.particles[lastIdx];
+            const movedP = this.particles[index];
+            const movedPool = this.poolManager.pools.get(movedP.poolType)!;
+            movedPool.slotToParticleIndex.set(movedP.slotIndex, index);
+        }
+        this.particles.pop();
+    }
+
+    private updateParticleTransform(p: InstancedParticle): void {
+        // Write instance matrix
+        // p.position is in the particle's group local space.
+        // Pool meshes live under poolParent (playerBoardGroup), so we must
+        // transform from group-local → world → poolParent-local.
+        const pool = this.poolManager.pools.get(p.poolType)!;
+        _tempPos.copy(p.position);
+        if (p.group !== this.poolManager.poolParent && this.poolManager.poolParent) {
+            p.group.localToWorld(_tempPos);
+            this.poolManager.poolParent.worldToLocal(_tempPos);
+        }
+        _tempQuaternion.setFromEuler(p.rotation);
+        _tempScale.setScalar(p.scale);
+        _tempMatrix.compose(_tempPos, _tempQuaternion, _tempScale);
+        pool.mesh.setMatrixAt(p.slotIndex, _tempMatrix);
+    }
+
+    private updateParticleColor(p: InstancedParticle): void {
+        // Write per-instance color for types that need it
+        if (!p.isSmoke && !p.isFire) return;
+
+        const pool = this.poolManager.pools.get(p.poolType)!;
+        
+        if (p.isSmoke) {
+            // Modulate color alpha via brightness to simulate opacity fade
+            // InstancedMesh doesn't support per-instance opacity, so we darken toward black
+            pool.mesh.getColorAt(p.slotIndex, _tempColor);
+            // Scale RGB by opacity ratio to simulate transparency
+            const opacityFactor = Math.max(0, p.opacity);
+            _tempColor.multiplyScalar(opacityFactor / Math.max(opacityFactor + 0.01, _tempColor.r, _tempColor.g, _tempColor.b));
+            pool.mesh.setColorAt(p.slotIndex, _tempColor);
+        } else if (p.isFire) {
+            // Fire flicker via color intensity variation
+            const flicker = 1.0 + Math.random() * 2.0;
+            pool.mesh.getColorAt(p.slotIndex, _tempColor);
+            // Boost brightness for flicker effect
+            _tempColor.setRGB(
+                Math.min(1, _tempColor.r * flicker * 0.5),
+                Math.min(1, _tempColor.g * flicker * 0.3),
+                Math.min(1, _tempColor.b * flicker * 0.1)
+            );
+            pool.mesh.setColorAt(p.slotIndex, _tempColor);
+        }
+    }
+
+    private flushPoolUpdates(poolsWithActivity: Set<ParticlePoolType>): void {
+        // Set needsUpdate flags only on pools that had activity
+        for (const type of poolsWithActivity) {
+            const pool = this.poolManager.pools.get(type)!;
+            pool.mesh.instanceMatrix.needsUpdate = true;
+            if (pool.mesh.instanceColor) {
+                pool.mesh.instanceColor.needsUpdate = true;
             }
         }
     }
-    public clear() {
-        this.particles.forEach(p => p.group.remove(p.mesh));
-        this.particles = [];
-        this.emitters = [];
+
+    // ── Clear and dispose ────────────────────────────────────────
+
+    public clear(): void {
+        this.poolManager.clear(this.particles);
+        this.emitterManager.clear();
     }
 
-    public dispose() {
-        this.clear();
-        this.explosionGeo.dispose();
-        this.smokeGeo.dispose();
-        this.fireGeo.dispose();
-        this.fireMat.dispose();
-        this.secondaryFireMat.dispose();
-        this.greySmokeMat.dispose();
-        this.blackSmokeMat.dispose();
-        this.splashMatWhite.dispose();
-        this.splashMatBlue.dispose();
-        this.shipVoxelMat.dispose();
+    public dispose(): void {
+        this.poolManager.dispose(this.particles);
+        this.emitterManager.clear();
     }
 }

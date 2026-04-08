@@ -180,7 +180,7 @@ export function bindHUDControls(container: HTMLElement): void {
             fpsEl.innerHTML = `${d.fps}${vsync}`;
             updateRowVisibility(fpsEl, d.fps);
         }
-        
+
         if (frameEl) {
             frameEl.textContent = `${d.frameTime.toFixed(1)}ms`;
             updateRowVisibility(frameEl, d.frameTime);
@@ -202,6 +202,14 @@ export function bindHUDControls(container: HTMLElement): void {
             updateRowVisibility(gpuCallsEl, d.gpuCalls);
         }
 
+        const emittersEl = container.querySelector('#gs-emitters');
+        if (emittersEl && d.emitterCount !== undefined) {
+            const throttle = d.emitterThrottle !== undefined && d.emitterThrottle < 1.0
+                ? ` (${d.emitterThrottle.toFixed(2)}×)`
+                : '';
+            emittersEl.textContent = `${d.emitterCount}${throttle}`;
+        }
+
         const formatBytes = (bytes: number | undefined) => {
             if (bytes === undefined) return '--';
             if (bytes < 1024) return `${bytes} B/s`;
@@ -219,7 +227,7 @@ export function bindHUDControls(container: HTMLElement): void {
             if (upSpan) upSpan.style.display = d.netUp === undefined || d.netUp === 0 ? 'none' : 'inline';
             netUpEl.textContent = formatBytes(d.netUp);
         }
-        
+
         // Hide entire net row if both are missing or zero
         if (netDownEl && netUpEl) {
             const row = netDownEl.closest('.geek-stats-row') as HTMLElement;

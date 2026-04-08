@@ -64,7 +64,7 @@
   --slot-empty: var(--panel-border);
   --slot-date: var(--player-primary);
   --slot-turns: var(--enemy-primary);
-  
+
   --overlay-bg: rgba(0, 0, 0, 0.85);
 }
 
@@ -79,6 +79,7 @@ html {
   color: var(--color-text);
   font-family: var(--font-family);
   user-select: none;
+  transition: var(--color-bg) 0.3s ease;
 }
 
 #app {
@@ -129,9 +130,9 @@ canvas {
 }
 
 /* Menu/Dialogs should NOT be blocked even if global block is on */
-#main-menu, 
-#pause-menu, 
-#settings-modal, 
+#main-menu,
+#pause-menu,
+#settings-modal,
 .save-load-dialog {
   pointer-events: auto !important;
   opacity: 1 !important;

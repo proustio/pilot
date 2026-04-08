@@ -11,20 +11,23 @@ export class Ship {
     public orientation: Orientation;
     public headX: number = -1; // Top-leftmost coordinate (x) 
     public headZ: number = -1; // Top-leftmost coordinate (z)
-    
+
     // Array of booleans representing the health of each segment (true = healthy, false = hit)
     public segments: boolean[];
-    
+
     // Will be populated once placed on a board
     public isPlaced: boolean = false;
     public isEnemy?: boolean;
-    
+
     // Rogue Mode properties
     public movesRemaining: number = 0;
     public hasActedThisTurn: boolean = false;
-    public readonly maxMoves: number;
+    private _maxMoves: number = 0;
     public visionRadius: number;
-    
+
+    public get maxMoves(): number { return this._maxMoves; }
+    public set maxMoves(value: number) { this._maxMoves = value; }
+
     public isSpecialWeapon: boolean = false;
     public specialType?: 'mine' | 'sonar';
 
@@ -40,7 +43,7 @@ export class Ship {
         this.size = size;
         this.orientation = Orientation.Horizontal; // default
         this.segments = new Array(size).fill(true);
-        this.maxMoves = Math.max(0, 5 - this.size);
+        this._maxMoves = Math.max(0, 5 - this.size) * 2;
         this.visionRadius = 5; // Default vision for all ships; special weapons set explicitly
     }
 
@@ -49,7 +52,7 @@ export class Ship {
      */
     public getOccupiedCoordinates(): { x: number, z: number }[] {
         if (!this.isPlaced) return [];
-        
+
         const coords = [];
         for (let i = 0; i < this.size; i++) {
             if (this.orientation === Orientation.Horizontal) {
@@ -81,7 +84,7 @@ export class Ship {
      */
     public hitSegment(index: number): boolean {
         if (index < 0 || index >= this.size) return false;
-        
+
         if (this.segments[index] === true) {
             this.segments[index] = false;
             return true;
@@ -95,7 +98,7 @@ export class Ship {
     public isSunk(): boolean {
         return this.segments.every(segmentHealth => !segmentHealth);
     }
-    
+
     /**
      * Set the ship's coordinate and orientation
      */
@@ -137,7 +140,7 @@ export class Ship {
      */
     public getAvailableWeapons(): string[] {
         if (this.isSpecialWeapon) return [];
-        
+
         switch (this.size) {
             case 5: return ['cannon', 'air-strike', 'sonar']; // Carrier
             case 4: return ['cannon'];                       // Battleship
@@ -145,6 +148,33 @@ export class Ship {
             case 2: return ['cannon', 'sonar'];               // Destroyer
             case 1: return ['cannon'];                       // Patrol Boat
             default: return ['cannon'];
+        }
+    }
+
+    /**
+     * Calculates the movement point cost to reach targetX, targetZ.
+     * Forward: 0.5, Lateral: 1, Backward: 2 per cell.
+     */
+    public calculateMoveCost(targetX: number, targetZ: number): number {
+        if (!this.isPlaced) return 0;
+
+        const dx = targetX - this.headX;
+        const dz = targetZ - this.headZ;
+        const dist = Math.abs(dx) + Math.abs(dz);
+        if (dist === 0) return 0;
+
+        const isHorizontal = this.orientation === Orientation.Horizontal;
+        const moveDirX = dx > 0 ? 1 : (dx < 0 ? -1 : 0);
+        const moveDirZ = dz > 0 ? 1 : (dz < 0 ? -1 : 0);
+
+        if (isHorizontal) {
+            if (moveDirZ !== 0) return dist; // Lateral
+            else if (moveDirX > 0) return dist * 0.5; // Forward
+            else return dist * 2.0; // Backward
+        } else {
+            if (moveDirX !== 0) return dist; // Lateral
+            else if (moveDirZ > 0) return dist * 0.5; // Forward (+z is down/forward in 2D grid)
+            else return dist * 2.0; // Backward
         }
     }
 }

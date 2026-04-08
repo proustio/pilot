@@ -18,7 +18,7 @@ export class MainMenu extends BaseUIComponent {
             features: ['Standard 10x10 Grid', 'US Navy Fleet (5 ships)', 'Classic Placement rules'],
             flavor: '"Old school tactics for a new age of voxel warfare."',
             stats: '😌😌😌',
-            image: '/assets/classic-battleships.png',
+            image: '/pilot/assets/classic-battleships.png',
             class: 'classic'
         },
         'russian': {
@@ -28,7 +28,7 @@ export class MainMenu extends BaseUIComponent {
             features: ['Strict Non-Touching Adjacency', 'Russian Fleet (10 ships)', 'Maximum Tactical Precision'],
             flavor: '"In the cold north, even a single cell of contact is a fatal error."',
             stats: '🥵🥵🥵🥵',
-            image: '/assets/russian-battleships.png',
+            image: '/pilot/assets/russian-battleships.png',
             class: 'russian'
         },
         'rogue': {
@@ -38,7 +38,7 @@ export class MainMenu extends BaseUIComponent {
             features: ['Variable Weaponry', 'Dynamic Moving Targets', 'Permadeath Elements'],
             flavor: '"The rules of engagement have changed. Adapt or be deleted."',
             stats: '☠️☠️☠️☠️☠️',
-            image: '/assets/rogue-battleships.png',
+            image: '/pilot/assets/rogue-battleships.png',
             class: 'rogue'
         }
     };
@@ -46,15 +46,14 @@ export class MainMenu extends BaseUIComponent {
     constructor(gameLoop: GameLoop) {
         super('main-menu');
         this.gameLoop = gameLoop;
-        this.container.classList.remove('voxel-panel');
-        this.container.style.width = 'auto';
+        this.container.classList.add('absolute', 'top-1/2', 'left-1/2', '-translate-x-1/2', '-translate-y-1/2', 'scale-120', 'flex', 'flex-col', 'items-center', 'justify-center', 'z-[200]', 'pointer-events-auto');
     }
 
     protected render(): void {
         this.container.innerHTML = TemplateEngine.render(mainMenuTemplate, { Config: Config });
 
         const newGameBtn = this.container.querySelector('#btn-new-game') as HTMLButtonElement;
-        const autoBattlerToggle = this.container.querySelector('#auto-battler-toggle') as HTMLInputElement;
+        const themeToggle = this.container.querySelector('#theme-toggle') as HTMLInputElement;
         const cardAnchor = this.container.querySelector('#mtg-card-anchor') as HTMLElement;
 
         // --- Custom Dropdown Logic ---
@@ -84,7 +83,7 @@ export class MainMenu extends BaseUIComponent {
                 const value = opt.dataset.value as 'classic' | 'russian' | 'rogue';
                 selectedMode = value;
                 selectedTextEl.textContent = optionDisplay[value];
-                
+
                 Config.preferredMode = value as any;
                 Config.saveConfig();
 
@@ -133,7 +132,6 @@ export class MainMenu extends BaseUIComponent {
         updateCard(selectedMode);
 
         newGameBtn.addEventListener('click', () => {
-            Config.autoBattler = autoBattlerToggle.checked;
             Config.saveConfig();
 
             let matchMode = MatchMode.Classic;
@@ -145,8 +143,8 @@ export class MainMenu extends BaseUIComponent {
                 matchMode = MatchMode.Russian;
             } else if (selectedMode === 'rogue') {
                 matchMode = MatchMode.Rogue;
-                width = 20;
-                height = 20;
+                width = Config.board.rogueWidth;
+                height = Config.board.rogueHeight;
                 rogueMode = true;
             }
 
@@ -157,7 +155,7 @@ export class MainMenu extends BaseUIComponent {
                 Config.board.height = height;
                 Config.rogueMode = rogueMode;
                 Config.saveConfig();
-                
+
                 Storage.clearSession(); // Ensure no auto-load on refresh
                 sessionStorage.setItem('battleships_new_match_mode', matchMode);
                 window.location.reload();
@@ -177,9 +175,18 @@ export class MainMenu extends BaseUIComponent {
             eventBus.emit(GameEventType.SHOW_SETTINGS, undefined as any);
         });
 
-        eventBus.on(GameEventType.TOGGLE_AUTO_BATTLER, (payload) => {
-            if (payload && payload.enabled !== undefined) {
-                autoBattlerToggle.checked = payload.enabled;
+        if (themeToggle) {
+            themeToggle.addEventListener('change', () => {
+                Config.visual.isDayMode = themeToggle.checked;
+                Config.saveConfig();
+                eventBus.emit(GameEventType.TOGGLE_DAY_NIGHT, undefined as any);
+                eventBus.emit(GameEventType.THEME_CHANGED, undefined as any);
+            });
+        }
+
+        eventBus.on(GameEventType.TOGGLE_DAY_NIGHT, () => {
+            if (themeToggle) {
+                themeToggle.checked = Config.visual.isDayMode;
             }
         });
     }

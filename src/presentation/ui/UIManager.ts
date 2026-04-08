@@ -10,12 +10,13 @@ import { SaveLoadDialog } from './components/SaveLoadDialog';
 import { eventBus, GameEventType } from '../../application/events/GameEventBus';
 import { Storage } from '../../infrastructure/storage/Storage';
 import { AudioEngine } from '../../infrastructure/audio/AudioEngine';
+import { Config } from '../../infrastructure/config/Config';
 
 
 export class UIManager {
     private gameLoop: GameLoop;
     private uiLayer: HTMLElement;
-    
+
     private mainMenu: MainMenu;
     private hud: HUD;
     private pauseMenu: PauseMenu;
@@ -27,7 +28,7 @@ export class UIManager {
     constructor(gameLoop: GameLoop, entityManager: any) {
         this.gameLoop = gameLoop;
         this.entityManager = entityManager;
-        
+
         const layer = document.getElementById('ui-layer');
         if (!layer) {
             throw new Error("UI Layer (#ui-layer) not found in DOM");
@@ -79,8 +80,8 @@ export class UIManager {
         if (newMatchMode) {
             sessionStorage.removeItem('battleships_new_match_mode');
             const matchMode = newMatchMode as any;
-            const width = matchMode === 'rogue' ? 20 : 10;
-            const height = matchMode === 'rogue' ? 20 : 10;
+            const width = matchMode === 'rogue' ? Config.board.rogueWidth : 10;
+            const height = matchMode === 'rogue' ? Config.board.rogueHeight : 10;
             const match = new Match(matchMode, width, height);
             this.gameLoop.startNewMatch(match);
             return;
@@ -94,14 +95,14 @@ export class UIManager {
             if (loaded) {
                 console.log(`Auto-loading game from slot ${slotId}`);
                 this.gameLoop.loadMatch(
-                    loaded.match, 
-                    loaded.resources, 
-                    loaded.activeRogueShipIndex, 
+                    loaded.match,
+                    loaded.resources,
+                    loaded.activeRogueShipIndex,
                     loaded.activeEnemyRogueShipIndex
                 );
                 if (loaded.viewState) {
-                    eventBus.emit(GameEventType.RESTORE_VIEW_STATE, { 
-                        ...loaded.viewState, source: `Slot ${slotId}` 
+                    eventBus.emit(GameEventType.RESTORE_VIEW_STATE, {
+                        ...loaded.viewState, source: `Slot ${slotId}`
                     });
                 }
             }
@@ -116,8 +117,8 @@ export class UIManager {
                     sessionLoaded.activeEnemyRogueShipIndex
                 );
                 if (sessionLoaded.viewState) {
-                    eventBus.emit(GameEventType.RESTORE_VIEW_STATE, { 
-                        ...sessionLoaded.viewState, source: 'Session' 
+                    eventBus.emit(GameEventType.RESTORE_VIEW_STATE, {
+                        ...sessionLoaded.viewState, source: 'Session'
                     });
                 }
             }
@@ -153,7 +154,7 @@ export class UIManager {
             AudioEngine.getInstance().playPop(freq);
         }
     }
-    
+
     private handleStateChange(newState: GameState) {
         this.mainMenu.hide();
         this.hud.hide();
@@ -179,21 +180,21 @@ export class UIManager {
     public update() {
         // Sync animation state from GameLoop
         InteractivityGuard.setGameAnimating(this.gameLoop.isAnimating);
-        
+
         // Sync menu state if any sub-menu is visible
-        const isAnyMenuOpen = this.mainMenu['isVisible'] || 
-                             this.pauseMenu['isVisible'] || 
-                             this.settings['isVisible'] || 
-                             this.gameOver['isVisible'] ||
-                             this.saveLoadDialog['isVisible'];
-        
+        const isAnyMenuOpen = this.mainMenu['isVisible'] ||
+            this.pauseMenu['isVisible'] ||
+            this.settings['isVisible'] ||
+            this.gameOver['isVisible'] ||
+            this.saveLoadDialog['isVisible'];
+
         InteractivityGuard.setMenuOpen(isAnyMenuOpen);
 
         // Centralized Pause Management
-        const isPausingMenuOpen = this.pauseMenu['isVisible'] || 
-                                 this.settings['isVisible'] || 
-                                 this.saveLoadDialog['isVisible'];
-        
+        const isPausingMenuOpen = this.pauseMenu['isVisible'] ||
+            this.settings['isVisible'] ||
+            this.saveLoadDialog['isVisible'];
+
         const isMainMenu = this.gameLoop.currentState === GameState.MAIN_MENU;
 
         if (isPausingMenuOpen && !this.gameLoop.isPaused) {

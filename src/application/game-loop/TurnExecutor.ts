@@ -3,6 +3,8 @@ import { AIEngine } from '../ai/AIEngine';
 import { GameState } from './GameLoop';
 import { MatchMode } from '../../domain/match/Match';
 import { eventBus, GameEventType } from '../events/GameEventBus';
+import { EnemyTurnHandler } from './EnemyTurnHandler';
+import { SetupBoardHandler } from './SetupBoardHandler';
 
 type AttackResultListener = (x: number, z: number, result: string, isPlayer: boolean, isReplay: boolean) => void;
 type ShipPlacedListener = (ship: Ship, x: number, z: number, orientation: Orientation, isPlayer: boolean) => void;
@@ -24,7 +26,9 @@ export interface TurnExecutorState {
     attackResultListeners: AttackResultListener[];
     onAnimationsComplete: (() => void) | null;
     activeRogueShipIndex: number;
+    activeEnemyRogueShipIndex: number;
     rogueShipOrder: Ship[];
+    enemyRogueShipOrder: Ship[];
     transitionTo: (state: GameState) => void;
     advanceRogueShipTurn: () => void;
     advanceEnemyRogueShipTurn: () => void;
@@ -37,138 +41,27 @@ export interface TurnExecutorState {
 }
 
 /**
- * Encapsulates all turn-execution logic: enemy AI turn, auto-battler player
- * turn, and the shared onGridClick handler for SETUP_BOARD and PLAYER_TURN.
+ * Orchestrates turn execution: delegates enemy turns to EnemyTurnHandler,
+ * setup-board clicks to SetupBoardHandler, and retains player turn click
+ * and auto-battler logic directly.
  */
 export class TurnExecutor {
     private s: TurnExecutorState;
+    private enemyTurnHandler: EnemyTurnHandler;
+    private setupBoardHandler: SetupBoardHandler;
 
     constructor(state: TurnExecutorState) {
         this.s = state;
+        this.enemyTurnHandler = new EnemyTurnHandler(state);
+        this.setupBoardHandler = new SetupBoardHandler(state);
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // Enemy Turn
+    // Enemy Turn — delegated to EnemyTurnHandler
     // ─────────────────────────────────────────────────────────────────────────
 
     public handleEnemyTurn(): void {
-        if (!this.s.match) return;
-
-        const executeTurn = () => {
-            if (!this.s.match) return;
-
-            if (this.s.isPaused) {
-                setTimeout(executeTurn, 100);
-                return;
-            }
-
-            this.s.isAnimating = true;
-
-            const flipWait = this.s.config.timing.boardFlipWaitMs / this.s.config.timing.gameSpeedMultiplier;
-            setTimeout(() => {
-                setTimeout(() => {
-                    if (!this.s.match) return;
-
-                    if (this.s.isPaused) {
-                        this.s.isAnimating = false;
-                        executeTurn();
-                        return;
-                    }
-
-                    const targetBoard = this.s.match.mode === MatchMode.Rogue ? this.s.match.sharedBoard : this.s.match.playerBoard;
-                    
-                    if (this.s.match.mode === MatchMode.Rogue) {
-                        // Rogue AI Logic: Multiple ships, Move OR Attack
-                        const activeIndex = (this.s as any).activeEnemyRogueShipIndex !== undefined ? (this.s as any).activeEnemyRogueShipIndex : 0;
-                        const enemyShips = targetBoard.ships.filter(s => s.isEnemy && !s.isSunk()).sort((a,b) => a.size - b.size);
-                        const ship = enemyShips[activeIndex];
-
-                        if (!ship) {
-                            this.s.advanceEnemyRogueShipTurn();
-                            return;
-                        }
-
-                        const action = this.s.aiEngine.decideAction(ship, targetBoard, this.s.match);
-                        
-                        if (action === 'move') {
-                            const move = this.s.aiEngine.computeMove(ship, targetBoard, this.s.match);
-                            if (move) {
-                                const moved = targetBoard.moveShip(ship, move.x, move.z, move.orientation);
-                                if (moved.success) {
-                                    ship.hasActedThisTurn = true;
-                                    ship.movesRemaining = 0;
-                                    // Visual event
-                                    this.s.onShipMovedInvoke(ship, move.x, move.z, move.orientation);
-                                    
-                                    this.s.onAnimationsComplete = () => {
-                                        this.s.isAnimating = false;
-                                        this.s.advanceEnemyRogueShipTurn();
-                                    };
-                                    return;
-                                }
-                            }
-                            // If move failed or not computed, fallback or skip
-                        } else if (action === 'attack') {
-                            const target = this.s.aiEngine.computeNextMove(targetBoard, this.s.match);
-                            // Check range (10 cells)
-                            const dist = Math.max(Math.abs(target.x - ship.headX), Math.abs(target.z - ship.headZ));
-                            if (dist <= 10) {
-                                const result = targetBoard.receiveAttack(target.x, target.z);
-                                ship.hasActedThisTurn = true;
-                                ship.movesRemaining = 0;
-                                this.s.aiEngine.reportResult(target.x, target.z, result.toString(), targetBoard);
-                                this.s.attackResultListeners.forEach(l => l(target.x, target.z, result.toString(), false, false));
-                                
-                                this.s.onAnimationsComplete = () => {
-                                    this.s.isAnimating = false;
-                                    this.s.advanceEnemyRogueShipTurn();
-                                };
-                                return;
-                            }
-                        }
-                        
-                        // Default: skip or advance
-                        ship.hasActedThisTurn = true;
-                        this.s.isAnimating = false;
-                        this.s.advanceEnemyRogueShipTurn();
-                    } else {
-                        // Classic AI Logic
-                        const target = this.s.aiEngine.computeNextMove(targetBoard, this.s.match);
-                        const result = targetBoard.receiveAttack(target.x, target.z);
-
-                        this.s.aiEngine.reportResult(target.x, target.z, result.toString(), targetBoard);
-                        this.s.attackResultListeners.forEach(l => l(target.x, target.z, result.toString(), false, false));
-
-                        this.s.onAnimationsComplete = () => {
-                            if (this.s.isPaused) {
-                                setTimeout(this.s.onAnimationsComplete!, 100);
-                                return;
-                            }
-
-                            let status: 'ongoing' | 'player_wins' | 'enemy_wins' = 'ongoing';
-                            try {
-                                status = this.s.match!.checkGameEnd();
-                            } catch (e: any) {
-                                if (e.message === 'Board has no ships') {
-                                    eventBus.emit(GameEventType.EXIT_GAME, undefined as any);
-                                    return;
-                                }
-                                throw e;
-                            }
-                            this.s.isAnimating = false;
-                            if (status !== 'ongoing') {
-                                this.s.transitionTo(GameState.GAME_OVER);
-                            } else {
-                                this.s.transitionTo(GameState.PLAYER_TURN);
-                            }
-                        };
-                    }
-
-                }, this.s.config.timing.aiThinkingTimeMs / this.s.config.timing.gameSpeedMultiplier);
-            }, flipWait);
-        };
-
-        executeTurn();
+        this.enemyTurnHandler.execute();
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -190,7 +83,7 @@ export class TurnExecutor {
 
             const flipWait = this.s.config.timing.boardFlipWaitMs / this.s.config.timing.gameSpeedMultiplier;
             setTimeout(() => {
-                setTimeout(() => {
+                setTimeout(async () => {
                     if (!this.s.match) return;
 
                     if (this.s.isPaused) {
@@ -200,7 +93,7 @@ export class TurnExecutor {
                     }
 
                     const targetBoard = this.s.match.mode === MatchMode.Rogue ? this.s.match.sharedBoard : this.s.match.enemyBoard;
-                    const target = this.s.playerAIEngine.computeNextMove(targetBoard, this.s.match);
+                    const target = await this.s.playerAIEngine.computeNextMove(targetBoard, this.s.match);
                     const result = targetBoard.receiveAttack(target.x, target.z);
 
                     this.s.playerAIEngine.reportResult(target.x, target.z, result.toString(), targetBoard);
@@ -239,75 +132,22 @@ export class TurnExecutor {
         executeTurn();
     }
 
-
     // ─────────────────────────────────────────────────────────────────────────
-    // Grid Click (SETUP_BOARD + PLAYER_TURN)
+    // Setup Board Click — delegated to SetupBoardHandler
     // ─────────────────────────────────────────────────────────────────────────
 
-    /**
-     * Handles a click during SETUP_BOARD phase.
-     */
-    public onSetupBoardClick(x: number, z: number, _isPlayerSide?: boolean): void {
-        if (!this.s.match || this.s.isPaused) return;
-        if (this.s.playerShipsToPlace.length === 0) return;
-
-        const isRogue = this.s.match.mode === MatchMode.Rogue;
-        const nextShip = this.s.playerShipsToPlace[0];
-        const targetBoard = isRogue ? this.s.match.sharedBoard : this.s.match.playerBoard;
-        
-        const isValid = this.s.match.validatePlacement(
-            targetBoard, nextShip, x, z, this.s.currentPlacementOrientation
-        );
-
-        if (isValid) {
-            const placed = targetBoard.placeShip(nextShip, x, z, this.s.currentPlacementOrientation);
-            if (placed) {
-                this.s.playerShipsToPlace.shift();
-                this.s.shipPlacedListeners.forEach(l =>
-                    l(nextShip, x, z, this.s.currentPlacementOrientation, true)
-                );
-                this.s.requestAutoSave();
-
-                if (this.s.playerShipsToPlace.length === 0) {
-                    if (this.s.match.mode === MatchMode.Rogue) {
-                        const enemyShips = this.s.match.getRequiredFleet();
-                        const sharedBoard = this.s.match.sharedBoard; 
-                        for (const ship of enemyShips) {
-                            ship.isEnemy = true;
-                            let placed = false;
-                            let attempts = 0;
-                            while (!placed && attempts < 1000) {
-                                const orient = Math.random() > 0.5 ? Orientation.Horizontal : Orientation.Vertical;
-                                // Enemy must be in bottom-right quadrant: X [13,19], Z [13,19]
-                                const maxX = 20 - (orient === Orientation.Horizontal ? ship.size : 1);
-                                const maxZ = 20 - (orient === Orientation.Vertical ? ship.size : 1);
-                                
-                                const x = 13 + Math.floor(Math.random() * (maxX - 13 + 1));
-                                const z = 13 + Math.floor(Math.random() * (maxZ - 13 + 1));
-
-                                if (this.s.match.validatePlacement(sharedBoard, ship, x, z, orient)) {
-                                    placed = sharedBoard.placeShip(ship, x, z, orient);
-                                    if (placed) {
-                                        this.s.shipPlacedListeners.forEach(l => l(ship, x, z, orient, false));
-                                    }
-                                }
-                                attempts++;
-                            }
-                        }
-                    }
-                    this.s.transitionTo(GameState.PLAYER_TURN);
-                }
-            }
-        }
+    public onSetupBoardClick(x: number, z: number, isPlayerSide?: boolean): void {
+        this.setupBoardHandler.handleClick(x, z, isPlayerSide);
     }
 
-    /**
-     * Handles a click during PLAYER_TURN phase (manual attack).
-     */
+    // ─────────────────────────────────────────────────────────────────────────
+    // Player Turn Click
+    // ─────────────────────────────────────────────────────────────────────────
+
     public onPlayerTurnClick(x: number, z: number, isPlayerSide?: boolean): void {
         if (!this.s.match || this.s.isPaused) return;
         if (this.s.isAnimating || this.s.config.autoBattler) return;
-        
+
         const isRogue = this.s.match.mode === MatchMode.Rogue;
         if (!isRogue && isPlayerSide === true) return;
 
@@ -316,19 +156,18 @@ export class TurnExecutor {
             const weapon = (window as any).selectedRogueWeapon || 'cannon';
 
             if (actionMode === 'move' && weapon === 'sail') {
-                eventBus.emit(GameEventType.ROGUE_ATTEMPT_MOVE, { 
-                    targetX: x, targetZ: z 
+                eventBus.emit(GameEventType.ROGUE_ATTEMPT_MOVE, {
+                    targetX: x, targetZ: z
                 });
                 return;
             }
 
             if (weapon !== 'cannon' && weapon !== 'sail') {
-                // Dispatch weapon event and let GameLoop handle it
                 eventBus.emit(GameEventType.ROGUE_USE_WEAPON, {
                     weaponType: weapon,
                     targetX: x,
                     targetZ: z,
-                    radius: 2, // default for sonar
+                    radius: 2,
                     directionX: this.s.airStrikeOrientation === Orientation.Horizontal ? 1 : 0,
                     directionZ: this.s.airStrikeOrientation === Orientation.Vertical ? 1 : 0
                 });
@@ -337,11 +176,10 @@ export class TurnExecutor {
         }
 
         const targetBoard = isRogue ? this.s.match.sharedBoard : this.s.match.enemyBoard;
-        
+
         if (isRogue) {
             const ship = this.s.rogueShipOrder?.[this.s.activeRogueShipIndex] || null;
             if (ship && !this.s.match.validateAttackRange(ship, x, z)) {
-                // Too far
                 return;
             }
         }

@@ -19,6 +19,7 @@ export class Settings extends BaseUIComponent {
 
     constructor(gameLoop: any) {
         super('settings-modal');
+        this.container.classList.add('fixed', 'inset-0', 'bg-black/85', 'backdrop-blur-sm', 'flex', 'flex-col', 'items-center', 'justify-center', 'z-[200]', 'pointer-events-auto');
         this.gameLoop = gameLoop;
 
         this.generalSettings = new GeneralSettings(
@@ -59,13 +60,57 @@ export class Settings extends BaseUIComponent {
         this.videoSettings.attachListeners();
         this.audioSettings.attachListeners();
         this.keybindingEditor.attachListeners();
+        this.attachPurgeListeners();
 
         eventBus.on(GameEventType.DOCUMENT_KEYDOWN, (e) => this.handleGlobalKeydown(e));
     }
 
     private handleGlobalKeydown(e: KeyboardEvent): void {
         if (e.key === 'Escape' && this.isVisible) {
+            const purgeOverlay = this.container.querySelector('#settings-purge-confirm-overlay') as HTMLElement;
+            if (purgeOverlay && !purgeOverlay.classList.contains('hidden')) {
+                purgeOverlay.classList.add('hidden');
+                return;
+            }
             this.hide();
+        }
+    }
+
+    private attachPurgeListeners(): void {
+        const purgeBtn = this.container.querySelector('#btn-settings-purge') as HTMLButtonElement;
+        const purgeOverlay = this.container.querySelector('#settings-purge-confirm-overlay') as HTMLElement;
+        const purgeYesBtn = this.container.querySelector('#settings-purge-confirm-yes') as HTMLButtonElement;
+        const purgeNoBtn = this.container.querySelector('#settings-purge-confirm-no') as HTMLButtonElement;
+
+        if (purgeBtn && purgeOverlay) {
+            purgeBtn.addEventListener('click', () => {
+                purgeOverlay.classList.remove('hidden');
+            });
+        }
+
+        if (purgeNoBtn && purgeOverlay) {
+            purgeNoBtn.addEventListener('click', () => {
+                purgeOverlay.classList.add('hidden');
+            });
+        }
+
+        if (purgeYesBtn) {
+            purgeYesBtn.addEventListener('click', () => {
+                localStorage.clear();
+                sessionStorage.clear();
+                document.cookie.split(';').forEach((c) => {
+                    document.cookie = c.replace(/^ +/, '').replace(/=.*/, '=;expires=' + new Date().toUTCString() + ';path=/');
+                });
+                if ('caches' in window) {
+                    caches.keys().then((names) => {
+                        names.forEach(name => {
+                            caches.delete(name);
+                        });
+                    });
+                }
+                eventBus.emit(GameEventType.EXIT_GAME, undefined as any);
+                window.location.reload();
+            });
         }
     }
 
@@ -73,7 +118,7 @@ export class Settings extends BaseUIComponent {
         const difficultyRow = this.container.querySelector('#difficulty-row') as HTMLElement;
         const difficultyDropdown = this.container.querySelector('#ai-difficulty-dropdown') as HTMLElement;
         const isGameStarted = this.gameLoop.currentState !== GameState.MAIN_MENU &&
-                             this.gameLoop.currentState !== GameState.SETUP_BOARD;
+            this.gameLoop.currentState !== GameState.SETUP_BOARD;
 
         if (difficultyRow && difficultyDropdown) {
             difficultyRow.style.opacity = isGameStarted ? '0.5' : '1';
@@ -99,7 +144,7 @@ export class Settings extends BaseUIComponent {
         selected.addEventListener('click', (e) => {
             e.stopPropagation();
             const isOpen = optionsContainer.style.display === 'block';
-            
+
             // Close all other dropdowns first
             this.container.querySelectorAll('.custom-dropdown-options').forEach(el => {
                 (el as HTMLElement).style.display = 'none';
@@ -112,10 +157,10 @@ export class Settings extends BaseUIComponent {
             option.addEventListener('click', (e) => {
                 e.stopPropagation();
                 const val = (option as HTMLElement).dataset.value!;
-                
+
                 options.forEach(opt => opt.classList.remove('active'));
                 option.classList.add('active');
-                
+
                 this.updateDropdownVisuals(id, val);
                 optionsContainer.style.display = 'none';
                 callback(val);
@@ -136,7 +181,7 @@ export class Settings extends BaseUIComponent {
         const options = dropdown.querySelectorAll('.custom-dropdown-option');
 
         let displayLabel = value;
-        
+
         options.forEach(opt => {
             const optVal = (opt as HTMLElement).dataset.value;
             const check = opt.querySelector('.option-check') as HTMLElement;

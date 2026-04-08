@@ -10,13 +10,9 @@ export interface SaveMetadata {
 }
 
 export interface ViewState {
-    cameraX: number;
-    cameraY: number;
-    cameraZ: number;
+    camera: string;
     cameraDist?: number;
-    targetX: number;
-    targetY: number;
-    targetZ: number;
+    target: string;
     boardOrientation: 'player' | 'enemy';
     isDayMode: boolean;
     gameSpeedMultiplier: number;
@@ -100,7 +96,7 @@ export class Storage {
         if (data.isSpecialWeapon !== undefined) ship.isSpecialWeapon = data.isSpecialWeapon;
         if (data.specialType !== undefined) ship.specialType = data.specialType;
         if (data.visionRadius !== undefined) ship.visionRadius = data.visionRadius;
-        
+
         return ship;
     }
 
@@ -144,8 +140,8 @@ export class Storage {
      * Serializes the current Match state and optional view/camera state.
      */
     public static saveGame(
-        slotId: number | 'session', 
-        match: Match, 
+        slotId: number | 'session',
+        match: Match,
         viewState?: ViewState,
         activeRogueShipIndex?: number,
         activeEnemyRogueShipIndex?: number
@@ -183,7 +179,7 @@ export class Storage {
     /**
      * Loads a Match + optional ViewState from localStorage.
      */
-    public static loadGame(slotId: number | 'session'): (LoadedGame & { 
+    public static loadGame(slotId: number | 'session'): (LoadedGame & {
         resources?: { airStrikes: number; sonars: number; mines: number };
         activeRogueShipIndex?: number;
         activeEnemyRogueShipIndex?: number;
@@ -196,12 +192,15 @@ export class Storage {
         try {
             const parsed: SaveData = JSON.parse(data);
 
-            const match = new Match(parsed.mode as MatchMode, Config.board.width, Config.board.height);
+            const isRogue = parsed.mode === MatchMode.Rogue;
+            const w = isRogue ? Config.board.rogueWidth : Config.board.width;
+            const h = isRogue ? Config.board.rogueHeight : Config.board.height;
+            const match = new Match(parsed.mode as MatchMode, w, h);
             (match as any).playerBoard = Storage.deserialiseBoard(parsed.playerBoard);
             (match as any).enemyBoard = Storage.deserialiseBoard(parsed.enemyBoard);
 
-            return { 
-                match, 
+            return {
+                match,
                 viewState: parsed.viewState ?? null,
                 resources: parsed.resources,
                 activeRogueShipIndex: parsed.activeRogueShipIndex,

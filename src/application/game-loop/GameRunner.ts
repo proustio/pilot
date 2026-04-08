@@ -59,7 +59,7 @@ export class GameRunner {
 
     private animate(time: DOMHighResTimeStamp): void {
         const frameStart = performance.now();
-        
+
         // Schedule next frame immediately for consistency
         requestAnimationFrame((t) => this.animate(t));
 
@@ -82,9 +82,9 @@ export class GameRunner {
         // 1. Logic Updates
         if (!this.gameLoop.isPaused) {
             this.interactionManager.update();
-            this.entityManager.update(this.engine.camera);
+            this.entityManager.update(this.engine.camera, this.engine.renderer);
         }
-        
+
         // 2. UI Updates
         this.uiManager.update();
 
@@ -112,7 +112,7 @@ export class GameRunner {
     private updateStats(time: number): void {
         const windowDuration = time - this.lastFpsUpdateTime;
         const fpsValue = Math.round((this.framesRendered * 1000) / windowDuration);
-        
+
         // RAM Fallback
         const mem = (performance as any).memory;
         let ramMB: string | undefined;
@@ -137,16 +137,18 @@ export class GameRunner {
         // Identify if we are stuck on a standard refresh rate boundary (divisor).
         const avgFrameTime = windowDuration / this.framesInWindow;
         let vsyncStatus = 'OFF';
-        
+
         // Potential lock targets (standard monitor refresh rates and their halves)
         const commonLocks = [30, 48, 60, 72, 75, 90, 120, 144, 240];
-        
+
         if (Config.visual.fpsCap > fpsValue + 5 && cpuLoad < 40) {
             const nearestLock = commonLocks.find(lock => Math.abs(fpsValue - lock) <= 2);
             if (nearestLock) {
                 vsyncStatus = `${nearestLock}Hz LOCK`;
             }
         }
+
+        const emitterStats = this.entityManager.getEmitterStats();
 
         eventBus.emit(GameEventType.UPDATE_GEEK_STATS, {
             fps: fpsValue,
@@ -162,7 +164,9 @@ export class GameRunner {
             cameraPos: this.engine.camera.position,
             targetPos: this.engine.orbitControls.target,
             engine: this.getBrowserEngine(),
-            status: NetworkManager.getInstance().getStatus()
+            status: NetworkManager.getInstance().getStatus(),
+            emitterCount: emitterStats.emitterCount,
+            emitterThrottle: emitterStats.throttleFactor
         });
 
         this.framesRendered = 0;

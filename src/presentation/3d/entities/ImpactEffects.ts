@@ -2,13 +2,15 @@ import * as THREE from 'three';
 import { Ship, Orientation } from '../../../domain/fleet/Ship';
 import { ParticleSystem } from './ParticleSystem';
 import { Config } from '../../../infrastructure/config/Config';
+import { SinkingEffects } from './SinkingEffects';
+import type { AddRippleFn } from './SinkingEffects';
 
-export type AddRippleFn = (worldX: number, worldZ: number, isPlayerBoard: boolean) => void;
+export type { AddRippleFn };
 
 /**
  * Handles the visual aftermath of a projectile landing:
- * ship voxel destruction, explosions, sinking animation,
- * persistent fire emitters, and the ship-breaking split.
+ * ship voxel destruction, explosions, persistent fire emitters.
+ * Delegates sinking animation and hull splitting to SinkingEffects.
  *
  * Extracted from ProjectileManager to keep that class focused
  * on projectile creation and arc animation.
@@ -17,6 +19,7 @@ export class ImpactEffects {
     private particleSystem: ParticleSystem;
     private playerBoardGroup: THREE.Group;
     private enemyBoardGroup: THREE.Group;
+    private sinkingEffects: SinkingEffects;
 
     constructor(
         particleSystem: ParticleSystem,
@@ -26,6 +29,7 @@ export class ImpactEffects {
         this.particleSystem = particleSystem;
         this.playerBoardGroup = playerBoardGroup;
         this.enemyBoardGroup = enemyBoardGroup;
+        this.sinkingEffects = new SinkingEffects(particleSystem, playerBoardGroup, enemyBoardGroup);
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -99,7 +103,10 @@ export class ImpactEffects {
                 }
 
                 if (result === 'sunk') {
-                    this.handleSinking(child, cellX, cellZ, boardOffset, isReplay, isPlayer, addRipple);
+                    this.sinkingEffects.handleSinking(
+                        child, cellX, cellZ, boardOffset, isReplay, isPlayer, addRipple,
+                        this.addPersistentFireToShipCell.bind(this)
+                    );
                 }
             }
         }
@@ -119,17 +126,19 @@ export class ImpactEffects {
 
             if (shouldAttachToShip) {
                 // Rogue mode or sunk: attach fire to the ship so it moves/leans with it
-                const smokeColor = (isRogue || result === 'sunk') 
-                    ? this.particleSystem.blackSmokeMat.color.getStyle() 
+                const smokeColor = (isRogue || result === 'sunk')
+                    ? this.particleSystem.blackSmokeMat.color.getStyle()
                     : this.particleSystem.greySmokeMat.color.getStyle();
                 this.addPersistentFireToShipCell(shipFound as THREE.Group, cellX, cellZ, boardOffset, intensity, smokeColor);
             } else {
-                // Classic hit on hidden ship: attach fire to the board group so it's visible
+                // Classic hit on hidden ship: attach fire to the board group so it's visible.
+                // Emitter coordinates are in targetGroup-local space; the particle system's
+                // update loop handles the group→poolParent conversion automatically.
                 this.particleSystem.addEmitter(
-                    worldX, 0.4, worldZ, 
-                    true, targetGroup, 
-                    result === 'sunk' ? this.particleSystem.blackSmokeMat.color.getStyle() : this.particleSystem.greySmokeMat.color.getStyle(), 
-                    intensity, 
+                    worldX, 0.4, worldZ,
+                    true, targetGroup,
+                    result === 'sunk' ? this.particleSystem.blackSmokeMat.color.getStyle() : this.particleSystem.greySmokeMat.color.getStyle(),
+                    intensity,
                     `ship-flame-${shipId}-${cellX}-${cellZ}`
                 );
             }
@@ -141,82 +150,8 @@ export class ImpactEffects {
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // Private helpers
+    // Persistent fire helper
     // ─────────────────────────────────────────────────────────────────────────
-
-    private handleSinking(
-        child: THREE.Object3D,
-        cellX: number, cellZ: number,
-        boardOffset: number,
-        isReplay: boolean,
-        isPlayer: boolean,
-        addRipple: AddRippleFn
-    ): void {
-        const targetGroup = isPlayer ? this.enemyBoardGroup : this.playerBoardGroup;
-
-        if (!child.userData.isSinking) {
-            child.userData.isSinking = true;
-
-            const maxLean = Config.visual.sinkingMaxAngle;
-            child.userData.sinkAngleX = (Math.random() - 0.5) * maxLean * 2;
-            child.userData.sinkAngleZ = (Math.random() - 0.5) * maxLean * 2;
-
-            this.splitShipForBreaking(child as THREE.Group, cellX, cellZ);
-        }
-
-        child.visible = true;
-
-        const shipGroup = child as THREE.Group;
-        const isHorizontal = shipGroup.userData.shipOrientation === Orientation.Horizontal;
-
-        let minX = cellX, maxX = cellX, minZ = cellZ, maxZ = cellZ;
-        for (let dx = -5; dx <= 5; dx++) {
-            if (shipGroup.userData.coversCell(cellX + dx, cellZ)) {
-                minX = Math.min(minX, cellX + dx);
-                maxX = Math.max(maxX, cellX + dx);
-            }
-        }
-        for (let dz = -5; dz <= 5; dz++) {
-            if (shipGroup.userData.coversCell(cellX, cellZ + dz)) {
-                minZ = Math.min(minZ, cellZ + dz);
-                maxZ = Math.max(maxZ, cellZ + dz);
-            }
-        }
-
-        const shipLength = Math.max(maxX - minX, maxZ - minZ) + 1;
-
-        if (isReplay) {
-            child.position.y = Config.visual.sinkingFloor;
-            child.rotation.z = child.userData.sinkAngleZ;
-            child.rotation.x = child.userData.sinkAngleX;
-
-            for (let s = 0; s < shipLength; s++) {
-                const sx = minX + (isHorizontal ? s : 0);
-                const sz = minZ + (!isHorizontal ? s : 0);
-                // Sunk ships burn at max intensity (2.0) with black smoke
-                this.addPersistentFireToShipCell(shipGroup, sx, sz, boardOffset, 2.0, this.particleSystem.blackSmokeMat.color.getStyle());
-            }
-        } else {
-            for (let s = 0; s < shipLength; s++) {
-                // More dramatic, slower explosion sequence for sinking
-                const delay = s * 0.4 + (Math.random() * 0.2);
-                const sx = minX + (isHorizontal ? s : 0);
-                const sz = minZ + (!isHorizontal ? s : 0);
-
-                const ex = sx - boardOffset + 0.5;
-                const ez = sz - boardOffset + 0.5;
-
-                const speed = Config.timing.gameSpeedMultiplier;
-                setTimeout(() => {
-                    this.particleSystem.spawnExplosion(ex, 0.4, ez, targetGroup);
-                    this.particleSystem.spawnVoxelExplosion(ex, 0.4, ez, 15, targetGroup);
-                    const rippleOnPlayerBoard = Config.rogueMode ? false : !isPlayer;
-                    addRipple(ex, ez, rippleOnPlayerBoard);
-                    this.addPersistentFireToShipCell(shipGroup, sx, sz, boardOffset, 2.0, this.particleSystem.blackSmokeMat.color.getStyle());
-                }, (delay * 1000) / speed);
-            }
-        }
-    }
 
     private addPersistentFireToShipCell(
         shipGroup: THREE.Group,
@@ -252,77 +187,10 @@ export class ImpactEffects {
         const shipId = shipGroup.userData.ship?.id || 'unknown';
         this.particleSystem.addEmitter(
             worldPos.x, worldPos.y, worldPos.z,
-            true, targetFireGroup, 
-            smokeColor, 
-            intensity, 
+            true, targetFireGroup,
+            smokeColor,
+            intensity,
             `ship-flame-${shipId}-${cellX}-${cellZ}-ship`
         );
-    }
-
-    private splitShipForBreaking(shipGroup: THREE.Group, pivotCellX: number, pivotCellZ: number): void {
-        if (shipGroup.userData.isBroken) return;
-        shipGroup.userData.isBroken = true;
-
-        const boardOffset = Config.board.width / 2;
-        const px = pivotCellX - boardOffset + 0.5 - shipGroup.position.x;
-        const pz = pivotCellZ - boardOffset + 0.5 - shipGroup.position.z;
-        const pivotPos = new THREE.Vector3(px, 0, pz);
-        shipGroup.userData.pivotPos = pivotPos;
-
-        const halfA = new THREE.Group();
-        const halfB = new THREE.Group();
-        halfA.position.copy(pivotPos);
-        halfB.position.copy(pivotPos);
-
-        shipGroup.add(halfA);
-        shipGroup.add(halfB);
-        shipGroup.userData.halfA = halfA;
-        shipGroup.userData.halfB = halfB;
-
-        const isHorizontal = shipGroup.userData.shipOrientation === Orientation.Horizontal;
-
-        const children = [...shipGroup.children];
-        children.forEach(child => {
-            if (child === halfA || child === halfB) return;
-
-            if (child instanceof THREE.InstancedMesh) {
-                const imA = child.clone();
-                const imB = child.clone();
-
-                imA.position.sub(pivotPos);
-                imB.position.sub(pivotPos);
-
-                halfA.add(imA);
-                halfB.add(imB);
-
-                const dummy = new THREE.Object3D();
-                for (let i = 0; i < child.count; i++) {
-                    child.getMatrixAt(i, dummy.matrix);
-                    dummy.matrix.decompose(dummy.position, dummy.quaternion, dummy.scale);
-
-                    const voxelLocalX = dummy.position.x + child.position.x;
-                    const voxelLocalZ = dummy.position.z + child.position.z;
-                    const isPartA = isHorizontal ? voxelLocalX < px : voxelLocalZ < pz;
-
-                    if (isPartA) {
-                        dummy.scale.set(0, 0, 0);
-                        dummy.updateMatrix();
-                        imB.setMatrixAt(i, dummy.matrix);
-                    } else {
-                        dummy.scale.set(0, 0, 0);
-                        dummy.updateMatrix();
-                        imA.setMatrixAt(i, dummy.matrix);
-                    }
-                }
-                imA.instanceMatrix.needsUpdate = true;
-                imB.instanceMatrix.needsUpdate = true;
-                shipGroup.remove(child);
-            } else {
-                const isPartA = isHorizontal ? child.position.x < px : child.position.z < pz;
-                child.position.sub(pivotPos);
-                if (isPartA) halfA.add(child);
-                else halfB.add(child);
-            }
-        });
     }
 }
